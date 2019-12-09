@@ -4,12 +4,16 @@ var program = require('commander')
 
 program
     .version('0.0.1')
+    .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .requiredOption('-s, --speed <speed>', 'Speed of vehicle in km/h')
+    .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
+    .option('-j, --json', 'output events as json')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('-d, --date <date>', 'Start date of event reporting, default to now', moment().toISOString())
-    .parse(process.argv);
+    .option('-v, --vertices', 'Emit event at vertices (change of direction)')
+    .parse(process.argv)
 
 if (program.debug) console.log(program.opts());
 
@@ -109,71 +113,91 @@ function point_on_line(c, n, d) {
     return destVincenty(c[1], c[0], brng, d)
 }
 
-var newls = []
-
-function emit(t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
-    if(s != 'v' && s!= 'f') {
+function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
+    if(s != 'v' && s != 'f') {
         dt = t
         if(sd && sd.isValid()) {
             dt = moment(sd).add(t, 's').toISOString(true)
         }
-        r = '[ ' + dt + ', [' + p[0] + ', ' + p[1]+'] ]'
-        console.log(s+r) // s+r
+        if(program.json)
+            r = JSON.stringify({
+                "lat": p[1],
+                "lon": p[0],
+                "ts": dt
+            })
+        else
+            r = '[ "' + dt + '", [' + p[0] + ', ' + p[1]+'] ]'
+
+        if(program.give)
+            console.log(r)
+        else if(program.debug)
+            console.log(s+r) // s+r
         newls.push([p[0], p[1]])
     }
 }
 
-/*
- * node emit.js filein speed(km/h) rate(s) 'date'
- * 0    1       2      3           4       5
- * add option to emit start, finish, vertices?
+/** MAIN **/
+var depth = 0
+function spit(f) {
+    depth++
+    if(program.debug) console.log(">".repeat(depth)+f.type)
+    if(f.type == "FeatureCollection") {
+        f.features.forEach(function(f1, idx) {
+            f.features[idx] = spit(f.features[idx])
+        })
+    } else if(f.type == "Feature") {
+        f.geometry = spit(f.geometry)
+    } else if(f.type == "LineString") {
+        var time = 0 // ticker
+        var accel = 0
+
+        const ls = f.coordinates
+        var lsidx = 0 // index in linestring
+        var newls = []
+
+        var currpos = ls[lsidx] // start pos
+
+        emit(newls, time, currpos, 's', startdate) // start position
+
+        while (lsidx < ls.length - 1) {
+            nextvtx = ls[lsidx + 1] // next point (local target)
+            left2vtx = distance(currpos, nextvtx) // distance to next point
+
+            while (maxstep < left2vtx) {   // we move maxstep in rate sec. towards vertex
+                time += rate
+                p = point_on_line(currpos, nextvtx, maxstep)
+                emit(newls, time, p, 'e', startdate)   // we should NOT emit at vertices
+                currpos = p
+                left2vtx -= maxstep
+            }
+
+            if (left2vtx > 0) {            // may be portion of segment left (0 < l < d)
+                st = rate * left2vtx / maxstep
+                time += st
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v', startdate) // vertex
+                currpos = nextvtx
+                left2vtx = 0
+            }
+            lsidx += 1
+        }
+        f.coordinates = newls
+        if(program.debug) console.log("new ls:"+newls.length)
+    }
+    depth--;
+    return f
+}
+
+/* MAIN
  */
-const fn = program.file
-const jsonstring = fs.readFileSync(fn, 'utf8')
-const fc = JSON.parse(jsonstring)
-const ls = fc.features[0].geometry.coordinates
-// console.log(ls.length)
+const jsonstring = fs.readFileSync(program.file, 'utf8')
 
 const rate = parseInt(program.rate) // s
 var speed = parseInt(program.speed) // km/h
 var startdate = moment(program.date)
-
 var maxstep = speed * rate / 3600 // in km, max hop
-var time = 0 // ticker
-var lsidx = 0 // index in linestring
-var currpos = ls[lsidx] // start pos
-var accel = 0
 
-function pr(s) {
-    console.log(s)
-}
+var fc = spit(JSON.parse(jsonstring))
 
-/** MAIN **/
-emit(time, currpos, 's', startdate) // start position
-
-while (lsidx < ls.length - 1) {
-    nextvtx = ls[lsidx + 1] // next point (local target)
-    left2vtx = distance(currpos, nextvtx) // distance to next point
-
-    while (maxstep < left2vtx) {   // we move maxstep in rate sec. towards vertex
-        time += rate
-        p = point_on_line(currpos, nextvtx, maxstep)
-        emit(time, p, 'e', startdate)   // we should NOT emit at vertices
-        currpos = p
-        left2vtx -= maxstep
-    }
-
-    if (left2vtx > 0) {            // may be portion of segment left (0 < l < d)
-        st = rate * left2vtx / maxstep
-        time += st
-        emit(time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v', startdate) // vertex
-        currpos = nextvtx
-        left2vtx = 0
-    }
-    lsidx += 1
-}
-
-fc.features[0].geometry.coordinates = newls
 fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 });
-console.log('out.json written, '+newls.length+' records')
+console.log('out.json written')
 
