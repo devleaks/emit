@@ -8,11 +8,13 @@ program
     .option('-d, --debug', 'output extra debugging')
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .requiredOption('-s, --speed <speed>', 'Speed of vehicle in km/h')
+    .option('-a, --accel', 'Take acceleration/deceleration into consideration')
     .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
     .option('-j, --json', 'output events as json')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
-    .option('-d, --date <date>', 'Start date of event reporting, default to now', moment().toISOString())
+    .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
+    .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
 if (program.debug) console.log(program.opts());
@@ -113,8 +115,12 @@ function point_on_line(c, n, d) {
     return destVincenty(c[1], c[0], brng, d)
 }
 
+
 function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
-    if(s != 'v' && s != 'f') {
+    var k = s.charAt(0)
+    if(    (k == 's' || k == 'e')
+        || (k == 'v' && program.vertices)
+        || (k == 'f' && program.lastPoint) ) {
         dt = t
         if(sd && sd.isValid()) {
             dt = moment(sd).add(t, 's').toISOString(true)
@@ -136,32 +142,119 @@ function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
     }
 }
 
+
+/* Attempt to manage a change of speed between edges.
+ *
+ */
+
+// Shortcut:
+// From a table (vertex index,speed at that vertex) for some vertex only,
+// we build a simple table (vertex index, speed at vertex) for all vertices
+// we also get a table (vertex index, time at that vertext).
+
+function fillSpeed(a, dft) {
+    function nexta(a, from) { // returns next array item with non undefined value
+        if( from >= (a.length-2) )
+            return
+        var i = from+1
+        while(i < a.length && typeof(a[i]) == "undefined")
+            i++
+        return i
+    }
+
+    if (typeof(a[0]) == "undefined")
+        a[0] = dft
+
+    for(var i = 1; i < a.length; i++) {
+        if (typeof(a[i]) == "undefined") {
+            var j = nexta(a, i)
+            var d = a[j]    // target value
+            var s = (d - a[i-1])/(j-i+1) // slope
+            for(var k = i; k < j; k++) {
+                a[k] = a[i-1]+(k-i+1)*s
+            }
+            i = j;
+        } // else a is set
+    }
+}//must check that there are no 2 speeds=0 following each other with d>0
+
+
+function eta(ls,speed) {
+    function sec2hms(i) {
+        totalSeconds = Math.round(i * 3600)
+        hours = Math.floor(totalSeconds / 3600)
+        totalSeconds %= 3600
+        minutes = Math.floor(totalSeconds / 60)
+        seconds = totalSeconds % 60
+        minutes = String(minutes).padStart(2, "0")
+        hours = String(hours).padStart(2, "0")
+        seconds = String(seconds).padStart(2, "0")
+        var msec = Math.round(totalSeconds*1000)/1000
+        return hours + ":" + minutes + ":" + seconds // + "." + msec
+    }
+
+    var eta = []
+    eta[0] = 0
+    for(var i = 1; i < speed.length; i++) {
+        var t = 0
+        var d = distance(ls[i-1],ls[i])
+        if(speed[i-1] != speed[i]) {
+            t = 2 * d / Math.abs(speed[i]+speed[i-1]) // acceleration is uniform, so average speed is OK for segment.
+        } else {
+            t = d / Math.max(speed[i-1],speed[i])
+        }
+        eta[i] = eta[i-1] + t
+        if(program.debug)
+            console.log("v"+i,Math.round(1000*d)/1000,speed[i-1],speed[i],Math.round(3600000*t)/1000,sec2hms(t,2),sec2hms(eta[i],2))
+    }
+    return eta
+}
+
+function time2vtx(p, idx, ls, sp) {
+    var d  = distance(p, ls[idx+1])
+    var de = distance(ls[idx], ls[idx+1])
+    var vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
+    return 2 * d / (vp+speed[idx+1])                    // again, we assume constant acceleration so avg speed is fine
+}   
+
+
+function getMaxstep(ls, speeds, dft) {
+    return dft
+}
+
+
 /** MAIN **/
 var depth = 0
-function spit(f) {
+function spit(f, speed, rate, startdate) {
     depth++
     if(program.debug) console.log(">".repeat(depth)+f.type)
     if(f.type == "FeatureCollection") {
         f.features.forEach(function(f1, idx) {
-            f.features[idx] = spit(f.features[idx])
+            f.features[idx] = spit(f.features[idx], speed, rate, startdate)
         })
     } else if(f.type == "Feature") {
-        f.geometry = spit(f.geometry)
+        f.geometry = spit(f.geometry, speed, rate, startdate)
     } else if(f.type == "LineString") {
         var time = 0 // ticker
-        var accel = 0
 
-        const ls = f.coordinates
-        var lsidx = 0 // index in linestring
-        var newls = []
+        const ls = f.coordinates    // coordinates of linestring
+        var newls = []              // coordinates of new linestring
+        var speeds = []             // variable speeds
+        var lsidx = 0               // index in linestring
 
-        var currpos = ls[lsidx] // start pos
+        speeds[ls.length-1] = speed  // init constant speed array
 
-        emit(newls, time, currpos, 's', startdate) // start position
+        fillSpeed(speeds, speed)
+        eta(ls, speeds)
 
-        while (lsidx < ls.length - 1) {
+        var currpos = ls[lsidx]     // start pos
+        emit(newls, time, currpos, 's', startdate) // emit it
+
+        while (lsidx < ls.length - 1) { // note: currpos is between ls[lsidx] and ls[lsidx+1]
             nextvtx = ls[lsidx + 1] // next point (local target)
             left2vtx = distance(currpos, nextvtx) // distance to next point
+
+            var maxstep = getMaxstep(ls, speeds, speed * rate / 3600)
 
             while (maxstep < left2vtx) {   // we move maxstep in rate sec. towards vertex
                 time += rate
@@ -169,12 +262,13 @@ function spit(f) {
                 emit(newls, time, p, 'e', startdate)   // we should NOT emit at vertices
                 currpos = p
                 left2vtx -= maxstep
+                maxstep = getMaxstep(ls, speeds, speed * rate / 3600)
             }
 
-            if (left2vtx > 0) {            // may be portion of segment left (0 < l < d)
+            if (left2vtx > 0) {     // may be portion of segment left (0 < l < d)
                 st = rate * left2vtx / maxstep
                 time += st
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v', startdate) // vertex
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate) // vertex
                 currpos = nextvtx
                 left2vtx = 0
             }
@@ -193,10 +287,11 @@ const jsonstring = fs.readFileSync(program.file, 'utf8')
 
 const rate = parseInt(program.rate) // s
 var speed = parseInt(program.speed) // km/h
-var startdate = moment(program.date)
-var maxstep = speed * rate / 3600 // in km, max hop
+var startdate = moment(program.startDate)
+if(program.debug)
+    console.log('date:'+startdate.isValid())
 
-var fc = spit(JSON.parse(jsonstring))
+var fc = spit(JSON.parse(jsonstring), speed, rate, startdate)
 
 fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 });
 console.log('out.json written')
