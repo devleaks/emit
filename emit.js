@@ -179,20 +179,20 @@ function fillSpeed(a, dft) {
 }//must check that there are no 2 speeds=0 following each other with d>0
 
 
-function eta(ls,speed) {
-    function sec2hms(i) {
-        totalSeconds = Math.round(i * 3600)
-        hours = Math.floor(totalSeconds / 3600)
-        totalSeconds %= 3600
-        minutes = Math.floor(totalSeconds / 60)
-        seconds = totalSeconds % 60
-        minutes = String(minutes).padStart(2, "0")
-        hours = String(hours).padStart(2, "0")
-        seconds = String(seconds).padStart(2, "0")
-        var msec = Math.round(totalSeconds*1000)/1000
-        return hours + ":" + minutes + ":" + seconds // + "." + msec
-    }
+function sec2hms(i) {
+    totalSeconds = Math.round(i * 3600)
+    hours = Math.floor(totalSeconds / 3600)
+    totalSeconds %= 3600
+    minutes = Math.floor(totalSeconds / 60)
+    seconds = totalSeconds % 60
+    minutes = String(minutes).padStart(2, "0")
+    hours = String(hours).padStart(2, "0")
+    seconds = String(seconds).padStart(2, "0")
+    var msec = Math.round(totalSeconds*1000)/1000
+    return hours + ":" + minutes + ":" + seconds // + "." + msec
+}
 
+function eta(ls,speed) {
     var eta = []
     eta[0] = 0
     for(var i = 1; i < speed.length; i++) {
@@ -214,7 +214,10 @@ function time2vtx(p, idx, ls, sp) {
     var d  = distance(p, ls[idx+1])
     var de = distance(ls[idx], ls[idx+1])
     var vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
-    return 2 * d / (vp+speed[idx+1])                    // again, we assume constant acceleration so avg speed is fine
+    var t = 2 * d / (vp+sp[idx+1])                    // again, we assume constant acceleration so avg speed is fine
+    if(program.debug)
+        console.log('to ', idx+1, Math.round(t * 3600))
+    return t
 }   
 
 
@@ -255,6 +258,7 @@ function spit(f, speed, rate, startdate) {
             left2vtx = distance(currpos, nextvtx) // distance to next point
 
             var maxstep = getMaxstep(ls, speeds, speed * rate / 3600)
+            var timeleft = time2vtx(currpos, lsidx, ls, speeds)
 
             while (maxstep < left2vtx) {   // we move maxstep in rate sec. towards vertex
                 time += rate
