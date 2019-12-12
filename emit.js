@@ -2,6 +2,7 @@ var fs = require('fs');
 var moment = require('moment')
 var program = require('commander')
 
+// @todo: change zigzag option to action
 program
     .version('0.0.1')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
@@ -11,10 +12,12 @@ program
     .option('-a, --accel', 'Take acceleration/deceleration into consideration')
     .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
     .option('-j, --json', 'output events as json')
+    .option('-p, --points', 'add points to feature collection')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
+    .option('-z, --zigzag', 'Generate demo file')
     .parse(process.argv)
 
 if (program.debug) console.log(program.opts());
@@ -112,11 +115,67 @@ function distance(p1, p2) {
 
 function point_on_line(c, n, d) {
     var brng = bearing(c[1], c[0], n[1], n[0])
-    return destVincenty(c[1], c[0], brng, d)
+    return destVincenty(c[1], c[0], brng, 1000 * d) // distance must be in meter
 }
 
 
-function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
+function get_speed(currpos, lsidx, ls, speeds) { // linear acceleration
+    var totald = distance(ls[lsidx], ls[lsidx+1])
+    var s = 0
+    if(totald == 0) {
+        s = speeds[lsidx+1]
+    } else {
+        var partiald = distance(ls[lsidx], currpos)
+        var portion = partiald/totald
+        s = speeds[lsidx] + portion * (speeds[lsidx+1] - speeds[lsidx])
+    }
+    return s
+}
+
+
+// we're at currpos, heading to nextvtx
+// we move rate seconds in that direction
+// returns where we land after rate seconds
+function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
+    // We are at currpos, between ls[lsidx] and ls[lsidx+1]. We go towards ls[idx+1] for rate seconds.
+    // 1. What is the speed at currpos. We assume linear accelleration.
+    var totald = distance(ls[lsidx], ls[lsidx+1])
+    var partiald = distance(ls[lsidx], currpos)
+    var leftd = totald - partiald // leftd = distance(currpos, ls[lsidx+1])
+    var portion = partiald/totald
+    var v0 = speeds[lsidx] + portion * (speeds[lsidx+1] - speeds[lsidx])
+    var v1 = speeds[lsidx+1]
+    var acc = (speeds[lsidx+1]*speeds[lsidx+1]-speeds[lsidx]*speeds[lsidx])/(2*totald)
+
+    // 2. Given the speedatcurrpos and speeds[idx+1] at ls[idx+1] how far do we travel duing rate seconds?
+    var hourrate = rate / 3600
+    var dist = v0 * hourrate + acc * hourrate * hourrate / 2
+
+    var nextpos = point_on_line(currpos, ls[lsidx+1], dist) 
+
+    console.log({
+        "prevvtx": ll(ls[lsidx]),
+        "startp": ll(currpos),
+        "nextvtx": ll(ls[lsidx+1]),
+        "nextpos": ll(nextpos),
+        "totald": totald,
+        "covered": partiald,
+        "lefd": leftd,
+        "prevspeed": speeds[lsidx],
+        "nextspeed": speeds[lsidx+1],
+        "currspeed": v0,
+        "accel": acc,
+        "time": rate,
+        "time/h": rate/3600,
+        "dist": dist,
+        "leftvtx": distance(nextpos,ls[lsidx+1])
+     })
+
+    return nextpos
+}
+
+
+function emit(newls, t, p, s, sd, pts, spd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
     if(    (k == 's' || k == 'e')
         || (k == 'v' && program.vertices)
@@ -139,6 +198,17 @@ function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
         else if(program.debug)
             console.log(s+r) // s+r
         newls.push([p[0], p[1]])
+        pts.push({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": p
+            },
+            "properties": {
+                "timestamp": dt,
+                "speed": spd
+            }
+        })
     }
 }
 
@@ -153,11 +223,11 @@ function emit(newls, t, p, s, sd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
 // we also get a table (vertex index, time at that vertext).
 
 function fillSpeed(a, dft) {
-    function nexta(a, from) { // returns next array item with non undefined value
-        if( from >= (a.length-2) )
-            return
+    function nexta(arr, from) { // returns next array item index with non undefined value
+        if( from == (arr.length-1) )
+            return from
         var i = from+1
-        while(i < a.length && typeof(a[i]) == "undefined")
+        while(i < arr.length && typeof(arr[i]) == "undefined")
             i++
         return i
     }
@@ -176,7 +246,7 @@ function fillSpeed(a, dft) {
             i = j;
         } // else a is set
     }
-}//must check that there are no 2 speeds=0 following each other with d>0
+}//@@todomust check that there are no 2 speeds=0 following each other with d>0
 
 
 function sec2hms(i) {
@@ -212,12 +282,26 @@ function eta(ls,speed) {
 
 function time2vtx(p, idx, ls, sp) {
     var d  = distance(p, ls[idx+1])
+    var d0  = distance(ls[idx], p)
     var de = distance(ls[idx], ls[idx+1])
-    var vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
-    var t = 2 * d / (vp+sp[idx+1])                    // again, we assume constant acceleration so avg speed is fine
+    var vp = 0
+    if(d0 == 0)
+        vp = sp[idx]
+    else if(d == 0)
+        vp = sp[idx+1]
+    else
+        vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
+
+    console.log('time2vtx ', d, de, sp[idx], sp[idx+1], vp)
+
+    var t = 0
+    if((vp+sp[idx+1]) != 0)
+        t = 2 * d / (vp+sp[idx+1])                      // again, we assume constant acceleration so avg speed is fine
+
+    var r = Math.round(t * 3600000)/1000
     if(program.debug)
-        console.log('to ', idx+1, Math.round(t * 3600))
-    return t
+        console.log('to ', idx+1, d+" km left", r+" seconds")
+    return r
 }   
 
 
@@ -225,9 +309,22 @@ function getMaxstep(ls, speeds, dft) {
     return dft
 }
 
+function ll(p, n = 4) {
+    r = Math.pow(10, n)
+    return "("+Math.round(p[1]*r) / r + ',' + Math.round(p[0]*r) / r+")"
+}
+
+function rn(p, n = 4) {
+    r = Math.pow(10, n)
+    return Math.round(p*r) / r
+}
+
+
 
 /** MAIN **/
 var depth = 0
+var points = []             // points where position is broadcasted
+var stop = 0
 function spit(f, speed, rate, startdate) {
     depth++
     if(program.debug) console.log(">".repeat(depth)+f.type)
@@ -235,6 +332,11 @@ function spit(f, speed, rate, startdate) {
         f.features.forEach(function(f1, idx) {
             f.features[idx] = spit(f.features[idx], speed, rate, startdate)
         })
+        console.log("adding..")
+        if(points.length > 0 && program.points) {
+            f.features = f.features.concat(points)
+            console.log("..added")
+        }
     } else if(f.type == "Feature") {
         f.geometry = spit(f.geometry, speed, rate, startdate)
     } else if(f.type == "LineString") {
@@ -246,43 +348,136 @@ function spit(f, speed, rate, startdate) {
         var lsidx = 0               // index in linestring
 
         speeds[ls.length-1] = speed  // init constant speed array
+        speeds[1] = 0
 
         fillSpeed(speeds, speed)
-        eta(ls, speeds)
 
+        eta(ls, speeds)
+        console.log(speeds)
+
+        var maxstep = speed * rate / 3600
         var currpos = ls[lsidx]     // start pos
-        emit(newls, time, currpos, 's', startdate) // emit it
+        emit(newls, time, currpos, 's', startdate, points, speeds[0]) // emit it
+        var timeleft2vtx = 0  // time to next point
+        var to_next_emit = rate
 
         while (lsidx < ls.length - 1) { // note: currpos is between ls[lsidx] and ls[lsidx+1]
-            nextvtx = ls[lsidx + 1] // next point (local target)
-            left2vtx = distance(currpos, nextvtx) // distance to next point
+            var nextvtx = ls[lsidx + 1] // next point (local target)
+            timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)  // time to next point
+            console.log(timeleft2vtx + " sec available",rate,to_next_emit)
+            stop++
 
-            var maxstep = getMaxstep(ls, speeds, speed * rate / 3600)
-            var timeleft = time2vtx(currpos, lsidx, ls, speeds)
-
-            while (maxstep < left2vtx) {   // we move maxstep in rate sec. towards vertex
-                time += rate
-                p = point_on_line(currpos, nextvtx, maxstep)
-                emit(newls, time, p, 'e', startdate)   // we should NOT emit at vertices
-                currpos = p
-                left2vtx -= maxstep
-                maxstep = getMaxstep(ls, speeds, speed * rate / 3600)
-            }
-
-            if (left2vtx > 0) {     // may be portion of segment left (0 < l < d)
-                st = rate * left2vtx / maxstep
-                time += st
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate) // vertex
+            if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit) ) {     // may be portion of segment left
+                console.log("DOING even more.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
+                time += timeleft2vtx
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1]) // vertex
                 currpos = nextvtx
-                left2vtx = 0
+                to_next_emit -= timeleft2vtx // time left before next emit
+                console.log(timeleft2vtx + " sec left before next emit")
+            } else {
+                while (rate < timeleft2vtx) {   // we will report position(s) before reaching the vertice
+                    console.log("DOING.. ("+stop+")", rate, timeleft2vtx)
+                    time += rate
+                    p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
+                    console.log("in "+ rate + " sec moved",distance(currpos,p)+" km")
+                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds))
+                    currpos = p
+                    timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)
+                    console.log("..DONE", rate, timeleft2vtx)
+
+                    //if(stop++ == 4) return
+                }
+
+                if (timeleft2vtx > 0) {     // may be portion of segment left
+                    console.log("DOING more.. ("+stop+")", nextvtx, timeleft2vtx)
+                    time += timeleft2vtx
+                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1]) // vertex
+                    currpos = nextvtx
+                    to_next_emit = rate - timeleft2vtx // time left before next emit
+                    console.log(timeleft2vtx + " sec left before next emit")
+                }
             }
+
             lsidx += 1
         }
         f.coordinates = newls
         if(program.debug) console.log("new ls:"+newls.length)
     }
-    depth--;
+    depth--
     return f
+}
+
+// limited zigzag funtion, for points in northern, east hemisphere. d should be < 1000km
+function zigzag(start, dst, cnt) {
+    var fc = []
+    var ls = []
+
+    if(program.points)
+        fc.push({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": start
+            },
+            "properties": {
+                "sequence": 0,
+                "speed": 10
+            }
+        })
+    ls.push(start)
+
+    var curr = start
+    for (var i = 1; i <= cnt; i++) {
+        var p = point_on_line(curr, [curr[0]+10,curr[1]], dst) // go east
+        p[1] = curr[1] // force horiz
+        if(program.points)
+            fc.push({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": p
+                },
+                "properties": {
+                    "sequence": 0,
+                    "speed": 10
+                }
+            })
+        ls.push(p)
+
+        var p1 = point_on_line(p, [p[0],0], dst) // go south
+        p1[0] = p[0] // force vert
+        if(program.points)
+            fc.push({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": p1
+                },
+                "properties": {
+                    "sequence": i,
+                    "speed": 10
+                }
+            })
+        ls.push(p1)
+
+        curr = p1        
+    }
+
+    if(ls.length > 1) {
+        fc.push({
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": ls
+            },
+            "properties": {}
+        })
+    }
+
+    return {
+        "type": "FeatureCollection",
+        "features": fc
+    }
 }
 
 /* MAIN
@@ -299,4 +494,10 @@ var fc = spit(JSON.parse(jsonstring), speed, rate, startdate)
 
 fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 });
 console.log('out.json written')
+
+if(program.zigzag) {
+    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10000,1)), { mode: 0o644 });
+    console.log('zigzag.json written')
+}
+
 

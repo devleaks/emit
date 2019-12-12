@@ -1,0 +1,119 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.167694091796875,
+          50.697327508282655
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.346221923828125,
+          50.69993703317144
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.3448486328125,
+          50.60764573009061
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.53985595703125,
+          50.60764573009061
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.53985595703125,
+          50.49683143935277
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.741729736328124,
+          50.501199132933344
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.747222900390625,
+          50.37875100137005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            5.167694091796875,
+            50.69993703317144
+          ],
+          [
+            5.34759521484375,
+            50.69993703317144
+          ],
+          [
+            5.343475341796875,
+            50.608517250113955
+          ],
+          [
+            5.538482666015625,
+            50.60764573009061
+          ],
+          [
+            5.541229248046875,
+            50.49595785216966
+          ],
+          [
+            5.74310302734375,
+            50.501199132933344
+          ],
+          [
+            5.748596191406249,
+            50.37962675429052
+          ]
+        ]
+      }
+    }
+  ]
+}
