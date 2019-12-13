@@ -15,6 +15,7 @@ program
     .option('-p, --points', 'add points to feature collection')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
+    .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .option('-z, --zigzag', 'Generate demo file')
@@ -206,6 +207,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
             },
             "properties": {
                 "timestamp": dt,
+                "sequence": pts.length,
                 "speed": spd,
                 "note": cmt
             }
@@ -224,6 +226,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
 // we also get a table (vertex index, time at that vertext).
 
 function fillSpeed(a, dft) {
+    const minSpeed = program.minSpeed
     function nexta(arr, from) { // returns next array item index with non undefined value
         if( from == (arr.length-1) )
             return from
@@ -234,18 +237,20 @@ function fillSpeed(a, dft) {
     }
 
     if (typeof(a[0]) == "undefined")
-        a[0] = dft
+        a[0] = dft < minSpeed ? minSpeed : dft
 
     for(var i = 1; i < a.length; i++) {
         if (typeof(a[i]) == "undefined") {
             var j = nexta(a, i)
-            var d = a[j]    // target value
+            var d = a[j] < minSpeed ? minSpeed : a[j] // target value
             var s = (d - a[i-1])/(j-i+1) // slope
             for(var k = i; k < j; k++) {
                 a[k] = a[i-1]+(k-i+1)*s
             }
             i = j
-        } // else a is set
+        } else {
+            a[i] = a[i] < minSpeed ? minSpeed : a[i]
+        }// else a is set
     }
 }//@@todomust check that there are no 2 speeds=0 following each other with d>0
 
@@ -280,7 +285,7 @@ function eta(ls,speed) {
     return eta
 }
 
-function time2vtx(p, idx, ls, sp) {
+function time2vtx(p, idx, ls, sp, rate) {
     var d  = distance(p, ls[idx+1])
     var d0  = distance(ls[idx], p)
     var de = distance(ls[idx], ls[idx+1])
@@ -290,7 +295,9 @@ function time2vtx(p, idx, ls, sp) {
     else if(d == 0)
         vp = sp[idx+1]
     else
-        vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
+        vp = sp[idx] + (d0/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
+
+    vp = vp < 5 ? 5 : vp
 
     debug('time2vtx ', d, de, sp[idx], sp[idx+1], vp)
 
@@ -300,6 +307,13 @@ function time2vtx(p, idx, ls, sp) {
 
     var r = Math.round(t * 3600000)/1000
     debug('>>> TO', idx+1, d+" km left", r+" secs needed")
+    // control
+    p1 = point_in_rate_sec(p, rate, idx, ls, sp)
+    d1 = distance(p1, ls[idx+1])
+    p2 = point_in_rate_sec(p, r, idx, ls, sp)
+    d2 = distance(p2, ls[idx+1])
+    debug('>>> control', d0, d, de, "2ratio="+(d/de) * (sp[idx+1] - sp[idx]), sp[idx], sp[idx+1], r, p1, d1, p2, d2)
+
     return r
 }   
 
@@ -323,44 +337,57 @@ var depth = 0
 var points = []             // points where position is broadcasted
 var stop = 0
 function spit(f, speed, rate, startdate) {
+    var speeds = []             // variable speeds
+    var hasSpeedsAtVertices = false
     depth++
     debug(">".repeat(depth)+f.type)
     if(f.type == "FeatureCollection") {
         f.features.forEach(function(f1, idx) {
             f.features[idx] = spit(f.features[idx], speed, rate, startdate)
         })
-        debug("adding..")
         if(points.length > 0 && program.points) {
             f.features = f.features.concat(points)
-            debug("..added")
         }
     } else if(f.type == "Feature") {
+        if(f.geometry.type == "LineString" && f.properties && f.properties.speedsAtVertices) {
+          speeds = f.properties.speedsAtVertices
+          hasSpeedsAtVertices = (speeds.length > 0)
+          debug('speeds',speedsAtVertices)
+        }
         f.geometry = spit(f.geometry, speed, rate, startdate)
+        if(!f.properties) { // add array of speeds at vertices
+          f.properties = {}
+          f.properties.speedsAtVertices = speeds
+        } else {
+          f.properties.speedsAtVertices = speeds
+        }
     } else if(f.type == "LineString") {
-        var time = 0 // ticker
-
         const ls = f.coordinates    // coordinates of linestring
+        var time = 0                // ticker
         var newls = []              // coordinates of new linestring
-        var speeds = []             // variable speeds
         var lsidx = 0               // index in linestring
 
-        speeds[ls.length-1] = speed  // init constant speed array
-        speeds[1] = 0
+        if(! hasSpeedsAtVertices) {
+          speeds = []               // variable speeds
+          speeds[ls.length-1] = speed
+          // speeds[1] = 0
+        } else
+          hasSpeedsAtVertices = false
 
-        fillSpeed(speeds, speed)
 
+        fillSpeed(speeds, speed)     // init speed array
         eta(ls, speeds)
         debug(speeds)
 
         var maxstep = speed * rate / 3600
         var currpos = ls[lsidx]     // start pos
-        emit(newls, time, currpos, 's', startdate, points, speeds[0], 'start') // emit it
+        emit(newls, time, currpos, 's', startdate, points, speeds[0], "start") // emit it
         var timeleft2vtx = 0  // time to next point
         var to_next_emit = rate
 
         while (lsidx < ls.length - 1) { // note: currpos is between ls[lsidx] and ls[lsidx+1]
             var nextvtx = ls[lsidx + 1] // next point (local target)
-            timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)  // time to next point
+            timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)  // time to next point
             debug(timeleft2vtx + " sec to next vertex",rate,to_next_emit)
             stop++
 
@@ -368,7 +395,7 @@ function spit(f, speed, rate, startdate) {
                 debug("moving from vertex with time remaining.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
                 time += to_next_emit
                 p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), 'moving from edge with time remaining')
+                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining ("+lsidx+")")
                 var d0 = distance(currpos,p)
                 //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
                 currpos = p
@@ -378,7 +405,7 @@ function spit(f, speed, rate, startdate) {
             if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit) ) {     // may be portion of segment left
                 debug("moving to next vertex with time left.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
                 time += timeleft2vtx
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], 'moving to edge with time remaining') // vertex
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining ("+lsidx+")") // vertex
                 currpos = nextvtx
                 to_next_emit -= timeleft2vtx // time left before next emit
                 //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
@@ -388,9 +415,9 @@ function spit(f, speed, rate, startdate) {
                     time += rate
                     p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
                     debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
-                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), 'en route')
+                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route("+lsidx+")")
                     currpos = p
-                    timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)
+                    timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)
                     //debug("..done moving on edge", rate, timeleft2vtx)
 
                     //if(stop++ == 4) return
@@ -400,7 +427,7 @@ function spit(f, speed, rate, startdate) {
                     var d0 = distance(currpos,nextvtx)
                     debug("jumping to next vertex.. ("+stop+")", nextvtx, d0+" km", timeleft2vtx+" secs")
                     time += timeleft2vtx
-                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? 'at last vertex' : 'at vertex') // vertex
+                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? "at last vertex("+lsidx+")" : "at vertex("+lsidx+")") // vertex
                     currpos = nextvtx
                     to_next_emit = rate - timeleft2vtx // time left before next emit
                     //debug(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
@@ -410,7 +437,7 @@ function spit(f, speed, rate, startdate) {
             lsidx += 1
         }
         f.coordinates = newls
-        debug("new ls:"+newls.length)
+        console.log("new ls:"+newls.length)
     }
     depth--
     return f
@@ -504,7 +531,7 @@ fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 })
 console.log('out.json written')
 
 if(program.zigzag) {
-    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10000,1)), { mode: 0o644 })
+    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10,4)), { mode: 0o644 })
     console.log('zigzag.json written')
 }
 
