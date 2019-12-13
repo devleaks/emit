@@ -20,7 +20,7 @@ program
     .option('-z, --zigzag', 'Generate demo file')
     .parse(process.argv)
 
-if (program.debug) console.log(program.opts());
+debug(program.opts())
 
 /*!
  * JavaScript function to calculate the destination point given start point latitude / longitude (numeric degrees), bearing (numeric degrees) and distance (in m).
@@ -30,11 +30,11 @@ if (program.debug) console.log(program.opts());
  * Based on the Vincenty direct formula by T. Vincenty, “Direct and Inverse Solutions of Geodesics on the Ellipsoid with application of nested equations”, Survey Review, vol XXII no 176, 1975 <http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf>
  */
 function toRad(n) {
-    return n * Math.PI / 180;
+    return n * Math.PI / 180
 }
 
 function toDeg(n) {
-    return n * 180 / Math.PI;
+    return n * 180 / Math.PI
 }
 
 function destVincenty(lat1, lon1, brng, dist) {
@@ -55,56 +55,56 @@ function destVincenty(lat1, lon1, brng, dist) {
         A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq))),
         B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq))),
         sigma = s / (b * A),
-        sigmaP = 2 * Math.PI;
+        sigmaP = 2 * Math.PI
     while (Math.abs(sigma - sigmaP) > 1e-12) {
         var cos2SigmaM = Math.cos(2 * sigma1 + sigma),
             sinSigma = Math.sin(sigma),
             cosSigma = Math.cos(sigma),
-            deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) - B / 6 * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM)));
-        sigmaP = sigma;
-        sigma = s / (b * A) + deltaSigma;
+            deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) - B / 6 * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM)))
+        sigmaP = sigma
+        sigma = s / (b * A) + deltaSigma
     };
     var tmp = sinU1 * sinSigma - cosU1 * cosSigma * cosAlpha1,
         lat2 = Math.atan2(sinU1 * cosSigma + cosU1 * sinSigma * cosAlpha1, (1 - f) * Math.sqrt(sinAlpha * sinAlpha + tmp * tmp)),
         lambda = Math.atan2(sinSigma * sinAlpha1, cosU1 * cosSigma - sinU1 * sinSigma * cosAlpha1),
         C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha)),
         L = lambda - (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM))),
-        revAz = Math.atan2(sinAlpha, -tmp); // final bearing
-    return [lon1 + toDeg(L), toDeg(lat2)];
+        revAz = Math.atan2(sinAlpha, -tmp) // final bearing
+    return [lon1 + toDeg(L), toDeg(lat2)]
 }
 
 function bearing(startLat, startLng, destLat, destLng) {
-    startLat = toRad(startLat);
-    startLng = toRad(startLng);
-    destLat = toRad(destLat);
-    destLng = toRad(destLng);
+    startLat = toRad(startLat)
+    startLng = toRad(startLng)
+    destLat = toRad(destLat)
+    destLng = toRad(destLng)
 
-    y = Math.sin(destLng - startLng) * Math.cos(destLat);
+    y = Math.sin(destLng - startLng) * Math.cos(destLat)
     x = Math.cos(startLat) * Math.sin(destLat) -
-        Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
-    brng = Math.atan2(y, x);
-    brng = toDeg(brng);
-    return (brng + 360) % 360;
+        Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng)
+    brng = Math.atan2(y, x)
+    brng = toDeg(brng)
+    return (brng + 360) % 360
 }
 
 function distance_int(lat1, lon1, lat2, lon2, unit) {
     if ((lat1 == lat2) && (lon1 == lon2)) {
-        return 0;
+        return 0
     } else {
-        var radlat1 = Math.PI * lat1 / 180;
-        var radlat2 = Math.PI * lat2 / 180;
-        var theta = lon1 - lon2;
-        var radtheta = Math.PI * theta / 180;
-        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+        var radlat1 = Math.PI * lat1 / 180
+        var radlat2 = Math.PI * lat2 / 180
+        var theta = lon1 - lon2
+        var radtheta = Math.PI * theta / 180
+        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta)
         if (dist > 1) {
-            dist = 1;
+            dist = 1
         }
-        dist = Math.acos(dist);
-        dist = dist * 180 / Math.PI;
-        dist = dist * 60 * 1.1515;
+        dist = Math.acos(dist)
+        dist = dist * 180 / Math.PI
+        dist = dist * 60 * 1.1515
         if (unit == "K") { dist = dist * 1.609344 }
         if (unit == "N") { dist = dist * 0.8684 }
-        return dist;
+        return dist
     }
 }
 
@@ -153,7 +153,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 
     var nextpos = point_on_line(currpos, ls[lsidx+1], dist) 
 
-    console.log({
+    debug({
         "prevvtx": ll(ls[lsidx]),
         "startp": ll(currpos),
         "nextvtx": ll(ls[lsidx+1]),
@@ -175,7 +175,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 }
 
 
-function emit(newls, t, p, s, sd, pts, spd) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
+function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
     if(    (k == 's' || k == 'e')
         || (k == 'v' && program.vertices)
@@ -195,8 +195,8 @@ function emit(newls, t, p, s, sd, pts, spd) {    //s=(s)tart, (e)dge, (v)ertex, 
 
         if(program.give)
             console.log(r)
-        else if(program.debug)
-            console.log(s+r) // s+r
+        else
+            debug(s+r) // s+r
         newls.push([p[0], p[1]])
         pts.push({
             "type": "Feature",
@@ -206,7 +206,8 @@ function emit(newls, t, p, s, sd, pts, spd) {    //s=(s)tart, (e)dge, (v)ertex, 
             },
             "properties": {
                 "timestamp": dt,
-                "speed": spd
+                "speed": spd,
+                "note": cmt
             }
         })
     }
@@ -243,7 +244,7 @@ function fillSpeed(a, dft) {
             for(var k = i; k < j; k++) {
                 a[k] = a[i-1]+(k-i+1)*s
             }
-            i = j;
+            i = j
         } // else a is set
     }
 }//@@todomust check that there are no 2 speeds=0 following each other with d>0
@@ -274,8 +275,7 @@ function eta(ls,speed) {
             t = d / Math.max(speed[i-1],speed[i])
         }
         eta[i] = eta[i-1] + t
-        if(program.debug)
-            console.log("v"+i,Math.round(1000*d)/1000,speed[i-1],speed[i],Math.round(3600000*t)/1000,sec2hms(t,2),sec2hms(eta[i],2))
+        debug("v"+i,Math.round(1000*d)/1000,speed[i-1],speed[i],Math.round(3600000*t)/1000,sec2hms(t,2),sec2hms(eta[i],2))
     }
     return eta
 }
@@ -292,22 +292,16 @@ function time2vtx(p, idx, ls, sp) {
     else
         vp = sp[idx] + (d/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
 
-    console.log('time2vtx ', d, de, sp[idx], sp[idx+1], vp)
+    debug('time2vtx ', d, de, sp[idx], sp[idx+1], vp)
 
     var t = 0
     if((vp+sp[idx+1]) != 0)
         t = 2 * d / (vp+sp[idx+1])                      // again, we assume constant acceleration so avg speed is fine
 
     var r = Math.round(t * 3600000)/1000
-    if(program.debug)
-        console.log('to ', idx+1, d+" km left", r+" seconds")
+    debug('>>> TO', idx+1, d+" km left", r+" secs needed")
     return r
 }   
-
-
-function getMaxstep(ls, speeds, dft) {
-    return dft
-}
 
 function ll(p, n = 4) {
     r = Math.pow(10, n)
@@ -319,7 +313,10 @@ function rn(p, n = 4) {
     return Math.round(p*r) / r
 }
 
-
+function debug(...args) {
+  if(program.debug)
+    console.log(args)
+}
 
 /** MAIN **/
 var depth = 0
@@ -327,15 +324,15 @@ var points = []             // points where position is broadcasted
 var stop = 0
 function spit(f, speed, rate, startdate) {
     depth++
-    if(program.debug) console.log(">".repeat(depth)+f.type)
+    debug(">".repeat(depth)+f.type)
     if(f.type == "FeatureCollection") {
         f.features.forEach(function(f1, idx) {
             f.features[idx] = spit(f.features[idx], speed, rate, startdate)
         })
-        console.log("adding..")
+        debug("adding..")
         if(points.length > 0 && program.points) {
             f.features = f.features.concat(points)
-            console.log("..added")
+            debug("..added")
         }
     } else if(f.type == "Feature") {
         f.geometry = spit(f.geometry, speed, rate, startdate)
@@ -353,55 +350,67 @@ function spit(f, speed, rate, startdate) {
         fillSpeed(speeds, speed)
 
         eta(ls, speeds)
-        console.log(speeds)
+        debug(speeds)
 
         var maxstep = speed * rate / 3600
         var currpos = ls[lsidx]     // start pos
-        emit(newls, time, currpos, 's', startdate, points, speeds[0]) // emit it
+        emit(newls, time, currpos, 's', startdate, points, speeds[0], 'start') // emit it
         var timeleft2vtx = 0  // time to next point
         var to_next_emit = rate
 
         while (lsidx < ls.length - 1) { // note: currpos is between ls[lsidx] and ls[lsidx+1]
             var nextvtx = ls[lsidx + 1] // next point (local target)
             timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)  // time to next point
-            console.log(timeleft2vtx + " sec available",rate,to_next_emit)
+            debug(timeleft2vtx + " sec to next vertex",rate,to_next_emit)
             stop++
 
+            if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx > to_next_emit) ) {     // If next vertex far away, we move during to_next_emit on edge and emit
+                debug("moving from vertex with time remaining.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
+                time += to_next_emit
+                p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
+                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), 'moving from edge with time remaining')
+                var d0 = distance(currpos,p)
+                //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
+                currpos = p
+                to_next_emit = rate // time left before next emit
+            }
+
             if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit) ) {     // may be portion of segment left
-                console.log("DOING even more.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
+                debug("moving to next vertex with time left.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
                 time += timeleft2vtx
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1]) // vertex
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], 'moving to edge with time remaining') // vertex
                 currpos = nextvtx
                 to_next_emit -= timeleft2vtx // time left before next emit
-                console.log(timeleft2vtx + " sec left before next emit")
+                //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
             } else {
                 while (rate < timeleft2vtx) {   // we will report position(s) before reaching the vertice
-                    console.log("DOING.. ("+stop+")", rate, timeleft2vtx)
+                    debug("moving on edge.. ("+stop+")", rate, timeleft2vtx)
                     time += rate
                     p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                    console.log("in "+ rate + " sec moved",distance(currpos,p)+" km")
-                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds))
+                    debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
+                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), 'en route')
                     currpos = p
                     timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds)
-                    console.log("..DONE", rate, timeleft2vtx)
+                    //debug("..done moving on edge", rate, timeleft2vtx)
 
                     //if(stop++ == 4) return
                 }
 
                 if (timeleft2vtx > 0) {     // may be portion of segment left
-                    console.log("DOING more.. ("+stop+")", nextvtx, timeleft2vtx)
+                    var d0 = distance(currpos,nextvtx)
+                    debug("jumping to next vertex.. ("+stop+")", nextvtx, d0+" km", timeleft2vtx+" secs")
                     time += timeleft2vtx
-                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1]) // vertex
+                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? 'at last vertex' : 'at vertex') // vertex
                     currpos = nextvtx
                     to_next_emit = rate - timeleft2vtx // time left before next emit
-                    console.log(timeleft2vtx + " sec left before next emit")
+                    //debug(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
                 }
             }
 
             lsidx += 1
         }
         f.coordinates = newls
-        if(program.debug) console.log("new ls:"+newls.length)
+        debug("new ls:"+newls.length)
     }
     depth--
     return f
@@ -487,16 +496,15 @@ const jsonstring = fs.readFileSync(program.file, 'utf8')
 const rate = parseInt(program.rate) // s
 var speed = parseInt(program.speed) // km/h
 var startdate = moment(program.startDate)
-if(program.debug)
-    console.log('date:'+startdate.isValid())
+debug('date:'+startdate.isValid())
 
 var fc = spit(JSON.parse(jsonstring), speed, rate, startdate)
 
-fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 });
+fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 })
 console.log('out.json written')
 
 if(program.zigzag) {
-    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10000,1)), { mode: 0o644 });
+    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10000,1)), { mode: 0o644 })
     console.log('zigzag.json written')
 }
 
