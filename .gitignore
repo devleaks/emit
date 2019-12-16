@@ -105,3 +105,4 @@ dist
 out.json
 sp.js
 zigzag.json
+tests/.DS_Store

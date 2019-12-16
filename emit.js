@@ -193,12 +193,12 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
                 "ts": dt
             })
         else
-            r = '[ "' + dt + '", [' + p[0] + ', ' + p[1]+'] ]'
+            r = [dt, [p[0],p[1]]]
 
         if(program.give)
-            console.log(r)
+            console.log(JSON.stringify(r))
         else
-            debug(s+r) // s+r
+            debug(s,JSON.stringify(r))
         newls.push([p[0], p[1]])
         pts.push({
             "type": "Feature",
@@ -229,27 +229,33 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
 function fillSpeed(a, len) {
     const minSpeed = parseFloat(program.minSpeed)
     const dft = parseFloat(program.speed)
+
     function nexta(arr, from, max) { // returns next array item index with non undefined value
-        if( from == (max-1) )
+        if( from == (max-1) ) {
             return from
+        }
         var i = from+1
-        while(i < max && typeof(arr[i]) == "undefined")
+        while(i < (max-1) && typeof(arr[i]) == "undefined")
             i++
         return i
     }
+
     if (typeof(a[0]) == "undefined")
         a[0] = dft < minSpeed ? minSpeed : dft
 
     for(var i = 1; i < len; i++) {
         if (typeof(a[i]) == "undefined") {
             var j = nexta(a, i, len)
-            if ((j == len) && (typeof(a[j]) == "undefined")) {// no last value, set last val to default
-                a[j] = dft
-            }
-            var d = a[j] < minSpeed ? minSpeed : a[j] // target value
-            var s = (d - a[i-1])/(j-i+1) // slope
-            for(var k = i; k < j; k++) {
-                a[k] = a[i-1]+(k-i+1)*s
+            if ((j == len-1) && (typeof(a[j]) == "undefined")) {// no last value, stay at constant speed
+                for(var k = i; k < len; k++) {
+                    a[k] = a[k-1]
+                }
+            } else { // change speed to next supplied value
+                var d = a[j] < minSpeed ? minSpeed : a[j] // target value
+                var s = (d - a[i-1])/(j-i+1) // slope
+                for(var k = i; k <= j; k++) {
+                    a[k] = a[i-1]+s*(k-i+1)
+                }
             }
             i = j
         } else {
@@ -276,6 +282,7 @@ function eta(ls,speed) {
     var eta = []
     eta[0] = 0
     debug(speed)
+    debug("v0",0,speed[0],speed[0],0,"00:00:00","00:00:00")
     for(var i = 1; i < speed.length; i++) {
         var t = 0
         var d = distance(ls[i-1],ls[i])
@@ -389,6 +396,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
             })
         }
         fillSpeed(speeds, ls.length)     // init speed array
+        debug("arrays:"+ls.length+":"+speeds.length)
         eta(ls, speeds)
 
         var maxstep = speed * rate / 3600
@@ -533,7 +541,7 @@ function zigzag(start, dst, cnt) {
 const jsonstring = fs.readFileSync(program.file, 'utf8')
 
 const rate = parseInt(program.rate) // s
-var speed = parseInt(program.speed) // km/h
+const speed = parseInt(program.speed) // km/h
 var startdate = moment(program.startDate)
 debug('date:'+startdate.isValid())
 

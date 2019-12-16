@@ -3,7 +3,17 @@
   "features": [
     {
       "type": "Feature",
-      "properties": {},
+      "properties": { "speedsAtVertices" : [
+          {"idx": 0, "speed": 0},
+          {"idx": 1, "speed": 5},
+          {"idx": 2, "speed": 0},
+          {"idx": 3, "speed": 20},
+          {"idx": 10, "speed": 20},
+          {"idx": 11, "speed": 0},
+          {"idx": 12, "speed": 180},
+          {"idx": 13, "speed": 200},
+          {"idx": 14, "speed": 250}
+        ]},
       "geometry": {
         "type": "LineString",
         "coordinates": [
