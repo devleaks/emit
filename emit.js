@@ -23,6 +23,10 @@ program
 
 debug(program.opts())
 
+
+// TO DO
+// add ETA at vertices
+
 /*!
  * JavaScript function to calculate the destination point given start point latitude / longitude (numeric degrees), bearing (numeric degrees) and distance (in m).
  *
@@ -145,8 +149,9 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
     var leftd = totald - partiald // leftd = distance(currpos, ls[lsidx+1])
     var portion = partiald/totald
     var v0 = speeds[lsidx] + portion * (speeds[lsidx+1] - speeds[lsidx])
-    var v1 = speeds[lsidx+1]
-    var acc = (speeds[lsidx+1]*speeds[lsidx+1]-speeds[lsidx]*speeds[lsidx])/(2*totald)
+    v0 = v0 < program.minSpeed ? program.minSpeed : v0
+    var v1 = speeds[lsidx+1] // should be >= program.minSpeed by design...
+    var acc = (speeds[lsidx+1]*speeds[lsidx+1]-speeds[lsidx]*speeds[lsidx])/(2*totald) // a=(u²-v²)/2d
 
     // 2. Given the speedatcurrpos and speeds[idx+1] at ls[idx+1] how far do we travel duing rate seconds?
     var hourrate = rate / 3600
@@ -169,6 +174,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
         "time": rate,
         "time/h": rate/3600,
         "dist": dist,
+        "ctr dist": distance(currpos, nextpos),
         "leftvtx": distance(nextpos,ls[lsidx+1])
      })
      */
@@ -207,6 +213,8 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
                 "coordinates": p
             },
             "properties": {
+//                "marker-color": "red",
+//                "marker-symbol": "cross",
                 "timestamp": dt,
                 "sequence": pts.length,
                 "speed": spd,
@@ -281,7 +289,7 @@ function sec2hms(i) {
 function eta(ls,speed) {
     var eta = []
     eta[0] = 0
-    debug(speed)
+    //debug(speed)
     debug("v0",0,speed[0],speed[0],0,"00:00:00","00:00:00")
     for(var i = 1; i < speed.length; i++) {
         var t = 0
@@ -309,7 +317,7 @@ function time2vtx(p, idx, ls, sp, rate) {
     else
         vp = sp[idx] + (d0/de) * (sp[idx+1] - sp[idx])   // speed at point, if linear acceleration
 
-    vp = vp < 5 ? 5 : vp
+    vp = vp < program.minSpeed ? program.minSpeed : vp
 
     debug('time2vtx ', d, de, sp[idx], sp[idx+1], vp)
 
@@ -319,8 +327,8 @@ function time2vtx(p, idx, ls, sp, rate) {
 
     var r = Math.round(t * 3600000)/1000
     debug('>>> TO', idx+1, d+" km left", r+" secs needed")
-    // control
 
+    /* control
     p1 = point_in_rate_sec(p, rate, idx, ls, sp)
     d1 = distance(p1, ls[idx+1])
     p2 = point_in_rate_sec(p, r, idx, ls, sp)
@@ -341,6 +349,7 @@ function time2vtx(p, idx, ls, sp, rate) {
         "control:d3travel(rate)": d3,
         "control:d4travel(time2vtx)": d4
      })
+     */
 
     return r
 }   
@@ -362,7 +371,7 @@ function debug(...args) {
 
 /** MAIN **/
 var depth = 0
-var points = []             // points where position is broadcasted
+var points = [] // list of points where position is broadcasted
 var stop = 0
 function spit(f, speedsAtVertices, rate, startdate) {
     depth++
@@ -378,6 +387,8 @@ function spit(f, speedsAtVertices, rate, startdate) {
     } else if(f.type == "Feature") {
         var speeds = (f.geometry.type == "LineString" && f.properties && f.properties.speedsAtVertices) ?
                     f.properties.speedsAtVertices : speedsAtVertices
+        var waits = (f.geometry.type == "LineString" && f.properties && f.properties.waitsAtVertices) ?
+                    f.properties.waitsAtVertices : []
         f.geometry = spit(f.geometry, speeds, rate, startdate)
     } else if(f.type == "LineString") {
         const ls = f.coordinates    // coordinates of linestring
@@ -411,36 +422,34 @@ function spit(f, speedsAtVertices, rate, startdate) {
             debug(timeleft2vtx + " sec to next vertex",rate,to_next_emit)
             stop++
 
-            if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx > to_next_emit) ) {     // If next vertex far away, we move during to_next_emit on edge and emit
-                debug("moving from vertex with time remaining.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)   // if we are here, we know we will not reach the next vertex
+            if( (to_next_emit > 0) && (to_next_emit < rate) && (timeleft2vtx > to_next_emit) ) {     // If next vertex far away, we move during to_next_emit on edge and emit
+                debug("moving from vertex with time remaining.. ("+lsidx+")", nextvtx, to_next_emit, timeleft2vtx)   // if we are here, we know we will not reach the next vertex
                 time += to_next_emit                                                                 // during this to_next_emit time 
                 p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
                 emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining ("+lsidx+")")
-                var d0 = distance(currpos,p)
+                //var d0 = distance(currpos,p)
                 //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
                 currpos = p
-                to_next_emit = rate // time left before next emit
+                to_next_emit = rate // time before next emit reset to standard rate
             }
 
             if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit) ) {     // may be portion of segment left
-                debug("moving to next vertex with time left.. ("+stop+")", nextvtx, to_next_emit, timeleft2vtx)
+                debug("moving to next vertex with time left.. ("+lsidx+")", nextvtx, to_next_emit, timeleft2vtx)
                 time += timeleft2vtx
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining ("+lsidx+")") // vertex
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining to next vertex ("+(lsidx+1)+")")
                 currpos = nextvtx
                 to_next_emit -= timeleft2vtx // time left before next emit
                 //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
             } else {
-                while (rate < timeleft2vtx) {   // we will report position(s) before reaching the vertice
+                while (rate < timeleft2vtx) {   // we will report position(s) along the edge before reaching the vertex
                     debug("moving on edge.. ("+stop+")", rate, timeleft2vtx)
                     time += rate
                     p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                    debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
                     emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route("+lsidx+")")
+                    //debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
                     currpos = p
                     timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)
                     //debug("..done moving on edge", rate, timeleft2vtx)
-
-                    //if(stop++ == 4) return
                 }
 
                 if (timeleft2vtx > 0) {     // may be portion of segment left
@@ -457,7 +466,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
             lsidx += 1
         }
         f.coordinates = newls
-        console.log("new ls:"+newls.length)
+        debug("new ls:"+newls.length)
     }
     depth--
     return f
@@ -550,8 +559,8 @@ var fc = spit(JSON.parse(jsonstring), speed, rate, startdate)
 fs.writeFileSync('out.json', JSON.stringify(fc), { mode: 0o644 })
 console.log('out.json written')
 
-if(program.zigzag) {
-    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([5,50.6],10,4)), { mode: 0o644 })
+if(program.zigzag) {    // 4.3483286,50.8445793
+    fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([4.3483286,50.8445793],speed,rate)), { mode: 0o644 })
     console.log('zigzag.json written')
 }
 
