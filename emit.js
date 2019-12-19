@@ -183,7 +183,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 }
 
 
-function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
+function emit(newls, t, p, s, sd, pts, spd, cmt, idx) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
     if(    (k == 's' || k == 'e')
         || (k == 'v' && program.vertices)
@@ -216,6 +216,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt) {    //s=(s)tart, (e)dge, (v)er
 //                "marker-color": "red",
 //                "marker-symbol": "cross",
                 "timestamp": dt,
+                "vertex": idx,
                 "sequence": pts.length,
                 "speed": spd,
                 "note": cmt
@@ -412,7 +413,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
 
         var maxstep = speed * rate / 3600
         var currpos = ls[lsidx]     // start pos
-        emit(newls, time, currpos, 's', startdate, points, speeds[0], "start") // emit it
+        emit(newls, time, currpos, 's', startdate, points, speeds[0], "start", lsidx) // emit it
         var timeleft2vtx = 0  // time to next point
         var to_next_emit = rate
 
@@ -426,7 +427,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
                 debug("moving from vertex with time remaining.. ("+lsidx+")", nextvtx, to_next_emit, timeleft2vtx)   // if we are here, we know we will not reach the next vertex
                 time += to_next_emit                                                                 // during this to_next_emit time 
                 p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining ("+lsidx+")")
+                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining", lsidx)
                 //var d0 = distance(currpos,p)
                 //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
                 currpos = p
@@ -436,7 +437,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
             if( (to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit) ) {     // may be portion of segment left
                 debug("moving to next vertex with time left.. ("+lsidx+")", nextvtx, to_next_emit, timeleft2vtx)
                 time += timeleft2vtx
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining to next vertex ("+(lsidx+1)+")")
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining to next vertex", lsidx)
                 currpos = nextvtx
                 to_next_emit -= timeleft2vtx // time left before next emit
                 //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
@@ -445,7 +446,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
                     debug("moving on edge.. ("+stop+")", rate, timeleft2vtx)
                     time += rate
                     p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route("+lsidx+")")
+                    emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route", lsidx)
                     //debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
                     currpos = p
                     timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)
@@ -456,7 +457,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
                     var d0 = distance(currpos,nextvtx)
                     debug("jumping to next vertex.. ("+stop+")", nextvtx, d0+" km", timeleft2vtx+" secs")
                     time += timeleft2vtx
-                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? "at last vertex("+lsidx+")" : "at vertex("+lsidx+")") // vertex
+                    emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
                     currpos = nextvtx
                     to_next_emit = rate - timeleft2vtx // time left before next emit
                     //debug(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
