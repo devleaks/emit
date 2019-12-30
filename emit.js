@@ -2,9 +2,20 @@ var fs = require('fs');
 var moment = require('moment')
 var program = require('commander')
 
+/*php:
+git describe --tags
+git log -1 --format=%cd --relative-date
+
+
+var sys = require('sys')
+var exec = require('child_process').exec;
+function puts(error, stdout, stderr) { sys.puts(stdout) }
+exec("ls -la", puts);
+
+*/
 // @todo: change zigzag option to action
 program
-    .version('0.0.1')
+    .version('0.1.1')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
@@ -426,7 +437,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
             if( (to_next_emit > 0) && (to_next_emit < rate) && (timeleft2vtx > to_next_emit) ) {     // If next vertex far away, we move during to_next_emit on edge and emit
                 debug("moving from vertex with time remaining.. ("+lsidx+")", nextvtx, to_next_emit, timeleft2vtx)   // if we are here, we know we will not reach the next vertex
                 time += to_next_emit                                                                 // during this to_next_emit time 
-                p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
+                p = point_in_rate_sec(currpos, to_next_emit, lsidx, ls, speeds, maxstep)
                 emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining", lsidx)
                 //var d0 = distance(currpos,p)
                 //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
