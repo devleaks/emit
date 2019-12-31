@@ -1,0 +1,165 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "LineString",
+            "coordinates": [
+                [4.3483286, 50.8445793],
+                [4.383823858090805, 50.84459544685859],
+                [4.419319132493425, 50.84460078347927],
+                [4.454814406797602, 50.844595317160774],
+                [4.49000228484059, 50.84431389555089],
+                [4.49000228484059, 50.82184099131946],
+                [4.49000228484059, 50.79936800004795],
+                [4.49000228484059, 50.77689492172186]
+            ]
+        },
+        "properties":
+        {
+            "speedsAtVertices": [
+            {
+                "idx": 0,
+                "speed": 30
+            }],
+            "waitsAtVertices": [
+            {
+                "idx": 1,
+                "pause": 900
+            }]
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.3483286, 50.8445793]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T09:48:56.966+01:00",
+            "vertex": 0,
+            "sequence": 0,
+            "speed": 30,
+            "note": "start"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.383823858090805, 50.84459544685859]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T09:53:56.966+01:00",
+            "vertex": 0,
+            "sequence": 1,
+            "speed": 30,
+            "note": "en route"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.419319132493425, 50.84460078347927]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T09:58:56.966+01:00",
+            "vertex": 0,
+            "sequence": 2,
+            "speed": 30,
+            "note": "en route"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.454814406797602, 50.844595317160774]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T10:03:56.966+01:00",
+            "vertex": 0,
+            "sequence": 3,
+            "speed": 30,
+            "note": "en route"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.49000228484059, 50.84431389555089]
+        },
+        "properties":
+        {
+            "marker-color": "#ff2600",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "timestamp": "2019-12-31T10:08:56.966+01:00",
+            "vertex": 1,
+            "sequence": 4,
+            "speed": 30,
+            "note": "moving from vertex with time remaining"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.49000228484059, 50.82184099131946]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T10:13:56.966+01:00",
+            "vertex": 1,
+            "sequence": 5,
+            "speed": 30,
+            "note": "en route"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.49000228484059, 50.79936800004795]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T10:18:56.966+01:00",
+            "vertex": 1,
+            "sequence": 6,
+            "speed": 30,
+            "note": "en route"
+        }
+    },
+    {
+        "type": "Feature",
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [4.49000228484059, 50.77689492172186]
+        },
+        "properties":
+        {
+            "timestamp": "2019-12-31T10:23:56.966+01:00",
+            "vertex": 1,
+            "sequence": 7,
+            "speed": 30,
+            "note": "en route"
+        }
+    }]
+}

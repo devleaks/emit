@@ -6,6 +6,10 @@
   "dependencies": {
     "commander": "^4.0.1",
     "fs": "^0.0.1-security",
+    "geojson-path-finder": "^1.5.2",
+    "geojson-polygon-center": "^0.0.0",
+    "geojson-tools": "^0.2.2",
+    "leaflet-routing-machine": "^3.2.12",
     "moment": "^2.24.0"
   }
 }

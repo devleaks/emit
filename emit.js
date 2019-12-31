@@ -196,7 +196,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 
 function emit(newls, t, p, s, sd, pts, spd, cmt, idx) {    //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
-    if(    (k == 's' || k == 'e')
+    if(    (k == 's' || k == 'e' || k == 'w')
         || (k == 'v' && program.vertices)
         || (k == 'f' && program.lastPoint) ) {
         dt = t
@@ -216,6 +216,16 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) {    //s=(s)tart, (e)dge, 
             console.log(JSON.stringify(r))
         else
             debug(s,JSON.stringify(r))
+
+        color = "#888888"
+        switch(k) {
+            case 's': color = "#eeeeee"; break
+            case 'e': color = "#ff2600"; break
+            case 'v': color = "#fffc00"; break
+            case 'f': color = "#111111"; break
+            case 'w': color = "#00fa00"; break
+            default: color = "#888888"
+        }
         newls.push([p[0], p[1]])
         pts.push({
             "type": "Feature",
@@ -224,8 +234,9 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) {    //s=(s)tart, (e)dge, 
                 "coordinates": p
             },
             "properties": {
-//                "marker-color": "red",
-//                "marker-symbol": "cross",
+                "marker-color": color,
+                "marker-size": "medium",
+                "marker-symbol": "",
                 "timestamp": dt,
                 "vertex": idx,
                 "sequence": pts.length,
@@ -376,16 +387,71 @@ function rn(p, n = 4) {
     return Math.round(p*r) / r
 }
 
+
 function debug(...args) {
-  if(program.debug)
-    console.log(args)
+    if (program.debug) {
+        var caller = debug.caller ? debug.caller : ">> at top"
+
+        const funcDebug = [
+//          "spit",
+            "emit",
+            "waitAtVertex",
+            "xx"
+        ]
+
+        if (funcDebug.indexOf(caller.name) >= 0)
+            console.log(caller.name, args)
+    }
+}
+
+
+function waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
+    debug("IN", lsidx, timing)
+    var counter = 0
+    if(wait && wait > 0) {
+        debug("must wait", wait)
+        if(wait < rate) {
+            if(wait > timing.left) { // will emit here
+                emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx+1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting "+counter : "at vertex while waiting "+counter, lsidx) // vertex
+                counter++
+                debug("waiting 1 ...", wait)
+                // keep wating but no emit since wait < rate
+                timing.time += wait
+                timing.left = rate - wait - timing.left
+            } else { // will not emit here, we just wait and then continue our trip
+                debug("waited 1 but carries on", wait)
+                timing.time += wait
+                timing.left -= wait
+            }
+        } else { // will emit here, may be more than once. let's first emit once on left
+            emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx+1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting "+counter : "at vertex while waiting "+counter, lsidx) // vertex
+            counter++
+            debug("waiting 2 ...", timing.left)
+            timing.time += timing.left
+
+            var totwait = wait - timing.left
+            // then let's emit as many time as we wait
+            while(totwait > 0) {
+                timing.time += rate
+                emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx+1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting "+counter : "at vertex while waiting "+counter, lsidx) // vertex
+                counter++
+                debug("waiting 3 ...", totwait)
+                totwait -= rate
+            }
+            // then set time to next emit
+            timing.left = totwait + rate
+        }
+    }
+    timing.counter = counter
+    debug("OUT", timing)
+    return timing
 }
 
 /** MAIN **/
 var depth = 0
 var points = [] // list of points where position is broadcasted
 var stop = 0
-function spit(f, speedsAtVertices, rate, startdate) {
+function spit(f, speedsAtVertices, rate, startdate, waitsAtVertices) {
     depth++
 
     debug(">".repeat(depth)+(f.type == "Feature" ? f.type+"("+f.geometry.type+")": f.type))
@@ -401,7 +467,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
                     f.properties.speedsAtVertices : speedsAtVertices
         var waits = (f.geometry.type == "LineString" && f.properties && f.properties.waitsAtVertices) ?
                     f.properties.waitsAtVertices : []
-        f.geometry = spit(f.geometry, speeds, rate, startdate)
+        f.geometry = spit(f.geometry, speeds, rate, startdate, waits)
     } else if(f.type == "LineString") {
         const ls = f.coordinates    // coordinates of linestring
         var time = 0                // ticker
@@ -409,6 +475,7 @@ function spit(f, speedsAtVertices, rate, startdate) {
         var lsidx = 0               // index in linestring
 
         var speeds = []
+        var waits = []
 
         if(! Array.isArray(speedsAtVertices)) {
           speeds[ls.length-1] = speedsAtVertices
@@ -419,8 +486,16 @@ function spit(f, speedsAtVertices, rate, startdate) {
             })
         }
         fillSpeed(speeds, ls.length)     // init speed array
-        debug("arrays:"+ls.length+":"+speeds.length)
         eta(ls, speeds)
+
+        if(Array.isArray(waitsAtVertices)) {
+            waitsAtVertices.forEach(function(wt) {
+                if(wt.idx < ls.length)
+                    waits[wt.idx] = wt.pause
+            })
+        }
+
+        debug("arrays:"+ls.length+":"+speeds.length+":"+waits.length)
 
         var maxstep = speed * rate / 3600
         var currpos = ls[lsidx]     // start pos
@@ -451,6 +526,10 @@ function spit(f, speedsAtVertices, rate, startdate) {
                 emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], "moving on edge with time remaining to next vertex", lsidx)
                 currpos = nextvtx
                 to_next_emit -= timeleft2vtx // time left before next emit
+                // waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
+                var timing = waitAtVertex({"time": time, "left": to_next_emit}, waits[lsidx+1] ? waits[lsidx+1] : null, rate, newls, nextvtx, lsidx+1, ls.length, startdate, points, speeds)
+                time = timing.time
+                to_next_emit = timing.left
                 //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
             } else {
                 while (rate < timeleft2vtx) {   // we will report position(s) along the edge before reaching the vertex
@@ -471,6 +550,10 @@ function spit(f, speedsAtVertices, rate, startdate) {
                     emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v'+(lsidx+1), startdate, points, speeds[lsidx+1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
                     currpos = nextvtx
                     to_next_emit = rate - timeleft2vtx // time left before next emit
+                    // waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
+                    var timing = waitAtVertex({"time": time, "left": to_next_emit}, waits[lsidx+1] ? waits[lsidx+1] : null, rate, newls, nextvtx, lsidx+1, ls.length, startdate, points, speeds)
+                    time = timing.time
+                    to_next_emit = timing.left
                     //debug(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
                 }
             }
