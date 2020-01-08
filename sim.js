@@ -14,13 +14,13 @@ var program = {
     "debug": true
 }
 
-var jsonfile = fs.readFileSync(config.airport.parkingsFile, 'utf8')
+var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
 const parkings = JSON.parse(jsonfile)
 
-jsonfile = fs.readFileSync(config.airport.taxiwaysFile, 'utf8')
+jsonfile = fs.readFileSync(config.airport.taxiways, 'utf8')
 const taxiways = JSON.parse(jsonfile)
 
-jsonfile = fs.readFileSync(config.airport.airwaysFile, 'utf8')
+jsonfile = fs.readFileSync(config.airport.airways, 'utf8')
 const airways = JSON.parse(jsonfile)
 
 jsonfile = fs.readFileSync(config.airport.file, 'utf8')
@@ -143,7 +143,7 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name, datetime) {
 
     function add_point(point, speed, wait) {
         ls.push(point)
-        if (speeds)
+        if (speed)
             speeds[counter] = speed
         if (wait)
             waits[counter] = wait

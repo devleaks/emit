@@ -14,10 +14,13 @@ var program = {
     "debug": true
 }
 
-var jsonfile = fs.readFileSync(config.airport.parkingsFile, 'utf8')
+var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
 var parkings = JSON.parse(jsonfile)
 
-jsonfile = fs.readFileSync(config.airport.file, 'utf8')
+var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
+var serviceroads = JSON.parse(jsonfile)
+
+jsonfile = fs.readFileSync(config.airport.pois, 'utf8')
 var airport = JSON.parse(jsonfile)
 
 
@@ -121,7 +124,7 @@ function refill(truck) {
     var p = findClosest(truck.position, service_roads)
     add_point(p, FUELTRUCK.slow, 30)
     // get to refill area
-    var r = route(p, fuel, service_roads) // assumes fuel1 is on service road...
+    var r = route(p, fuel, serviceroads) // assumes fuel1 is on service road...
     add_linestring(r.coordinates, FUELTRUCK.speed, null)
     // refill
     add_point(fuel, 0, (FUELTRUCK.speed - truck.load)/FUELTRUCK.timetoload)
@@ -132,11 +135,11 @@ function refill(truck) {
 function service(truck, service) {
     // go to p
     // leave current position
-    var p = findClosest(truck.position, service_roads)
+    var p = findClosest(truck.position, serviceroads)
     add_point(p, FUELTRUCK.slow, 30)
     // get to parking
-    var p1 = findClosest(service.parking, service_roads)
-    var r = route(p, p1, service_roads)
+    var p1 = findClosest(service.parking, serviceroads)
+    var r = route(p, p1, serviceroads)
     add_linestring(r.coordinates, FUELTRUCK.speed, null)
     // service
     add_point(service.parking, FUELTRUCK.slow, service.load / FUELTRUCK.timetoload)
@@ -144,11 +147,39 @@ function service(truck, service) {
     truck.position = service.parking
 }
 
+function optimize(services) {
+    return services
+}
+
+/*
+ *
+ */
+var trip = []   // line string coordinates (only)
+var speeds = [] // {idx: 3, speed: 20} km/h
+var waits = []  // {idx: 3, pause: 60} seconds
+
+function add_point(point, speed, wait) { // point = [lon, lat]
+    trip.push(point)
+    var c = trip.length - 1
+    if (speed)
+        speeds[c] = speed
+    if (wait)
+        waits[c] = wait
+}
+
+function add_linestring(ls, speed, wait) {
+  ls.forEach(function(p, idx) {
+    add_point(p, speed, wait)
+  })
+}
+
+
+
 /*
  * R E F U E L
  */
 function fuel(services) {
-    const fuel1 = findFeature("FUEL1", airport, name)
+    const fuel1 = findFeature("FUEL1", airport, "name")
     var truck = {
         "name": "Fuel truck 1",
         "load": FUELTRUCK.full,
@@ -161,6 +192,7 @@ function fuel(services) {
             refill(truck)
         }
         service(truck, p)
+        services = optimize(services)
         debug("..done")
     }
 
@@ -168,8 +200,7 @@ function fuel(services) {
 }
 
 var services = []
-var trip = []
-services.push({"position": '51', "load": 15000})
+services.push({"position": '51', "load": 15000, "time": null, "priority": 3})
 
 fuel(services)
 
