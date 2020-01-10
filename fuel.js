@@ -2,8 +2,10 @@ const fs = require('fs')
 const moment = require('moment')
 const turf = require('@turf/turf')
 const PathFinder = require('geojson-path-finder');
-
+const geojsonTool = require('geojson-tools')
 const config = require('./sim-config')
+
+const geojson = require('./geojson-structures')
 
 var program = require('commander')
 
@@ -14,15 +16,23 @@ var program = {
     "debug": true
 }
 
-var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
-var parkings = JSON.parse(jsonfile)
+var airport = {}
 
 var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
-var serviceroads = JSON.parse(jsonfile)
+airport.parkings = JSON.parse(jsonfile)
+
+jsonfile = fs.readFileSync(config.airport.service, 'utf8')
+airport.serviceroads = JSON.parse(jsonfile)
 
 jsonfile = fs.readFileSync(config.airport.pois, 'utf8')
-var airport = JSON.parse(jsonfile)
+airport.pois = JSON.parse(jsonfile)
 
+
+airport.serviceroads.features.forEach(function(f) {
+    f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
+});
+
+//fs.writeFileSync('segmented.json', JSON.stringify(airport.serviceroads), { mode: 0o644 })
 
 /* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
  * Function name must be part of valid list of functions to debug
@@ -33,6 +43,11 @@ function debug(...args) {
     if (typeof(program) != "undefined" && program.debug) {
         const MAIN = "main()"
         var FUNCDEBUG = [
+//            "fuel",
+//            "route",
+//            "refill",
+//            "service",
+            "add_point",
             "", // always debug top-level
             MAIN// always debug functions with no name
         ]
@@ -47,7 +62,9 @@ function debug(...args) {
 
 
 
-
+/*  Find feature such as fc.features[].properties.what == name
+ *  Returns Feature
+ */
 function findFeature(name, fc, what) {
     var f = false
     var idx = 0
@@ -61,116 +78,133 @@ function findFeature(name, fc, what) {
     return f
 }
 
-// convert a FeatureCollection of LineString into a single MultiLineString geometry
-// as required for some turf functions.
+/* Convert a FeatureCollection of LineString into a single MultiLineString geometry
+ * as required for some turf functions.
+ * Returns MultiLineString
+ */
 function multilinestring(fc) {
     var mls = []
     fc.features.forEach(function(f, idx) {
         if (f.geometry.type == "LineString")
             mls.push(f.geometry.coordinates)
     })
-    return {
-        "type": "MultiLineString",
-        "coordinates": mls
-    }
+    return geojson.MultiLineString(mls)
 }
 
+/* Find closest point to network of roads (FeatureCollectionof LineStrings)
+ * Returns Point
+ */
 function findClosest(p, network) { // cache it as well in network structure
-    if(! network.mls)
+    if( typeof(network.mls)=="undefined") { // build suitable structure for nearestPointOnLine, cache it.
         network.mls = multilinestring(network)
+    }
     return turf.nearestPointOnLine(network.mls, p)    
 }
 
+
+/* Find route from p_from to p_to on network of roads.
+ * Returns LineString or roads or direct path between the two points if no road found.
+ */
 function route(p_from, p_to, network) {
+    // fs.writeFileSync('debug.json', JSON.stringify({"type":"FeatureCollection", "features": [p_from, p_to]}), { mode: 0o644 })
     const pathfinder = new PathFinder(network, {
-        precision: 0.00005,
-        weightFn: function(a, b, props) {
-            var dx = a[0] - b[0];
-            var dy = a[1] - b[1];
-            var d = Math.sqrt(dx * dx + dy * dy);
-            if (props && props.name && props.name.indexOf('LT_') == 0 && props.direction) { // Landing track, only goes in one direction
-                return props.direction == 1 ? { forward: d, backward: null } : { forward: null, backward: d };
-            }
-            return d;
-        }
+        precision: 0.00005
     });
 
     const path = pathfinder.findPath(p_from, p_to);
 
-    return path ? {
-        geometry: {
-            type: "LineString",
-            coordinates: path.path
-        }
-    } : false
-}
+    if(!path)
+        debug("could not find route", p_from, p_to)
 
-const FUELTRUCK = {
-    "full": 30000,
-    "speed": 40,
-    "slow": 20,
-    "timetoload": 100
-}
-
-function normalise(f) {
-    return (f.type == "Feature") ? f : {
-        "type": "Feature",
-        "geometry": f
-    }
-}
-
-function refill(truck) {
-    // get to service_road
-    var p = findClosest(truck.position, service_roads)
-    add_point(p, FUELTRUCK.slow, 30)
-    // get to refill area
-    var r = route(p, fuel, serviceroads) // assumes fuel1 is on service road...
-    add_linestring(r.coordinates, FUELTRUCK.speed, null)
-    // refill
-    add_point(fuel, 0, (FUELTRUCK.speed - truck.load)/FUELTRUCK.timetoload)
-    truck.position = fuel
-    truck.load = FUELTRUCK.full
-}
-
-function service(truck, service) {
-    // go to p
-    // leave current position
-    var p = findClosest(truck.position, serviceroads)
-    add_point(p, FUELTRUCK.slow, 30)
-    // get to parking
-    var p1 = findClosest(service.parking, serviceroads)
-    var r = route(p, p1, serviceroads)
-    add_linestring(r.coordinates, FUELTRUCK.speed, null)
-    // service
-    add_point(service.parking, FUELTRUCK.slow, service.load / FUELTRUCK.timetoload)
-    truck.load -= service.load
-    truck.position = service.parking
-}
-
-function optimize(services) {
-    return services
+    return geojson.LineString( path ? path.path : [p_from, p_to] )
 }
 
 /*
- *
+ * Service functional function
  */
-var trip = []   // line string coordinates (only)
-var speeds = [] // {idx: 3, speed: 20} km/h
-var waits = []  // {idx: 3, pause: 60} seconds
-
-function add_point(point, speed, wait) { // point = [lon, lat]
-    trip.push(point)
-    var c = trip.length - 1
-    if (speed)
-        speeds[c] = speed
-    if (wait)
-        waits[c] = wait
+/* Refill: Move truck from its position to refueling station (fuel)
+ * Augment truck trip line string.
+ * Return nothing.
+ */
+function refill(truck, fuel) {
+    debug("searching...", truck.position)
+    // get to service_road
+    var p = findClosest(truck.position, airport.serviceroads)
+    add_point(truck, p, config.serviceTrucks.fuel.slow, 30)
+    // get to refill area
+    var r = route(p, fuel, airport.serviceroads) // assumes fuel1 is on service road...
+    add_linestring(truck, r.coordinates, config.serviceTrucks.fuel.speed, null)
+    // refill
+    add_point(truck, fuel, 0, config.serviceTrucks.fuel.serviceTime(config.serviceTrucks.fuel.capacity - truck.load))
+    truck.position = fuel.geometry.coordinates
+    truck.load = config.serviceTrucks.fuel.capacity
 }
 
-function add_linestring(ls, speed, wait) {
-  ls.forEach(function(p, idx) {
-    add_point(p, speed, wait)
+
+function service(truck, service) {
+    debug("searching...", truck.position)
+    // get from truck position to service road, move there slowly
+    var p = findClosest(truck.position, airport.serviceroads)
+    //debug("closest to truck", truck.position, p)
+    add_point(truck, p, config.serviceTrucks.fuel.slow, 30)
+
+    // get to parking on service road at full speed
+    var parking = findFeature(service.parking, airport.parkings, "ref")
+    debug(parking)
+    if(! parking) {
+        debug("not found", "ref", service.parking)
+        return
+    }
+    var p1 = findClosest(parking, airport.serviceroads)
+    //debug("closest to parking", parking, p1)
+
+    var r = route(p1, p, airport.serviceroads)
+    if(r)
+        add_linestring(truck, r.coordinates, config.serviceTrucks.fuel.speed, null)
+    else
+        debug("route not found", p, p1)
+
+    // get from service road to parking slowly and service plane
+    // service
+    add_point(truck, parking, config.serviceTrucks.fuel.slow, config.serviceTrucks.fuel.serviceTime(service.load))
+    truck.load -= service.load
+    truck.position = parking.geometry.coordinates
+}
+
+/* Hook to place your fuel truck delivery optimization function. Called after each service.
+ * The first array element will be poped out of the returning array.
+ */
+function optimize(truck, services) {
+    return services
+}
+
+/* Build truck line string
+ *
+ */
+function add_stop(truck, point, speed, wait, note) { // point = [lon, lat]
+    point.properties = point.properties ? point.properties : {}
+    point.properties.speed = speed
+    point.properties.wait = wait
+    point.properties.note = note
+    truck.stops.push(point)
+}
+
+function add_point(truck, point, speed, wait) { // point = [lon, lat]
+    debug(point, point.geometry, geojson.coords(point))
+    truck.trip.push(geojson.coords(point))
+    var c = truck.trip.length - 1
+    if (speed)
+        truck.speeds.push({"idx": c, "speed": speed})
+    if (wait)
+        truck.waits.push({"idx": c, "pause": wait})
+}
+
+function add_linestring(truck, trip, speed, wait) {
+    debug("adding..")
+  trip.forEach(function(p, idx) {
+    add_point(truck, p, speed, wait)
   })
+    debug("..added")
 }
 
 
@@ -178,37 +212,65 @@ function add_linestring(ls, speed, wait) {
 /*
  * R E F U E L
  */
-function fuel(services) {
-    const fuel1 = findFeature("FUEL1", airport, "name")
-    var truck = {
-        "name": "Fuel truck 1",
-        "load": FUELTRUCK.full,
-        "position": fuel1.coordinates
-    }
+function fuel(truck, services) {
+    // init truck, set start position & load
+    const fuel1 = findFeature("FUEL1", airport.pois, "name")
+    truck.position = fuel1.geometry.coordinates
+    // start with full, comment out to start with empty truck
+    truck.load = config.serviceTrucks.fuel.capacity
 
     while( p = services.pop() ) {
         debug("doing..", p)
-        if(p.need > truck.load) {
-            refill(truck)
+        if(p.load > truck.load) {
+            refill(truck, fuel1)
         }
         service(truck, p)
-        services = optimize(services)
+        services = optimize(truck, services)
         debug("..done")
     }
+}
 
 
+var truck = {
+    "name": "Fuel truck 1",
+    "load": 0,
+    "trip": [],
+    "stops": [],
+    "speeds": [],
+    "waits": [],
+    "position": null
 }
 
 var services = []
-services.push({"position": '51', "load": 15000, "time": null, "priority": 3})
+services.push({"parking": '51', "load": 25000, "time": null, "priority": 3})
+services.push({"parking": '46', "load": 10000, "time": null, "priority": 3})
+services.push({"parking": '112', "load": 10000, "time": null, "priority": 3})
+services.push({"parking": 'G3', "load": 10000, "time": null, "priority": 3})
 
-fuel(services)
 
-fs.writeFileSync('out.json', JSON.stringify({
+var plist = ["120","42C","L15","L17","G2","G5","20","62","40","40C","26","2","54","54","50","63","K12","40A","118","42","59","45","K11","58","29D","L16","42B","46","G3","29"]
+plist.forEach(function (n) {
+    services.push({"parking": n, "load": 16000, "time": null, "priority": 3})
+})
+
+
+fuel(truck, services)
+
+var features = []
+features.push({
     "type":"Feature",
     "geometry": {
         "type": "LineString",
-        "coordinates": trip
+        "coordinates": truck.trip
+    },
+    "properties": {
+        "speedsAtVertices": truck.speeds,
+        "waitsAtVertices": truck.waits
     }
-}), { mode: 0o644 })
+})
+
+if(truck.stops.length > 0)
+    features.push(truck.stops)
+
+fs.writeFileSync('out.json', JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
 debug('out.json written')
