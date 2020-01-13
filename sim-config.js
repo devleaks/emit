@@ -41,12 +41,6 @@ exports.airport = {
     }
 }
 
-exports.airplanes = {
-    "OO810": {
-        "model": "A321Neo"
-    }
-}
-
 exports.aircrafts = {
     "A321Neo": {
         "takeoff-distance": 2200,
@@ -77,10 +71,12 @@ exports.aircrafts = {
 exports.serviceTrucks = {
     "fuel": {
         "capacity": 30000,
-        "workload": function(qty) { return qty / 50 }
+        "speed": 40,
+        "slow": 20,
+        serviceTime: function(qty) { return qty / 50 }
     },
     "catering": {
         "capacity": 1,
-        "workload": function(qty) { return qty * 600 }
+        serviceTime: function(qty) { return qty * 600 }
     }
 }
