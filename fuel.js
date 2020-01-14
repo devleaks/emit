@@ -12,9 +12,15 @@ var program = require('commander')
 
 const NAUTICAL_MILE = 1852 // nautical mile
 
-var program = {
-    "debug": true
-}
+program
+    .version('1.0.0')
+    .description('generates GeoJSON features for aircraft refueling')
+    .option('-d, --debug', 'output extra debugging')
+    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
+    .parse(process.argv)
+
+debug(program.opts())
+
 
 var airport = {}
 
@@ -29,8 +35,9 @@ airport.pois = JSON.parse(jsonfile)
 
 
 airport.serviceroads.features.forEach(function(f) {
-    f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
-});
+    if(f.geometry.type == "LineString")
+        f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01) // 1=1 km. 0.01 = 10m (minimum)
+})
 
 //fs.writeFileSync('segmented.json', JSON.stringify(airport.serviceroads), { mode: 0o644 })
 

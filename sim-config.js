@@ -38,7 +38,9 @@ exports.airport = {
             "KOK5X",
             "NIK5X"
         ]
-    }
+    },
+    "taxi-hold": [60, 300],
+    "takeoff-hold": [10, 60]
 }
 
 exports.aircrafts = {

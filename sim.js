@@ -4,18 +4,28 @@ const turf = require('@turf/turf')
 const PathFinder = require('geojson-path-finder');
 const geojsonTool = require('geojson-tools')
 
-const config = require('./sim-config')
-
-const geojson = require('./geojson-structures')
-
 var program = require('commander')
 
 
-const NAUTICAL_MILE = 1852 // nautical mile
+// my stuff
+const config = require('./sim-config')
+const geojson = require('./geojson-structures')
 
-var program = {
-    "debug": true
-}
+program
+    .version('1.0.0')
+    .description('generates GeoJSON features for aircraft takeoff or landing')
+    .option('-d, --debug', 'output extra debugging')
+    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
+    .requiredOption('-m, --aircraft <model>', 'aircraft model')
+    .requiredOption('-r, --runway <runway>', 'name of runway')
+    .requiredOption('-s, --airway <name>', 'SID or STAR name')
+    .requiredOption('-p, --parking <parking>', 'name of parking')
+    .option('-l, --landing', 'Perform landing rather than takeoff')
+    .parse(process.argv)
+
+debug(program.opts())
+
+const NAUTICAL_MILE = 1852 // nautical mile
 
 var airport = {}
 
@@ -71,7 +81,10 @@ function debug(...args) {
     }
 }
 
-
+function error(...args) {
+    const caller = error.caller ? error.caller : { "name": "()" }
+    console.log(caller.name, args)
+}
 
 function to_kmh(kn) {
     return kn * 1000 / NAUTICAL_MILE
@@ -166,9 +179,9 @@ function add_linestring(device, trip, speed, wait) {
 /*
  * T A K E - O F F
  */
-function takeoff(airplane_name, parking_name, runway_name, sid_name) {
+function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     var airplane = {
-        "aircraft": "A321Neo",
+        "aircraft": aircraft_model,
         "trip": [],
         "stops": [],
         "speeds": [],
@@ -179,7 +192,11 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
     var p_name // point's name
 
     const aircraft = findAircraft(airplane.aircraft)
-    debug("aircraft", aircraft)
+    if(!aircraft) {
+        error("cannot find aircraft model", aircraft_model)
+        return false
+    } else
+        debug("aircraft", aircraft)
 
     // first point is parking position
     const parking = findFeature(parking_name, airport.parkings, "ref")
@@ -197,7 +214,7 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
     if (p) {
         add_point(airplane, p, 0, 60) // 60 seconds to detach tow pushback
     } else {
-        debug("cannot find pushback point", parking_name)
+        error("cannot find pushback point", parking_name)
         return false
     }
 
@@ -214,10 +231,11 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
         var r = route(p, p2, airport.taxiways)
         add_linestring(airplane, r.coordinates, aircraft.taxi_speed, null)
         // move to taxi hold point
-        var taxihold_time = Math.round(Math.random() * 120) // 0-120 sec hold before T.O.
+        var hold = config.airport["taxi-hold"]
+        var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0]-hold[0])) // 0-120 sec hold before T.O.
         add_point(airplane, p1.geometry.coordinates, aircraft.taxi_speed, taxihold_time)
     } else {
-        debug("cannot find taxihold point", p_name)
+        error("cannot find taxihold point", p_name)
         return false
     }
 
@@ -232,11 +250,12 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
     if (p1) {
         var r = route(p, p2, airport.taxiways)
         add_linestring(airplane, r.coordinates, aircraft.taxi_speed, null)
-        var takeoffhold_time = Math.round(Math.random() * 60) // 0-120 sec hold before T.O.
+        var hold = config.airport["takeoff-hold"]
+        var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0]-hold[0])) // 0-120 sec hold before T.O.
         // move to take-off hold
         add_point(airplane, p1, aircraft.taxi_speed, takeoffhold_time)
     } else {
-        debug("cannot find take-off hold point", p_name)
+        error("cannot find take-off hold point", p_name)
         return false
     }
 
@@ -247,7 +266,7 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
     if (p) {
         add_point(airplane, p, aircraft.v2, null)
     } else {
-        debug("cannot find take-off point", p_name)
+        error("cannot find take-off point", p_name)
         return false
     }
 
@@ -257,7 +276,7 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
     if (p) {
         add_point(airplane, p, aircraft.climbspeed1, null)
     } else {
-        debug("cannot find SID start", p_name)
+        error("cannot find SID start", p_name)
         return false
     }
 
@@ -270,7 +289,7 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
             add_point(airplane, c, null, null)
         })
     } else {
-        debug("cannot find SID", sid_name)
+        error("cannot find SID", sid_name)
         return false
     }
 
@@ -281,9 +300,9 @@ function takeoff(airplane_name, parking_name, runway_name, sid_name) {
 /*
  * L A N D I N G
  */
-function land(airplane_type, parking_name, runway_name, star_name) {
+function land(aircraft_model, parking_name, runway_name, star_name) {
     var airplane = {
-        "aircraft": "A321Neo",
+        "aircraft": aircraft_model,
         "trip": [],
         "stops": [],
         "speeds": [],
@@ -294,7 +313,11 @@ function land(airplane_type, parking_name, runway_name, star_name) {
     var p_name // point's name
 
     const aircraft = findAircraft(airplane.aircraft)
-    debug("aircraft", aircraft)
+    if(!aircraft) {
+        error("cannot find aircraft model", aircraft_model)
+        return false
+    } else
+        debug("aircraft", aircraft)
 
     p_name = 'STAR:' + star_name
     p = findFeature(p_name, airport.airways, "name")
@@ -308,7 +331,7 @@ function land(airplane_type, parking_name, runway_name, star_name) {
                 add_point(airplane, c, null, null)
         })
     } else {
-        debug("cannot find START", p_name)
+        error("cannot find START", p_name)
         return false
     }
 
@@ -318,7 +341,7 @@ function land(airplane_type, parking_name, runway_name, star_name) {
     if (p) {
         add_point(airplane, p, aircraft.vapproach, null)
     } else {
-        debug("cannot find SID start", p_name)
+        error("cannot find SID start", p_name)
         return false
     }
 
@@ -330,7 +353,7 @@ function land(airplane_type, parking_name, runway_name, star_name) {
             add_point(airplane, c, null, null)
         })
     } else {
-        debug("cannot find final approach", p_name)
+        error("cannot find final approach", p_name)
         return false
     }
 
@@ -340,7 +363,7 @@ function land(airplane_type, parking_name, runway_name, star_name) {
     if (p) {
         add_point(airplane, p, aircraft.vlanding, null)
     } else {
-        debug("cannot find touch down", p_name)
+        error("cannot find touch down", p_name)
         return false
     }
 
@@ -350,7 +373,7 @@ function land(airplane_type, parking_name, runway_name, star_name) {
     if (p) {
         add_point(airplane, p, aircraft.taxispeed, null)
     } else {
-        debug("cannot find runway exit", p_name)
+        error("cannot find runway exit", p_name)
         return false
     }
 
@@ -408,8 +431,10 @@ function land(airplane_type, parking_name, runway_name, star_name) {
         ]
     }
 */
-var airplane = land("A321Neo", "51", "22L", "LNO4X")
-//var airplane = takeoff("A321Neo", "51", "22L", "LNO7S")
+var airplane = program.landing ? 
+ land(program.aircraft, program.parking, program.runway, program.airway)
+ :
+ takeoff(program.aircraft, program.parking, program.runway, program.airway)
 
 if ( airplane ) {
     var features = []
@@ -428,8 +453,8 @@ if ( airplane ) {
     if (airplane.stops.length > 0)
         features.concat(airplane.stops)
 
-    fs.writeFileSync('out.json', JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
-    console.log('out.json written')
+    fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
+    console.log(program.O + ' written')
 } else {
     console.log('no file written')
 }

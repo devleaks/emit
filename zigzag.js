@@ -1,3 +1,8 @@
+/*
+ * Produces zigzag line string consisting of count times a horizontal displacement of length followed
+ * by a vertical displacement of length.
+ *
+ */
 var fs = require('fs')
 var moment = require('moment')
 var program = require('commander')
@@ -18,22 +23,34 @@ program
     .version('0.2.0')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
+    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "zigzag.json")
     .requiredOption('-l, --length <length>', 'Length of segment')
     .requiredOption('-c, --count <count>', 'Count of zigzags')
-    .option('-a, --accel', 'Take acceleration/deceleration into consideration')
-    .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
-    .option('-j, --json', 'output events as json')
-    .option('-p, --points', 'add points to feature collection')
-    .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
-    .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
-    .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
-    .option('-v, --vertices', 'Emit event at vertices (change of direction)')
-    .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
-    .option('-z, --zigzag', 'Generate demo file')
     .parse(process.argv)
 
 debug(program.opts())
 
+
+/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
+ * Function name must be part of valid list of functions to debug
+ * Preceedes debug output with calling function name.
+ */
+function debug(...args) {
+//  const program = { "debug": true , "funcname": false }
+    if (typeof(program) != "undefined" && program.debug) {
+        const MAIN = "main()"
+        var FUNCDEBUG = [
+            "", // always debug top-level
+            MAIN
+        ]
+        if(program.funcname)
+            FUNCDEBUG.concat(program.funcname)
+        var caller = debug.caller ? debug.caller : {"name": MAIN}
+
+        if (FUNCDEBUG.indexOf(caller.name) >= 0)
+            console.log(caller.name, args)
+    }
+}
 
 // TO DO
 // add ETA at vertices
@@ -135,23 +152,6 @@ function point_on_line(c, n, d) {
 }
 
 
-function debug(...args) {
-    if (program.debug) {
-        var caller = debug.caller ? debug.caller : ">> at top"
-
-        const funcDebug = [
-//          "spit",
-            "emit",
-            "waitAtVertex",
-            "xx"
-        ]
-
-        if (funcDebug.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
-
-
 // limited zigzag funtion, for points in northern, east hemisphere. d should be < 1000km
 function zigzag(start, dst, cnt) {
     var fc = []
@@ -230,5 +230,5 @@ function zigzag(start, dst, cnt) {
 const count = parseInt(program.count)
 const length = parseInt(program.length) // km
 
-fs.writeFileSync('zigzag.json', JSON.stringify(zigzag([4.3483286,50.8445793],length,count)), { mode: 0o644 })
-console.log('zigzag.json written')
+fs.writeFileSync(program.O, JSON.stringify(zigzag([4.3483286,50.8445793],length,count)), { mode: 0o644 })
+console.log(program.O + ' written')
