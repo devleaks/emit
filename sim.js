@@ -11,23 +11,10 @@ var program = require('commander')
 const config = require('./sim-config')
 const geojson = require('./geojson-structures')
 
-program
-    .version('1.0.0')
-    .description('generates GeoJSON features for aircraft takeoff or landing')
-    .option('-d, --debug', 'output extra debugging')
-    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
-    .requiredOption('-m, --aircraft <model>', 'aircraft model')
-    .requiredOption('-r, --runway <runway>', 'name of runway')
-    .requiredOption('-s, --airway <name>', 'SID or STAR name')
-    .requiredOption('-p, --parking <parking>', 'name of parking')
-    .option('-l, --landing', 'Perform landing rather than takeoff')
-    .parse(process.argv)
 
-debug(program.opts())
+const NAUTICAL_MILE = 1.852 // nautical mile in meters
 
-const NAUTICAL_MILE = 1852 // nautical mile
-
-var airport = {}
+var airport = config.airport ? config.airport : {}
 
 var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
 airport.parkings = JSON.parse(jsonfile)
@@ -55,7 +42,62 @@ airport.taxiways.features.forEach(function(f) {
         f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
 });
 
+/* Compute runway in use from list of runways and wind direction (in degrees). If tied, default is selected.
+ * Returns runway in use.
+ *
+ */
+function computeRunway(runways, wind, rwys, dft = 0) {
+    const r0 = rwys > 1 ? runways[0].substring(0, 2) : runways[0]
+    const r1 = rwys > 1 ? runways[1].substring(0, 2) : runways[1]
+    const runway_heading = r0 < r1 ? r0 : r1 // keep the smallest heading value
+    const runway_alt = r0 < r1 ? r1 : r0 // keep the smallest heading value
 
+    const runway_heading_txt = r0 < r1 ? runways[0] : runways[1] // keep the smallest heading value
+    const runway_alt_txt = r0 < r1 ? runways[1] : runways[0] // keep the smallest heading value
+
+    var wmin = runway_heading - 9
+    if (wmin < 0) wmin += 36
+    var wmax = runway_heading + 9
+    if (wmax > 36) wmax -= 36
+
+    if(wmin > wmax) { // switch them
+        var t = wmax
+        wmax = wmin
+        wmin = t
+    }
+
+    wind_int = Math.round((wind + 5)/10)
+    return (wind_int > wmin && wind_int < wmax) ? runway_alt_txt : runway_heading_txt
+}
+
+// try to build random values from airport data
+const landing = (Math.random() > 0.5)
+const runway = airport.runways.length > 1 ? airport.runways[Math.floor(Math.random()*airport.runways.length)] : airport.runways[0]
+const wind = Math.round(Math.random()*360)
+const runway_inuse = computeRunway(runway, wind, airport.runways.length)
+const runway_heading = airport.runways.length > 1 ? runway_inuse.substring(0, 2) : runway_inuse
+const approach_paths = landing ? airport.star : airport.sid
+const approach_default = approach_paths[runway_heading]
+const approach = approach_default[Math.floor(Math.random()*approach_default.length)]
+const parking = airport.parkings.features[Math.floor(Math.random()*airport.parkings.features.length)]
+
+const aircrafts = Object.keys(config.aircrafts)
+const aircraft = aircrafts[Math.floor(Math.random()*aircrafts.length)]
+
+program
+    .version('1.0.0')
+    .description('generates GeoJSON features for aircraft takeoff or landing')
+    .option('-d, --debug', 'output extra debugging')
+    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
+    .option('-m, --aircraft <model>', 'aircraft model', aircraft)
+    .option('-r, --runway <runway>', 'name of runway', runway_inuse)
+    .option('-s, --airway <name>', 'SID or STAR name', approach)
+    .option('-p, --parking <parking>', 'name of parking', parking.properties.ref)
+    .option('-l, --landing', 'Perform landing rather than takeoff', landing)
+    .option('-w, --wind <wind>', 'Wind direction in degrees', wind)
+    .parse(process.argv)
+
+debug(program.opts())
 
 /* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
  * Function name must be part of valid list of functions to debug
@@ -66,9 +108,9 @@ function debug(...args) {
     if (typeof(program) != "undefined" && program.debug) {
         const MAIN = "main()"
         var FUNCDEBUG = [
-            "takeoff",
-            "findFeature",
-            "add_linestring",
+//            "takeoff",
+//            "findFeature",
+//            "add_linestring",
             "", // always debug top-level
             MAIN // always debug functions with no name
         ]
@@ -87,11 +129,11 @@ function error(...args) {
 }
 
 function to_kmh(kn) {
-    return kn * 1000 / NAUTICAL_MILE
+    return kn / NAUTICAL_MILE
 }
 
 function to_kn(km) {
-    return kmh * NAUTICAL_MILE / 1000
+    return kmh * NAUTICAL_MILE
 }
 
 function findAircraft(name) {
@@ -233,7 +275,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         // move to taxi hold point
         var hold = config.airport["taxi-hold"]
         var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0]-hold[0])) // 0-120 sec hold before T.O.
-        add_point(airplane, p1.geometry.coordinates, aircraft.taxi_speed, taxihold_time)
+        add_point(airplane, p1.geometry.coordinates, aircraft.taxi_speed, takeoffhold_time)
     } else {
         error("cannot find taxihold point", p_name)
         return false
@@ -454,7 +496,10 @@ if ( airplane ) {
         features.concat(airplane.stops)
 
     fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
+    var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
+    console.log("wind: "+ program.wind + ": "+(program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
     console.log(program.O + ' written')
 } else {
-    console.log('no file written')
+   console.log(program.opts())
+   console.log('no file written')
 }
