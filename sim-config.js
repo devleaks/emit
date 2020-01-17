@@ -43,11 +43,14 @@ exports.airport = {
     "takeoff-hold": [10, 60]
 }
 
+// aircraft speeds are in kn
+// distances are in meters
+// altitudes are in meters or FL
 exports.aircrafts = {
     "A321Neo": {
         "takeoff-distance": 2200,
         "landing-distance": 1700,
-        "taxispeed": 30,
+        "taxispeed": 15,
         "v2": 180,
         "vs0": 12,
         "vclimb1": 200,
@@ -80,5 +83,30 @@ exports.serviceTrucks = {
     "catering": {
         "capacity": 1,
         serviceTime: function(qty) { return qty * 600 }
+    }
+}
+
+exports.services = {
+    "fuel": {
+        "trucks": [{
+            "capacity": 30000,
+            "speed": 40,
+            "slow": 20 Î
+        }],
+        "base": [
+            "FUEL1"
+        ],
+        serviceTime: function(qty) { return qty / 50 }
+    },
+    "catering": {
+        "trucks": [{
+            "capacity": 1,
+            "speed": 40,
+            "slow": 20 Î
+        }],
+        "base": [
+            "cateringdepot"
+        ],
+        serviceTime: function(qty) { return qty * 20 * 60 } // seconds
     }
 }

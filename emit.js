@@ -5,7 +5,7 @@ var program = require('commander')
 const geoutils = require('./geoutils')
 
 program
-    .version('0.3.0')
+    .version('1.1.0')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
@@ -13,8 +13,11 @@ program
     .requiredOption('-s, --speed <speed>', 'Speed of vehicle in km/h')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
+    .option('--shift-date <seconds>', 'Event reporting is shifted by that amount of seconds', moment().toISOString())
+    .option('-s, --silent', 'Does not report position when stopped')
     .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
     .option('-j, --json', 'output events as json')
+    .option('-n, --name <name>', 'Set reporting device name on output')
     .option('-p, --points', 'add points to feature collection')
     .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
@@ -107,8 +110,8 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
         "nextspeed": speeds[lsidx+1],
         "currspeed": v0,
         "accel": acc,
-        "time": rate,
-        "time/h": rate/3600,
+        "rate": rate,
+        "rate/h": rate/3600,
         "dist": dist,
         "ctr dist": distance(currpos, nextpos),
         "leftvtx": distance(nextpos,ls[lsidx+1])
@@ -120,26 +123,42 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 
 function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
-    if ((k == 's' || k == 'e' || k == 'w') ||
-        (k == 'v' && program.vertices) ||
-        (k == 'f' && program.lastPoint)) {
-        dt = t
-        if (sd && sd.isValid()) {
-            dt = moment(sd).add(t, 's').toISOString(true)
-        }
-        if (program.json)
-            r = JSON.stringify({
-                "lat": p[1],
-                "lon": p[0],
-                "ts": dt
-            })
-        else
-            r = [dt, [p[0], p[1]]]
+    if (   (k == 's' || k == 'e')                   // normal emit
+        || (k == 'w' && !program.silent)            // stopped. does not emit if silent
+        || (k == 'v' && program.vertices)           // at vertice, only emit if requested
+        || (k == 'f' && program.lastPoint)  ) {     // at last point, only emit if requested
 
-        if (program.give)
-            console.log(JSON.stringify(r))
-        else
-            debug(s, JSON.stringify(r))
+        var newt = program.shiftDate ? t + parseInt(program.shiftDate) : t
+
+        if (sd && sd.isValid()) {
+            dt = moment(sd).add(newt, 's').toISOString(true)
+        }
+
+        if (program.give) {
+            if(program.name) {
+
+            console.log(
+                JSON.stringify(
+                    program.json ? {
+                        "lat": p[1],
+                        "lon": p[0],
+                        "ts": dt,
+                        "name": program.name
+                    } : [program.name, dt, [p[0], p[1]]]
+                )
+            )
+            } else {
+            console.log(
+                JSON.stringify(
+                    program.json ? {
+                        "lat": p[1],
+                        "lon": p[0],
+                        "ts": dt
+                    } : [dt, [p[0], p[1]]]
+                )
+            )
+            }
+        }
 
         color = "#888888"
         switch (k) {
@@ -173,6 +192,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
                 "marker-size": "medium",
                 "marker-symbol": "",
                 "timestamp": dt,
+                "elapsed": t,
                 "vertex": idx,
                 "sequence": pts.length,
                 "speed": spd,
