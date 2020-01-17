@@ -26,12 +26,15 @@ var airport = {}
 
 var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
 airport.parkings = JSON.parse(jsonfile)
+airport.parkings.mlsname = "parking"
 
 jsonfile = fs.readFileSync(config.airport.service, 'utf8')
 airport.serviceroads = JSON.parse(jsonfile)
+airport.serviceroads.mlsname = "serviceroads"
 
 jsonfile = fs.readFileSync(config.airport.pois, 'utf8')
 airport.pois = JSON.parse(jsonfile)
+airport.pois.mlsname = "pois"
 
 
 airport.serviceroads.features.forEach(function(f) {
@@ -101,11 +104,15 @@ function multilinestring(fc) {
 /* Find closest point to network of roads (FeatureCollectionof LineStrings)
  * Returns Point
  */
-function findClosest(p, network) { // cache it as well in network structure
-    if( typeof(network.mls)=="undefined") { // build suitable structure for nearestPointOnLine, cache it.
-        network.mls = multilinestring(network)
-    }
-    return turf.nearestPointOnLine(network.mls, p)    
+function findClosest(p, network) {
+    if( typeof(p.nearestPointOnLine)=="undefined" || typeof(p.nearestPointOnLine[network.mlsname]) == "undefined") {
+        p.nearestPointOnLine = p.nearestPointOnLine ? p.nearestPointOnLine : {}
+        if( typeof(network.mls)=="undefined") { // build suitable structure for nearestPointOnLine, cache it.
+            network.mls = multilinestring(network)
+        }
+        p.nearestPointOnLine[network.mlsname] = turf.nearestPointOnLine(network.mls, p)    
+    } 
+    return p.nearestPointOnLine[network.mlsname]
 }
 
 
@@ -115,7 +122,7 @@ function findClosest(p, network) { // cache it as well in network structure
 function route(p_from, p_to, network) {
     // fs.writeFileSync('debug.json', JSON.stringify({"type":"FeatureCollection", "features": [p_from, p_to]}), { mode: 0o644 })
     const pathfinder = new PathFinder(network, {
-        precision: 0.00005
+        precision: 0.0005
     });
 
     const path = pathfinder.findPath(p_from, p_to);
@@ -134,26 +141,31 @@ function route(p_from, p_to, network) {
  * Return nothing.
  */
 function refill(truck, fuel) {
-    debug("searching...", truck.position)
     // get to service_road
     var p = findClosest(truck.position, airport.serviceroads)
-    add_point(truck, p, config.serviceTrucks.fuel.slow, 30)
+    add_point(truck, p, config.serviceTrucks.fuel.slow, 30) // move truck from where it is to service road
+
+    // get closest point to fuel on serviceroad
+    var p1 = findClosest(fuel, airport.serviceroads)
+    //debug("closest to fuel", fuel, p1)
+
     // get to refill area
-    var r = route(p, fuel, airport.serviceroads) // assumes fuel1 is on service road...
+    var r = route(p, p1, airport.serviceroads)
+
     add_linestring(truck, r.coordinates, config.serviceTrucks.fuel.speed, null)
     // refill
-    add_point(truck, fuel, 0, config.serviceTrucks.fuel.serviceTime(config.serviceTrucks.fuel.capacity - truck.load))
+
+    add_point(truck, fuel, 0, config.serviceTrucks.fuel.serviceTime(config.serviceTrucks.fuel.capacity - truck.load)) // move truck from serviceroad to refill station + refill
     truck.position = fuel.geometry.coordinates
     truck.load = config.serviceTrucks.fuel.capacity
 }
 
 
 function service(truck, service) {
-    debug("searching...", truck.position)
     // get from truck position to service road, move there slowly
     var p = findClosest(truck.position, airport.serviceroads)
     //debug("closest to truck", truck.position, p)
-    add_point(truck, p, config.serviceTrucks.fuel.slow, 30)
+    add_point(truck, p, config.serviceTrucks.fuel.slow, 30) // truck moves to serviceroad
 
     // get to parking on service road at full speed
     var parking = findFeature(service.parking, airport.parkings, "ref")
@@ -165,7 +177,7 @@ function service(truck, service) {
     var p1 = findClosest(parking, airport.serviceroads)
     //debug("closest to parking", parking, p1)
 
-    var r = route(p1, p, airport.serviceroads)
+    var r = route(p, p1, airport.serviceroads)
     if(r)
         add_linestring(truck, r.coordinates, config.serviceTrucks.fuel.speed, null)
     else
@@ -235,6 +247,8 @@ function fuel(truck, services) {
         services = optimize(truck, services)
         debug("..done")
     }
+    // at the end, truck goes safely back to refueling area for parking
+    refill(truck, fuel1)
 }
 
 
@@ -249,13 +263,9 @@ var truck = {
 }
 
 var services = []
-services.push({"parking": '51', "load": 25000, "time": null, "priority": 3})
-services.push({"parking": '46', "load": 10000, "time": null, "priority": 3})
-services.push({"parking": '112', "load": 10000, "time": null, "priority": 3})
-services.push({"parking": 'G3', "load": 10000, "time": null, "priority": 3})
 
 
-var plist = ["120","42C","L15","L17","G2","G5","20","62","40","40C","26","2","54","54","50","63","K12","40A","118","42","59","45","K11","58","29D","L16","42B","46","G3","29"]
+var plist = ["120","42C","L15","L17"]
 plist.forEach(function (n) {
     services.push({"parking": n, "load": 16000, "time": null, "priority": 3})
 })

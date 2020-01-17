@@ -12,8 +12,6 @@ const config = require('./sim-config')
 const geojson = require('./geojson-structures')
 
 
-const NAUTICAL_MILE = 1.852 // nautical mile in meters
-
 var airport = config.airport ? config.airport : {}
 
 var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
@@ -127,6 +125,8 @@ function error(...args) {
     const caller = error.caller ? error.caller : { "name": "()" }
     console.log(caller.name, args)
 }
+
+const NAUTICAL_MILE = 1.852 // nautical mile in meters
 
 function to_kmh(kn) {
     return kn / NAUTICAL_MILE
@@ -246,7 +246,6 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         debug("parking not found", parking_name)
         return false
     }
-    aircraft.position = parking.geometry.coordinates
 
     // start of ls
     add_point(airplane, parking, 0, null)
@@ -271,11 +270,11 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     if (p2) {
         var r = route(p, p2, airport.taxiways)
-        add_linestring(airplane, r.coordinates, aircraft.taxi_speed, null)
+        add_linestring(airplane, r.coordinates, to_kmh(aircraft.taxi_speed), null)
         // move to taxi hold point
         var hold = config.airport["taxi-hold"]
         var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0]-hold[0])) // 0-120 sec hold before T.O.
-        add_point(airplane, p1.geometry.coordinates, aircraft.taxi_speed, takeoffhold_time)
+        add_point(airplane, p1.geometry.coordinates, to_kmh(aircraft.taxi_speed), takeoffhold_time)
     } else {
         error("cannot find taxihold point", p_name)
         return false
@@ -283,7 +282,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     // route to take-off hold position
     // from taxi-hold to taxiways
-    add_point(airplane, p2, aircraft.taxi_speed, 0)
+    add_point(airplane, p2, to_kmh(aircraft.taxi_speed), 0)
     p = p2
     p_name = 'TOH:' + runway_name
     p1 = findFeature(p_name, airport.taxiways, "name")
@@ -291,11 +290,11 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     if (p1) {
         var r = route(p, p2, airport.taxiways)
-        add_linestring(airplane, r.coordinates, aircraft.taxi_speed, null)
+        add_linestring(airplane, r.coordinates, to_kmh(aircraft.taxi_speed), null)
         var hold = config.airport["takeoff-hold"]
         var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0]-hold[0])) // 0-120 sec hold before T.O.
         // move to take-off hold
-        add_point(airplane, p1, aircraft.taxi_speed, takeoffhold_time)
+        add_point(airplane, p1, to_kmh(aircraft.taxi_speed), takeoffhold_time)
     } else {
         error("cannot find take-off hold point", p_name)
         return false
@@ -306,7 +305,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p_name = 'TO:' + runway_name
     p = findFeature(p_name, airport.taxiways, "name")
     if (p) {
-        add_point(airplane, p, aircraft.v2, null)
+        add_point(airplane, p, to_kmh(aircraft.v2), null)
     } else {
         error("cannot find take-off point", p_name)
         return false
@@ -316,7 +315,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p_name = 'SID:' + runway_name.substring(0, 2) // remove L or R, only keep heading
     p = findFeature(p_name, airport.airways, "name")
     if (p) {
-        add_point(airplane, p, aircraft.climbspeed1, null)
+        add_point(airplane, p, to_kmh(aircraft.climbspeed1), null)
     } else {
         error("cannot find SID start", p_name)
         return false
@@ -368,7 +367,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
         p.geometry.coordinates.forEach(function(c, idx) {
             if(first) {
                 first = false
-                add_point(airplane, c, aircraft.vinitialdescend, null)
+                add_point(airplane, c, to_kmh(aircraft.vinitialdescend), null)
             } else
                 add_point(airplane, c, null, null)
         })
@@ -381,7 +380,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'STAR:' + runway_name.substring(0, 2) // remove L or R, only keep heading
     p = findFeature(p_name, airport.airways, "name")
     if (p) {
-        add_point(airplane, p, aircraft.vapproach, null)
+        add_point(airplane, p, to_kmh(aircraft.vapproach), null)
     } else {
         error("cannot find SID start", p_name)
         return false
@@ -403,7 +402,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'TD:' + runway_name
     p = findFeature(p_name, airport.airways, "name")
     if (p) {
-        add_point(airplane, p, aircraft.vlanding, null)
+        add_point(airplane, p, to_kmh(aircraft.vlanding), null)
     } else {
         error("cannot find touch down", p_name)
         return false
@@ -413,7 +412,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'RX:' + runway_name
     p = findFeature(p_name, airport.airways, "name")
     if (p) {
-        add_point(airplane, p, aircraft.taxispeed, null)
+        add_point(airplane, p, to_kmh(aircraft.taxispeed), null)
     } else {
         error("cannot find runway exit", p_name)
         return false
@@ -422,7 +421,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     // taxi to parking
     // runway exit to taxiway
     p1 = findClosest(p, airport.taxiways)
-    add_point(airplane, p1, aircraft.taxispeed, null)
+    add_point(airplane, p1, to_kmh(aircraft.taxispeed), null)
 
     // taxi to close to parking
     const parking = findFeature(parking_name, airport.parkings, "ref")
@@ -433,7 +432,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p2 = findClosest(parking, airport.taxiways)
 
     var r = route(p1, p2, airport.taxiways)
-    add_linestring(airplane, r.coordinates, aircraft.taxi_speed, null)
+    add_linestring(airplane, r.coordinates, to_kmh(aircraft.taxi_speed), null)
 
 
     // last point is parking position (from taxiway to parking position)
