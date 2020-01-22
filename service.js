@@ -62,7 +62,7 @@ function debug(...args) {
             MAIN // always debug functions with no name
         ]
         if (program.funcname)
-            FUNCDEBUG.concat(program.funcname)
+            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
         var caller = debug.caller ? debug.caller : { "name": MAIN }
 
         if (FUNCDEBUG.indexOf(caller.name) >= 0)
@@ -137,14 +137,26 @@ function add_linestring(truck, trip, speed, wait) {
  * Return nothing.
  */
 function add_stop(truck, point, speed, wait, note) { // point = [lon, lat]
-    point.properties = point.properties ? point.properties : {}
-    point.properties.speed = speed
-    point.properties.wait = wait
-    point.properties.note = note
-    truck.stops.push(point)
+    if (geojson.isFeature(point)) {
+        point.properties = point.properties ? point.properties : {}
+        point.properties["speed"] = speed
+        point.properties["wait"] = wait
+        point.properties["note"] = note
+        point.properties["marker-color"] = "#aa0000"
+        point.properties["marker-size"] = "medium"
+        point.properties["marker-symbol"] = ""
+        truck.stops.push(point)
+    } else {
+        truck.stops.push(geojson.Feature(point, {
+            "speed": speed,
+            "wait": wait,
+            "note": note,
+            "marker-color": "#aa0000",
+            "marker-size": "medium",
+            "marker-symbol": ""
+        }))
+    }
 }
-
-
 /* =========================================================
  * Service functional function
  */
@@ -172,10 +184,12 @@ function refill(truck) {
 
     add_linestring(truck, r.coordinates, truck.speed, null)
 
+    // ADD STOP TO EXPLAIN REFILL 
+    add_stop(truck, refillStation, 0, truck.refillTime(truck.capacity - truck.load), "refill "+ (truck.capacity - truck.load))
+
     add_point(truck, refillStation, 0, truck.refillTime(truck.capacity - truck.load)) // move truck from serviceroad to refill station + refill
     truck.position = refillStation.geometry.coordinates // at refill station
     truck.load = truck.capacity // refilled
-    // ADD STOP TO EXPLAIN REFILL
 }
 
 
@@ -208,10 +222,11 @@ function serve(service, truck) {
 
     // get from service road to parking slowly and service plane
     // service
-    add_point(truck, parking, truck.slow, truck.serviceTime(service.load))
+    add_point(truck, parking, truck.slow, truck.serviceTime(service.qty))
     truck.load -= service.qty
     truck.position = parking.geometry.coordinates
     // ADD STOP TO EXPLAIN SERVICE OPERATION
+    add_stop(truck, parking, 0, truck.refillTime(truck.capacity - truck.load), "serving "+parking.properties.ref+" "+service.qty)
 }
 
 /* Hook to place your fuel truck delivery optimization function. Called after each service.
@@ -270,9 +285,7 @@ function do_services(services) {
 
 
 var services = []
-
-
-var plist = ["H10",
+const plist = ["H10",
     "H8",
     52,
     "L17",
@@ -288,7 +301,7 @@ var plist = ["H10",
 ]
 
 plist.forEach(function(n) {
-    if(Math.random() > 0.5)
+    if(Math.random() > 0)
         services.push({ "service": "fuel", "parking": n, "qty": 12000, "datetime": null, "priority": 3 })
     else
         services.push({ "service": "catering", "parking": n, "qty": 1, "datetime": null, "priority": 3 })
@@ -313,10 +326,12 @@ trucks.forEach(function(truck) {
             "waitsAtVertices": truck.waits
         }
     })
-    if (truck.stops.length > 0)
-        features.concat(truck.stops)
+    if (truck.stops.length > 0) {
+        features = features.concat(truck.stops)
+        debug('.'+truck.stops.length)
+    }
 })
 
 
-fs.writeFileSync('out.json', JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
-debug('out.json written')
+fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
+debug(program.O+' written')

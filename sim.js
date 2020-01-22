@@ -9,7 +9,7 @@ var program = require('commander')
 
 // my stuff
 const config = require('./sim-config')
-const geojson = require('./geojson-structures')
+const geojson = require('./geojson-util')
 
 
 var airport = config.airport ? config.airport : {}
@@ -113,7 +113,7 @@ function debug(...args) {
             MAIN // always debug functions with no name
         ]
         if (program.funcname)
-            FUNCDEBUG.concat(program.funcname)
+            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
         var caller = debug.caller ? debug.caller : { "name": MAIN }
 
         if (FUNCDEBUG.indexOf(caller.name) >= 0)

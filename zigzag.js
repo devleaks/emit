@@ -44,7 +44,7 @@ function debug(...args) {
             MAIN
         ]
         if(program.funcname)
-            FUNCDEBUG.concat(program.funcname)
+            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
         var caller = debug.caller ? debug.caller : {"name": MAIN}
 
         if (FUNCDEBUG.indexOf(caller.name) >= 0)
