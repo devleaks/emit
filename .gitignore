@@ -102,8 +102,12 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Custom
 out.json
-sp.js
 zigzag.json
 tests/.DS_Store
 .DS_Store
+eblg/charts
+eblg/data
+eblg/work
