@@ -444,7 +444,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
                 speeds[sp.idx] = sp.speed
         })
     } else {
-        speeds[ls.length - 1] = speedsAtVertices
+        speeds[ls.length - 1] = speed
     }
     fillSpeed(speeds, ls.length) // init speed array
     eta(ls, speeds)

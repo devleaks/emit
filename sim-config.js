@@ -70,43 +70,60 @@ exports.aircrafts = {
         "ds3": 10,
         "vlanding": 134,
         "ds4": 10
-    }
-}
-
-exports.serviceTrucks = {
-    "fuel": {
-        "capacity": 30000,
-        "speed": 40,
-        "slow": 20,
-        serviceTime: function(qty) { return qty / 50 }
     },
-    "catering": {
-        "capacity": 1,
-        serviceTime: function(qty) { return qty * 600 }
+    "B747": {
+        "takeoff-distance": 2200,
+        "landing-distance": 1700,
+        "taxispeed": 15,
+        "v2": 180,
+        "vs0": 12,
+        "vclimb1": 200,
+        "cs1": 14,
+        "vclimb2": 220,
+        "cs2": 10,
+        "vclimb3": 220,
+        "cs3": 10,
+        "vcruze": 450,
+        "vinitialdescend": 450,
+        "ds0": 10,
+        "vdescend": 290,
+        "ds1": 10,
+        "vdescend2": 210,
+        "ds2": 10,
+        "vapproach": 160,
+        "ds3": 10,
+        "vlanding": 150,
+        "ds4": 10
     }
 }
 
 exports.services = {
     "fuel": {
         "trucks": [{
+            "name": "fuel1",
             "capacity": 30000,
             "speed": 40,
-            "slow": 20 Î
+            "slow": 20,
+            serviceTime: function(qty) { return qty / 50 },
+            refillTime: function(qty) { return qty / 75 }
         }],
         "base": [
-            "FUEL1"
+            "FUEL1",
+            "FUEL2"
         ],
-        serviceTime: function(qty) { return qty / 50 }
+        serviceTime: function(qty) { return qty / 50 },
+        refillTime: function(qty) { return qty / 75 }
     },
     "catering": {
         "trucks": [{
+            "name": "catering1",
             "capacity": 1,
             "speed": 40,
-            "slow": 20 Î
+            "slow": 20
         }],
         "base": [
-            "cateringdepot"
+            "CATERING1"
         ],
-        serviceTime: function(qty) { return qty * 20 * 60 } // seconds
-    }
+        serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
+        refillTime: function(qty) { return qty * 12 * 60 }    }
 }

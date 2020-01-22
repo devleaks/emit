@@ -20,4 +20,10 @@ Specify speeds with external Point feature rather than speedsAtVertices and wait
 
 Next to a path (LineString), add Point(s) with properties like speed, pause, etc.
 
-Find point on path that is the closest to supplied Point and use porperties of that point to determine behavior (speed, pause) of device.
+Find point on path that is the closest to supplied Point and use porperties of that point to determine behavior (speed, pause) of device
+
+
+### Airplane altitude
+
+Currently, planes crawl on the ground. Kinda fast cars.
+Altitude will be added soon.

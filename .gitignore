@@ -108,6 +108,4 @@ out.json
 zigzag.json
 tests/.DS_Store
 .DS_Store
-eblg/charts
-eblg/data
-eblg/work
+eblg

@@ -16,6 +16,11 @@
     "jsonpath": "^1.0.2",
     "leaflet-routing-machine": "^3.2.12",
     "moment": "^2.24.0",
-    "simple-node-logger": "^18.12.23"
+    "simple-node-logger": "^18.12.23",
+    "sqlite3": "^4.1.1",
+    "vt-geojson": "^2.1.1"
+  },
+  "resolutions": {
+    "vt-geojson/**/sqlite3": "^4.0.0"
   }
 }
