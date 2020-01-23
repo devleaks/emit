@@ -6,6 +6,7 @@
   "dependencies": {
     "@mapbox/geojson-merge": "^1.1.1",
     "@turf/turf": "^5.1.6",
+    "aewx-metar-parser": "^0.10.1",
     "color-convert": "^2.0.1",
     "commander": "^4.0.1",
     "fs": "^0.0.1-security",
@@ -18,7 +19,8 @@
     "moment": "^2.24.0",
     "simple-node-logger": "^18.12.23",
     "sqlite3": "^4.1.1",
-    "vt-geojson": "^2.1.1"
+    "vt-geojson": "^2.1.1",
+    "xml2js": "^0.4.23"
   },
   "resolutions": {
     "vt-geojson/**/sqlite3": "^4.0.0"
