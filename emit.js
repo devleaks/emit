@@ -320,41 +320,41 @@ function rn(p, n = 4) {
 }
 
 
-function waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
+function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
     debug.print("IN", lsidx, timing)
     var counter = 0
-    if (wait && wait > 0) {
-        debug.print("must wait", wait)
-        if (wait < rate) {
-            if (wait > timing.left) { // will emit here
-                emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
+    if (pause && pause > 0) {
+        debug.print("must pause", pause)
+        if (pause < rate) {
+            if (pause > timing.left) { // will emit here
+                emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
-                debug.print("waiting 1 ...", wait)
-                // keep wating but no emit since wait < rate
-                timing.time += wait
-                timing.left = rate - wait - timing.left
-            } else { // will not emit here, we just wait and then continue our trip
-                debug.print("waited 1 but carries on", wait)
-                timing.time += wait
-                timing.left -= wait
+                debug.print("pauseing 1 ...", pause)
+                // keep wating but no emit since pause < rate
+                timing.time += pause
+                timing.left = rate - pause - timing.left
+            } else { // will not emit here, we just pause and then continue our trip
+                debug.print("pauseed 1 but carries on", pause)
+                timing.time += pause
+                timing.left -= pause
             }
         } else { // will emit here, may be more than once. let's first emit once on left
-            emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
+            emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
             counter++
-            debug.print("waiting 2 ...", timing.left)
+            debug.print("pauseing 2 ...", timing.left)
             timing.time += timing.left
 
-            var totwait = wait - timing.left
-            // then let's emit as many time as we wait
-            while (totwait > 0) {
+            var totpause = pause - timing.left
+            // then let's emit as many time as we pause
+            while (totpause > 0) {
                 timing.time += rate
-                emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
+                emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
-                debug.print("waiting 3 ...", totwait)
-                totwait -= rate
+                debug.print("pauseing 3 ...", totpause)
+                totpause -= rate
             }
             // then set time to next emit
-            timing.left = totwait + rate
+            timing.left = totpause + rate
         }
     }
     timing.counter = counter
@@ -406,7 +406,7 @@ function doCollection(fc, speed, rate, startdate) {
 
 function doLineStringFeature(f, speed, rate, startdates) {
     var speedsAtVertices = (f.properties && f.properties.speedsAtVertices) ? f.properties.speedsAtVertices : null
-    var waitsAtVertices = (f.properties && f.properties.waitsAtVertices) ? f.properties.waitsAtVertices : null
+    var pausesAtVertices = (f.properties && f.properties.pausesAtVertices) ? f.properties.pausesAtVertices : null
     const ls = f.geometry.coordinates // linestring
     var lsidx = 0 // index in linestring
     var newls = [] // coordinates of new linestring
@@ -414,7 +414,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
     var points = [] // points where broacasting position
 
     var speeds = []
-    var waits = []
+    var pauses = []
 
     if (Array.isArray(speedsAtVertices)) {
         speedsAtVertices.forEach(function(sp) {
@@ -427,14 +427,14 @@ function doLineStringFeature(f, speed, rate, startdates) {
     fillSpeed(speeds, ls.length) // init speed array
     eta(ls, speeds)
 
-    if (Array.isArray(waitsAtVertices)) {
-        waitsAtVertices.forEach(function(wt) {
+    if (Array.isArray(pausesAtVertices)) {
+        pausesAtVertices.forEach(function(wt) {
             if (wt.idx < ls.length)
-                waits[wt.idx] = wt.pause
+                pauses[wt.idx] = wt.pause
         })
     }
 
-    debug.print("arrays:" + ls.length + ":" + speeds.length + ":" + waits.length)
+    debug.print("arrays:" + ls.length + ":" + speeds.length + ":" + pauses.length)
 
     var maxstep = speed * rate / 3600
     var currpos = ls[lsidx] // start pos
@@ -464,8 +464,8 @@ function doLineStringFeature(f, speed, rate, startdates) {
             emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], "moving on edge with time remaining to next vertex", lsidx)
             currpos = nextvtx
             to_next_emit -= timeleft2vtx // time left before next emit
-            // waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
-            var timing = waitAtVertex({ "time": time, "left": to_next_emit }, waits[lsidx + 1] ? waits[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
+            // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
+            var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
             time = timing.time
             to_next_emit = timing.left
             //debug.print("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
@@ -488,8 +488,8 @@ function doLineStringFeature(f, speed, rate, startdates) {
                 emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
                 currpos = nextvtx
                 to_next_emit = rate - timeleft2vtx // time left before next emit
-                // waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
-                var timing = waitAtVertex({ "time": time, "left": to_next_emit }, waits[lsidx + 1] ? waits[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
+                // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
+                var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
                 time = timing.time
                 to_next_emit = timing.left
                 //debug.print(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
