@@ -93,8 +93,8 @@ const aircrafts = Object.keys(config.aircrafts)
 const aircraft = aircrafts[Math.floor(Math.random() * aircrafts.length)]
 
 program
-    .version('1.0.0')
-    .description('generates GeoJSON features for aircraft takeoff or landing')
+    .version('2.0.0')
+    .description('generates GeoJSON features for one aircraft takeoff or landing')
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .option('-m, --aircraft <model>', 'aircraft model', aircraft)
