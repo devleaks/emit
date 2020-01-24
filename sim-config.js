@@ -10,6 +10,7 @@ exports.airport = {
     "service": "eblg/json/eblg-serviceroads.geojson",
     "pois": "eblg/json/eblg-pois.geojson",
     "airways": "eblg/json/eblg-sids-stars.geojson",
+    "metar": "eblg/json/METAR.json",
     "sid": {
         "04": [
             "BUB7R",
@@ -101,6 +102,16 @@ exports.services = {
     "fuel": {
         "trucks": [{
             "name": "fuel1",
+            "color": "#aa0000",
+            "capacity": 30000,
+            "speed": 40,
+            "slow": 20,
+            serviceTime: function(qty) { return qty / 50 },
+            refillTime: function(qty) { return qty / 75 }
+        },
+        {
+            "name": "fuel2",
+            "color": "#aa6600",
             "capacity": 30000,
             "speed": 40,
             "slow": 20,
@@ -117,6 +128,7 @@ exports.services = {
     "catering": {
         "trucks": [{
             "name": "catering1",
+            "color": "#00aa00",
             "capacity": 1,
             "speed": 40,
             "slow": 20
