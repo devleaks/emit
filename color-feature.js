@@ -11,29 +11,9 @@ const fs = require('fs')
 const turf = require('@turf/turf')
 const convert = require('color-convert')
 var program = require('commander')
+const debug = require('./debug.js')
 
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-//  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-            "pc",
-            "", // always debug top-level
-            MAIN// always debug functions with no name
-        ]
-        if(program.funcname)
-            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : {"name": MAIN}
-
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
-
+debug.init(true, [""], "main")
 
 program
     .version('1.0.0')
@@ -42,7 +22,7 @@ program
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
 
-debug(program.opts())
+debug.print(program.opts())
 
 function centroid(polygon) {
   return polygon
@@ -52,7 +32,7 @@ var depth = 0
 function pc(f) {
     depth++
 
-    debug(">".repeat(depth)+(f.type == "Feature" ? f.type+"("+f.geometry.type+")": f.type))
+    debug.print(">".repeat(depth)+(f.type == "Feature" ? f.type+"("+f.geometry.type+")": f.type))
     if(f.type == "FeatureCollection") {
         f.features.forEach(function(f1, idx) {
             f.features[idx] = pc(f.features[idx])

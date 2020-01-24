@@ -19,7 +19,7 @@ program
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug(program.opts())
+debug.print(program.opts())
 
 
 var airport = {}
@@ -44,33 +44,9 @@ airport.serviceroads.features.forEach(function(f) {
 
 //fs.writeFileSync('segmented.json', JSON.stringify(airport.serviceroads), { mode: 0o644 })
 
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-    //  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-            //            "fuel",
-            //            "route",
-            //            "refill",
-            "selectTruck",
-            "do_services",
-            "", // always debug top-level
-            MAIN // always debug functions with no name
-        ]
-        if (program.funcname)
-            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : { "name": MAIN }
+const debug = require('./debug.js')
 
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
-
-
+debug.init(true, [""], "main")
 
 /* Find closest point to network of roads (FeatureCollectionof LineStrings)
  * Returns Point
@@ -99,7 +75,7 @@ function route(p_from, p_to, network) {
     const path = pathfinder.findPath(p_from, p_to);
 
     if (!path)
-        debug("could not find route", p_from, p_to)
+        debug.print("could not find route", p_from, p_to)
 
     return geojson.LineString(path ? path.path : [p_from, p_to])
 }
@@ -111,7 +87,7 @@ function route(p_from, p_to, network) {
  * Return nothing.
  */
 function add_point(truck, point, speed, wait) { // point = [lon, lat]
-    debug(point, point.geometry, geojson.coords(point))
+    debug.print(point, point.geometry, geojson.coords(point))
     truck.trip.push(geojson.coords(point))
     var c = truck.trip.length - 1
     if (speed)
@@ -125,11 +101,11 @@ function add_point(truck, point, speed, wait) { // point = [lon, lat]
  * Return nothing.
  */
 function add_linestring(truck, trip, speed, wait) {
-    debug("adding..")
+    debug.print("adding..")
     trip.forEach(function(p, idx) {
         add_point(truck, p, speed, wait)
     })
-    debug("..added")
+    debug.print("..added")
 }
 
 
@@ -177,7 +153,7 @@ function refill(truck) {
     var refillStation = geojson.findFeature(refillStationName, airport.pois, "name")
     // get closest point to fuel on serviceroad
     var p1 = findClosest(refillStation, airport.serviceroads)
-    //debug("closest to refillStation", refillStation, p1)
+    //debug.print("closest to refillStation", refillStation, p1)
 
     // get to refill area on service roads
     var r = route(p, p1, airport.serviceroads)
@@ -200,25 +176,25 @@ function refill(truck) {
 function serve(service, truck) {
     // get from truck position to service road, move there slowly
     var p = findClosest(truck.position, airport.serviceroads)
-    //debug("closest to truck", truck.position, p)
+    //debug.print("closest to truck", truck.position, p)
     add_point(truck, p, truck.slow, 30) // truck moves to serviceroad
 
     // get to parking on service road at full speed
     var parking = geojson.findFeature(service.parking, airport.parkings, "ref")
-    debug(parking)
+    debug.print(parking)
     if (!parking) {
-        debug("not found", "ref", service.parking)
+        debug.print("not found", "ref", service.parking)
         return
     }
     var p1 = findClosest(parking, airport.serviceroads)
-    //debug("closest to parking", parking, p1)
+    //debug.print("closest to parking", parking, p1)
 
     // move truck from where it was to close to parking on serviceroads
     var r = route(p, p1, airport.serviceroads)
     if (r)
         add_linestring(truck, r.coordinates, truck.speed, null)
     else
-        debug("route not found", p, p1)
+        debug.print("route not found", p, p1)
 
     // get from service road to parking slowly and service plane
     // service
@@ -253,7 +229,7 @@ function selectTruck(trucks, service) {
         truck.speeds = []
         truck.waits = []
         trucks.push(truck)  // add truck
-        debug('added',truck)
+        debug.print('added',truck)
     }
     return truck
 }
@@ -267,7 +243,7 @@ function do_services(services) {
     var trucks = []
 
     while (service = services.pop()) {
-        debug("doing..", service)
+        debug.print("doing..", service)
         var truck = selectTruck(trucks, service)
         truck.status = "busy"
 
@@ -278,7 +254,7 @@ function do_services(services) {
 
         services = optimize(trucks, services)
         truck.status = "available"
-        debug("..done")
+        debug.print("..done")
     }
     return trucks
 }
@@ -311,7 +287,7 @@ var trucks = do_services(services)
 
 var features = []
 trucks.forEach(function(truck) {
-    debug(truck.name)
+    debug.print(truck.name)
     features.push({
         "type": "Feature",
         "geometry": {
@@ -328,10 +304,10 @@ trucks.forEach(function(truck) {
     })
     if (truck.stops.length > 0) {
         features = features.concat(truck.stops)
-        debug('.'+truck.stops.length)
+        debug.print('.'+truck.stops.length)
     }
 })
 
 
 fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
-debug(program.O+' written')
+debug.print(program.O+' written')

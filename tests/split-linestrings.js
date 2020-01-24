@@ -3,28 +3,9 @@ const turf = require('@turf/turf')
 const convert = require('color-convert')
 var program = require('commander')
 
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-//  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-            "pc",
-            "", // always debug top-level
-            MAIN// always debug functions with no name
-        ]
-        if(program.funcname)
-            FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : {"name": MAIN}
+const debug = require('./../debug.js')
 
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
-
+debug.init(true, [""], "main")
 
 program
     .version('1.0.0')

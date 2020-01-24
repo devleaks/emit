@@ -10,7 +10,9 @@ var program = require('commander')
 // my stuff
 const config = require('./sim-config')
 const geojson = require('./geojson-util')
+const debug = require('./debug.js')
 
+debug.init(true, [""], "main")
 
 var airport = config.airport ? config.airport : {}
 
@@ -99,36 +101,7 @@ program
     .option('-w, --wind <wind>', 'Wind direction in degrees', wind)
     .parse(process.argv)
 
-debug(program.opts())
-
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-    //  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-//            "takeoff",
-//            "findFeature",
-//            "add_linestring",
-            "", // always debug top-level
-            MAIN // always debug functions with no name
-        ]
-        if (program.funcname)
-            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : { "name": MAIN }
-
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
-
-function error(...args) {
-    const caller = error.caller ? error.caller : { "name": "()" }
-    console.log(caller.name, args)
-}
+debug.print(program.opts())
 
 const NAUTICAL_MILE = 1.852 // nautical mile in meters
 
@@ -171,13 +144,13 @@ function route(p_from, p_to, network) {
     const path = pathfinder.findPath(p_from, p_to);
 
     if (!path)
-        debug("could not find route", p_from, p_to)
+        debug.print("could not find route", p_from, p_to)
 
     return geojson.LineString(path ? path.path : [p_from, p_to])
 }
 
 function add_point(device, point, speed, wait) { // point = [lon, lat]
-    debug(add_point.caller.name, geojson.coords(point))
+    debug.print(add_point.caller.name, geojson.coords(point))
     device.trip.push(geojson.coords(point))
     var c = device.trip.length - 1
     device.stops.push(geojson.Feature(geojson.Point(geojson.coords(point)), {
@@ -191,11 +164,11 @@ function add_point(device, point, speed, wait) { // point = [lon, lat]
 }
 
 function add_linestring(device, trip, speed, wait) {
-    debug("adding..")
+    debug.print("adding..")
     trip.forEach(function(p, idx) {
         add_point(device, p, speed, wait)
     })
-    debug("..added")
+    debug.print("..added")
 }
 
 /*
@@ -218,12 +191,12 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         error("cannot find aircraft model", aircraft_model)
         return false
     } else
-        debug("aircraft", aircraft)
+        debug.print("aircraft", aircraft)
 
     // first point is parking position
     const parking = geojson.findFeature(parking_name, airport.parkings, "ref")
     if (!parking) {
-        debug("parking not found", parking_name)
+        debug.print("parking not found", parking_name)
         return false
     }
 
@@ -338,7 +311,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
         error("cannot find aircraft model", aircraft_model)
         return false
     } else
-        debug("aircraft", aircraft)
+        debug.print("aircraft", aircraft)
 
     p_name = 'STAR:' + star_name
     p = geojson.findFeature(p_name, airport.airways, "name")
@@ -406,7 +379,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     // taxi to close to parking
     const parking = geojson.findFeature(parking_name, airport.parkings, "ref")
     if (!parking) {
-        debug("parking not found", parking_name)
+        debug.print("parking not found", parking_name)
         return false
     }
     p2 = findClosest(parking, airport.taxiways)

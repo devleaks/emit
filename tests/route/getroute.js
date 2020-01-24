@@ -2,7 +2,7 @@ const fs = require('fs')
 var PathFinder = require('geojson-path-finder')
 var geojsonTool = require('geojson-tools')
 const turf = require('@turf/turf')
-const geojson = require('./../../geojson-structures')
+const geojson = require('./../../geojson-util')
 
 //    geojson = require('./eblg-taxi.json');
 

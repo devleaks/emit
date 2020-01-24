@@ -3,6 +3,9 @@ const moment = require('moment')
 var program = require('commander')
 
 const geoutils = require('./geoutils')
+const debug = require('./debug.js')
+
+debug.init(true, [""], "main")
 
 program
     .version('1.1.0')
@@ -24,32 +27,7 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug(program.opts())
-
-
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-//  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-//            "doLineStringFeature",
-            "emit",
-//            "waitAtVertex",
-            "", // always debug top-level
-            MAIN// always debug functions with no name
-        ]
-        if(program.funcname)
-            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : {"name": MAIN}
-
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
+debug.print(program.opts())
 
 
 function distance(p1, p2) {
@@ -98,7 +76,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 
     var nextpos = point_on_line(currpos, ls[lsidx + 1], dist)
 
-    debug({
+    debug.print({
         "prevvtx": ll(ls[lsidx]),
         "startp": ll(currpos),
         "nextvtx": ll(ls[lsidx+1]),
@@ -267,8 +245,8 @@ function sec2hms(i) {
 function eta(ls, speed) {
     var eta = []
     eta[0] = 0
-    //debug(speed)
-    debug("v0", 0, speed[0], speed[0], 0, "00:00:00", "00:00:00")
+    //debug.print(speed)
+    debug.print("v0", 0, speed[0], speed[0], 0, "00:00:00", "00:00:00")
     for (var i = 1; i < speed.length; i++) {
         var t = 0
         var d = distance(ls[i - 1], ls[i])
@@ -278,7 +256,7 @@ function eta(ls, speed) {
             t = d / Math.max(speed[i - 1], speed[i])
         }
         eta[i] = eta[i - 1] + t
-        debug("v" + i, Math.round(1000 * d) / 1000, speed[i - 1], speed[i], Math.round(3600000 * t) / 1000, sec2hms(t, 2), sec2hms(eta[i], 2))
+        debug.print("v" + i, Math.round(1000 * d) / 1000, speed[i - 1], speed[i], Math.round(3600000 * t) / 1000, sec2hms(t, 2), sec2hms(eta[i], 2))
     }
     return eta
 }
@@ -297,14 +275,14 @@ function time2vtx(p, idx, ls, sp, rate) {
 
     vp = vp < program.minSpeed ? program.minSpeed : vp
 
-    debug('time2vtx ', d, de, sp[idx], sp[idx + 1], vp)
+    debug.print('time2vtx ', d, de, sp[idx], sp[idx + 1], vp)
 
     var t = 0
     if ((vp + sp[idx + 1]) != 0)
         t = 2 * d / (vp + sp[idx + 1]) // again, we assume constant acceleration so avg speed is fine
 
     var r = Math.round(t * 3600000) / 1000
-    debug('>>> TO', idx + 1, d + " km left", r + " secs needed")
+    debug.print('>>> TO', idx + 1, d + " km left", r + " secs needed")
 
     /* control */
     p1 = point_in_rate_sec(p, rate, idx, ls, sp)
@@ -313,7 +291,7 @@ function time2vtx(p, idx, ls, sp, rate) {
     d2 = distance(p2, ls[idx+1])
     d3 = distance(p,p1)
     d4 = distance(p,p2)
-    debug("CONTROL", {
+    debug.print("CONTROL", {
         "index": idx,
         "d2next": d,
         "dfprev": d0,
@@ -343,27 +321,27 @@ function rn(p, n = 4) {
 
 
 function waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
-    debug("IN", lsidx, timing)
+    debug.print("IN", lsidx, timing)
     var counter = 0
     if (wait && wait > 0) {
-        debug("must wait", wait)
+        debug.print("must wait", wait)
         if (wait < rate) {
             if (wait > timing.left) { // will emit here
                 emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
                 counter++
-                debug("waiting 1 ...", wait)
+                debug.print("waiting 1 ...", wait)
                 // keep wating but no emit since wait < rate
                 timing.time += wait
                 timing.left = rate - wait - timing.left
             } else { // will not emit here, we just wait and then continue our trip
-                debug("waited 1 but carries on", wait)
+                debug.print("waited 1 but carries on", wait)
                 timing.time += wait
                 timing.left -= wait
             }
         } else { // will emit here, may be more than once. let's first emit once on left
             emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
             counter++
-            debug("waiting 2 ...", timing.left)
+            debug.print("waiting 2 ...", timing.left)
             timing.time += timing.left
 
             var totwait = wait - timing.left
@@ -372,7 +350,7 @@ function waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, p
                 timing.time += rate
                 emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while waiting " + counter : "at vertex while waiting " + counter, lsidx) // vertex
                 counter++
-                debug("waiting 3 ...", totwait)
+                debug.print("waiting 3 ...", totwait)
                 totwait -= rate
             }
             // then set time to next emit
@@ -380,7 +358,7 @@ function waitAtVertex(timing, wait, rate, newls, pos, lsidx, lsmax, startdate, p
         }
     }
     timing.counter = counter
-    debug("OUT", timing)
+    debug.print("OUT", timing)
     return timing
 }
 
@@ -456,7 +434,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
         })
     }
 
-    debug("arrays:" + ls.length + ":" + speeds.length + ":" + waits.length)
+    debug.print("arrays:" + ls.length + ":" + speeds.length + ":" + waits.length)
 
     var maxstep = speed * rate / 3600
     var currpos = ls[lsidx] // start pos
@@ -467,21 +445,21 @@ function doLineStringFeature(f, speed, rate, startdates) {
     while (lsidx < ls.length - 1) { // note: currpos is between ls[lsidx] and ls[lsidx+1]
         var nextvtx = ls[lsidx + 1] // next point (local target)
         timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate) // time to next point
-        debug(timeleft2vtx + " sec to next vertex", rate, to_next_emit)
+        debug.print(timeleft2vtx + " sec to next vertex", rate, to_next_emit)
 
         if ((to_next_emit > 0) && (to_next_emit < rate) && (timeleft2vtx > to_next_emit)) { // If next vertex far away, we move during to_next_emit on edge and emit
-            debug("moving from vertex with time remaining.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx) // if we are here, we know we will not reach the next vertex
+            debug.print("moving from vertex with time remaining.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx) // if we are here, we know we will not reach the next vertex
             time += to_next_emit // during this to_next_emit time 
             p = point_in_rate_sec(currpos, to_next_emit, lsidx, ls, speeds, maxstep)
             emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining", lsidx)
             //var d0 = distance(currpos,p)
-            //debug("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
+            //debug.print("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
             currpos = p
             to_next_emit = rate // time before next emit reset to standard rate
         }
 
         if ((to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit)) { // may be portion of segment left
-            debug("moving to next vertex with time left.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx)
+            debug.print("moving to next vertex with time left.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx)
             time += timeleft2vtx
             emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], "moving on edge with time remaining to next vertex", lsidx)
             currpos = nextvtx
@@ -490,22 +468,22 @@ function doLineStringFeature(f, speed, rate, startdates) {
             var timing = waitAtVertex({ "time": time, "left": to_next_emit }, waits[lsidx + 1] ? waits[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
             time = timing.time
             to_next_emit = timing.left
-            //debug("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
+            //debug.print("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
         } else {
             while (rate < timeleft2vtx) { // we will report position(s) along the edge before reaching the vertex
-                debug("moving on edge..", rate, timeleft2vtx)
+                debug.print("moving on edge..", rate, timeleft2vtx)
                 time += rate
                 p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
                 emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route", lsidx)
-                //debug("in "+ rate + " sec moved",distance(currpos,p)+" km")
+                //debug.print("in "+ rate + " sec moved",distance(currpos,p)+" km")
                 currpos = p
                 timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)
-                //debug("..done moving on edge", rate, timeleft2vtx)
+                //debug.print("..done moving on edge", rate, timeleft2vtx)
             }
 
             if (timeleft2vtx > 0) { // may be portion of segment left
                 var d0 = distance(currpos, nextvtx)
-                debug("jumping to next vertex..", nextvtx, d0 + " km", timeleft2vtx + " secs")
+                debug.print("jumping to next vertex..", nextvtx, d0 + " km", timeleft2vtx + " secs")
                 time += timeleft2vtx
                 emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
                 currpos = nextvtx
@@ -514,14 +492,14 @@ function doLineStringFeature(f, speed, rate, startdates) {
                 var timing = waitAtVertex({ "time": time, "left": to_next_emit }, waits[lsidx + 1] ? waits[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
                 time = timing.time
                 to_next_emit = timing.left
-                //debug(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
+                //debug.print(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
             }
         }
 
         lsidx += 1
     }
     f.coordinates = newls
-    debug("new ls length", newls.length)
+    debug.print("new ls length", newls.length)
     return { "feature": f, "points": points }
 }
 
@@ -533,7 +511,7 @@ const speed = parseInt(program.speed) // km/h
 const startdate = moment(program.startDate)
 
 if(!startdate.isValid()) {
-    debug('start date is not valid',startdate)
+    debug.print('start date is not valid',startdate)
     return false
 }
 

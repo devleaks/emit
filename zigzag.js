@@ -6,6 +6,9 @@
 var fs = require('fs')
 var moment = require('moment')
 var program = require('commander')
+const debug = require('./debug.js')
+
+debug.init(true, [""], "main")
 
 /*php:
 git describe --tags
@@ -28,29 +31,8 @@ program
     .requiredOption('-c, --count <count>', 'Count of zigzags')
     .parse(process.argv)
 
-debug(program.opts())
+debug.print(program.opts())
 
-
-/* Produces debug based on program.debug option if it exist, otherwise constructor is supplied.
- * Function name must be part of valid list of functions to debug
- * Preceedes debug output with calling function name.
- */
-function debug(...args) {
-//  const program = { "debug": true , "funcname": false }
-    if (typeof(program) != "undefined" && program.debug) {
-        const MAIN = "main()"
-        var FUNCDEBUG = [
-            "", // always debug top-level
-            MAIN
-        ]
-        if(program.funcname)
-            FUNCDEBUG = FUNCDEBUG.concat(program.funcname)
-        var caller = debug.caller ? debug.caller : {"name": MAIN}
-
-        if (FUNCDEBUG.indexOf(caller.name) >= 0)
-            console.log(caller.name, args)
-    }
-}
 
 // TO DO
 // add ETA at vertices
