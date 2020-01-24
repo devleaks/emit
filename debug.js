@@ -17,6 +17,12 @@ exports.print = function(...args) {
 }
 
 
+exports.warning = function (...args) { // always print error
+    const caller = exports.warning.caller ? exports.warning.caller : { "name": _MAIN }
+    console.log(caller.name, args)
+}
+
+
 exports.error = function (...args) { // always print error
     const caller = exports.error.caller ? exports.error.caller : { "name": _MAIN }
     console.log(caller.name, args)
