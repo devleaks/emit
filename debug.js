@@ -9,7 +9,7 @@ exports.init = function (d, f, m = "()") {
 }
 
 exports.print = function(...args) {
-    if (_DEBUG||true) {
+    if (_DEBUG) {
         var caller = exports.print.caller ? exports.print.caller : {"name": _MAIN}
         if (_FUNCNAME.indexOf(caller.name) >= 0)
             console.log(caller.name, args)

@@ -28,18 +28,15 @@ exports.Device = function(name, props) {
     this._name = name
 
 
-
-
     this.addPointToTrack = function(point, speed, pause) { // point = [lon, lat]
-        this._track.push(geojson.coords(point))
+        const pcoord = geojson.coords(point)
 
-        var c = this._track.length - 1
-        this._points.push(geojson.Feature(
-            geojson.Point(
-                geojson.coords(point)), {
-                "idx": c,
-                "point": point.name ? point.name : null
-            }))
+        this._track.push(pcoord)
+        const c = this._track.length - 1
+
+        this._points.push(geojson.Feature(geojson.Point(pcoord), {
+            "idx": c
+        }))
 
         if (speed)
             this._speeds.push({ "idx": c, "speed": speed })
@@ -48,8 +45,8 @@ exports.Device = function(name, props) {
             this._pauses.push({ "idx": c, "pause": pause })
     }
 
-
-    this.addMarker = function(point, speed, pause, note, color = "#aa0000") { // point = [lon, lat]
+    // marker Point are features with a property "note"
+    this.addMarker = function(point, speed, pause, note, color = "#aaaaaa") { // point = [lon, lat]
         if (geojson.isFeature(point)) {
             point.properties = point.properties ? point.properties : {}
             point.properties["speed"] = speed
@@ -60,14 +57,15 @@ exports.Device = function(name, props) {
             point.properties["marker-symbol"] = ""
             this._points.push(point)
         } else {
-            this._points.push(geojson.Feature(point, {
-                "speed": speed,
-                "pause": pause,
-                "note": note,
-                "marker-color": color,
-                "marker-size": "medium",
-                "marker-symbol": ""
-            }))
+            this._points.push(geojson.Feature(
+                geojson.isGeom(point) ? point: geojson.Point(point), {
+                    "speed": speed,
+                    "pause": pause,
+                    "note": note,
+                    "marker-color": color,
+                    "marker-size": "medium",
+                    "marker-symbol": ""
+                }))
         }
     }
 
@@ -109,8 +107,9 @@ exports.Device = function(name, props) {
     this.getFeatures = function(add_points = false) {
         var features = []
         features.push(this.getFeature("#dd0000"))
-        if (add_points && this._points.length > 0)
+        if (add_points && this._points.length > 0) {
             features = features.concat(this._points)
+        }
 
         return features
     }

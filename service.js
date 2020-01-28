@@ -13,7 +13,6 @@ const common = require('./common')
 const debug = require('./debug.js')
 
 
-
 program
     .version('2.0.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
@@ -23,9 +22,7 @@ program
     .parse(process.argv)
 
 debug.init(program.debug, [""], "main")
-
 debug.print(program.opts())
-
 
 var airport = {}
 
@@ -33,14 +30,13 @@ var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
 airport.parkings = JSON.parse(jsonfile)
 airport.parkings._network_name = "parking"
 
-jsonfile = fs.readFileSync(config.airport.service, 'utf8')
-airport.serviceroads = JSON.parse(jsonfile)
-airport.serviceroads._network_name = "serviceroads"
-
 jsonfile = fs.readFileSync(config.airport.pois, 'utf8')
 airport.pois = JSON.parse(jsonfile)
 airport.pois._network_name = "pois"
 
+jsonfile = fs.readFileSync(config.airport.service, 'utf8')
+airport.serviceroads = JSON.parse(jsonfile)
+airport.serviceroads._network_name = "serviceroads"
 
 geojson.complexify(airport.serviceroads)
 

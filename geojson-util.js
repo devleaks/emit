@@ -58,11 +58,13 @@ exports.coords = function(f) {
     return (f.type == "Feature") ? f.geometry.coordinates : (f.coordinates ? f.coordinates : f)
 }
 
-exports.LatLon = function(lat, lon, alt = null) {
+// LatLon is lat,lon
+exports.LatLon = function(lat, lon, alt = false) {
     return alt ? [lon, lat, alt] : [lon, lat]
 }
 
-exports.Position = function(lon, lat, alt = null) {
+// Position is GeoJSON standard lon,lat
+exports.Position = function(lon, lat, alt = false) {
     return alt ? [lon, lat, alt] : [lon, lat]
 }
 
@@ -93,21 +95,41 @@ exports.findFeature = function(query, fc, property) {
     return f
 }
 
+// returns whether it is a feature
 exports.isFeature = function(f) {
-    return ((typeof(f.type) != "undefined") && (f.type == "Feature"))
+    return f.hasOwnProperty("type") && (f.type == "Feature")
 }
 
+// returns wether feature has properties
+exports.hasProperties = function(f) {
+    return exports.isFeature(f) && f.hasOwnProperty("properties")
+}
 
+// returns wether feature has properties
+exports.hasGeometry = function(f) {
+    return exports.isFeature(f) && f.hasOwnProperty("geometry")
+}
+
+// returns whether it is a geometry
 exports.isGeom = function(f) {
-    return ((typeof(f.type) != "undefined") && (["Point", "LienString", "Polygon", "MultiPoint", "MultiLienString", "MultiPolygon"].indexOf(f.type) >= 0) && Array.isArray(f.coordinates))
+    return (f.hasOwnProperty("type") && (["Point", "LienString", "Polygon", "MultiPoint", "MultiLienString", "MultiPolygon"].indexOf(f.type) >= 0) && Array.isArray(f.coordinates))
 }
-
 
 exports.hasGeom = function(f) {
-    return (isFeature(f) && isGeom(f.geometry) || isGeom(f))
+    return isFeature(f) && (isGeom(f.geometry) || isGeom(f))
 }
 
+// returns feature's property or null
+exports.featureProp = function(f, prop) {
+    return exports.hasProperties(f) && f.properties.hasOwnProperty(prop) ? f.properties[prop] : null
+}
 
+// returns feature's identifier or null
+exports.featureId = function(f) { // can either be f.id or f.properties.id
+    return f.hasOwnProperty("id") ? f["id"] : exports.featureProp(f, "id")
+}
+
+// convert a linestring (array of coordinates) as a FeatureCollection of Point
 exports.toPointFeatureCollection = function(points) {
     var fc = []
     points.forEach(function(p, i) {
@@ -116,6 +138,7 @@ exports.toPointFeatureCollection = function(points) {
     return exports.FeatureCollection(fc)
 }
 
+// convert a FeatureCollection of Point as a linestring (array of coordinates)
 exports.toPoints = function(fc) {
     var points = []
     fc.features.forEach(function(f, i) {
@@ -125,6 +148,32 @@ exports.toPoints = function(fc) {
     return points // should return a linestring geom?
 }
 
+exports.addProp = function(f, prop, value) {
+    if(! exports.isFeature(f))
+        return
+    f.properties |= {}
+    f.properties[prop] = value
+    return f
+}
+
+exports.copyProps = function(f_from, f_to, props = null) {
+    if(! exports.hasProperties(f_from))
+        return
+    f_to.properties |= {}
+    if(props) {
+        for (var prop in f_from.properties) {
+            if ( f_from.properties.hasOwnProperty(prop) && (props.indexOf(prop) > -1) ) {
+                f_to.properties[prop] = f_from.properties[prop]
+            }
+        }
+    } else { // copy all props
+        for (var prop in f_from.properties) {
+            if (f_from.properties.hasOwnProperty(prop)) {
+                f_to.properties[prop] = f_from.properties[prop]
+            }
+        }
+    }
+}
 
 /* Find route from p_from to p_to on network of roads.
  * Returns LineString or roads or direct path between the two points if no road found.
@@ -154,6 +203,9 @@ exports.findClosest = function(p, network) {
 }
 
 
+/* complexify all LineStrings of a feature collection
+ * (should be extended to MultiLineString as well)
+ */
 exports.complexify = function(fc) {
     fc.features.forEach(function(f) {
         if (f.geometry.type == "LineString")
