@@ -18,10 +18,7 @@ program
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('--shift-date <seconds>', 'Event reporting is shifted by that amount of seconds', moment().toISOString())
     .option('-s, --silent', 'Does not report position when stopped')
-    .option('-g, --give', 'output events [time, [lon, lat]] array on stdout for each linestring')
-    .option('-j, --json', 'output events as json')
     .option('-n, --name <name>', 'Set reporting device name on output')
-    .option('-p, --points', 'add points to feature collection')
     .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
@@ -158,6 +155,12 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
             default:
                 color = "#888888"
         }
+
+
+        var brng = (newls.length > 0) ? geoutils.bearing(newls[(newls.length-1)][1], newls[(newls.length-1)][0], p[1], p[0]) : null
+        brng = Math.round(brng * 10) / 10
+        debug.print(k, idx, newls[idx], p, brng)
+
         newls.push([p[0], p[1]])
         pts.push({
             "type": "Feature",
@@ -174,6 +177,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
                 "vertex": idx,
                 "sequence": pts.length,
                 "speed": spd,
+                "bearing": brng,
                 "note": cmt
             }
         })
@@ -369,7 +373,7 @@ function doGeoJSON(f, speed, rate, startdate) {
     } else if (f.type == "Feature") {
         if (f.geometry && f.geometry.type == "LineString") { // feature can omot geometry
             var fret = doLineStringFeature(f, speed, rate, startdate)
-            if (program.points && fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
+            if (fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
                 var fc = {
                     type: "FeatureCollection",
                     features: []
@@ -396,7 +400,7 @@ function doCollection(fc, speed, rate, startdate) {
             var fret = doLineStringFeature(f, speed, rate, startdate)
             if (fret.feature)
                 fc.features[idx] = fret.feature
-            if (program.points && fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
+            if (fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
                 fc.features = fc.features.concat(fret.points)
             }
         }

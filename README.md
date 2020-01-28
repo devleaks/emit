@@ -14,7 +14,7 @@ So need to compute path & timing first, then produce output so that touch down a
 
 ### Alternate method to specify speed on path (eaasier to enter)
 
-Specify speeds with external Point feature rather than speedsAtVertices and waitsAtVertices array
+Specify speeds with external Point feature rather than speedsAtVertices and pausesAtVertices array
 
 
 
@@ -27,3 +27,27 @@ Find point on path that is the closest to supplied Point and use porperties of t
 
 Currently, planes crawl on the ground. Kinda fast cars.
 Altitude will be added soon.
+
+
+
+## Standard device
+
+
+device: {
+    track: [
+        [lon, lat] *
+    ],
+    points: [ "Points"
+    ],
+    speeds: [
+      {idx: , speed: }
+    ],
+    waits: [
+      {idx: , pause: }
+    ],
+    current: {
+        position: [],
+        speed: ,
+        heading
+    }
+}

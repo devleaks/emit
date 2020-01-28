@@ -38,16 +38,8 @@ if (airport.metar) {
     METAR = JSON.parse(jsonfile)
 }
 
-
-airport.serviceroads.features.forEach(function(f) {
-    if (f.geometry.type == "LineString")
-        f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
-});
-
-airport.taxiways.features.forEach(function(f) {
-    if (f.geometry.type == "LineString")
-        f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
-});
+geojson.complexify(airport.serviceroads)
+geojson.complexify(airport.taxiways)
 
 /* Compute runway in use from list of runways and wind direction (in degrees). If tied, default is selected.
  * Returns runway in use.
@@ -81,7 +73,7 @@ function computeRunway(runways, wind, rwys, dft = 0) {
 
 const landing = (Math.random() > 0.5)
 const runway = airport.runways.length > 1 ? airport.runways[Math.floor(Math.random() * airport.runways.length)] : airport.runways[0]
-const wind = METAR ? METAR["wind_dir_degrees"] : Math.round(Math.random()*360)
+const wind = METAR ? METAR["wind_dir_degrees"] : Math.round(Math.random() * 360)
 const runway_inuse = computeRunway(runway, wind, airport.runways.length)
 const runway_heading = airport.runways.length > 1 ? runway_inuse.substring(0, 2) : runway_inuse
 const approach_paths = landing ? airport.star : airport.sid
@@ -105,60 +97,19 @@ program
     .option('-w, --wind <wind>', 'Wind direction in degrees', wind)
     .parse(process.argv)
 
+debug.init(program.debug, [""], "main")
+
 debug.print(program.opts())
-
-const NAUTICAL_MILE = 1.852 // nautical mile in meters
-
-function to_kmh(kn) {
-    return kn / NAUTICAL_MILE
-}
-
-function to_kn(km) {
-    return kmh * NAUTICAL_MILE
-}
 
 function findAircraft(name) {
     return config.aircrafts[name]
 }
 
-/* Find closest point to network of roads (FeatureCollectionof LineStrings)
- * Returns Point
- */
-function findClosest(p, network) {
-    if (typeof(p.nearestPointOnLine) == "undefined" || typeof(p.nearestPointOnLine[network._network_name]) == "undefined") {
-        p.nearestPointOnLine = p.nearestPointOnLine ? p.nearestPointOnLine : {}
-        if (typeof(network.mls) == "undefined") { // build suitable structure for nearestPointOnLine, cache it.
-            network.mls = geojson.multilinestring(network)
-        }
-        p.nearestPointOnLine[network._network_name] = turf.nearestPointOnLine(network.mls, p)
-    }
-    return p.nearestPointOnLine[network._network_name]
-}
-
-
-/* Find route from p_from to p_to on network of roads.
- * Returns LineString or roads or direct path between the two points if no road found.
- */
-function route(p_from, p_to, network) {
-    // fs.writeFileSync('debug.json', JSON.stringify({"type":"FeatureCollection", "features": [p_from, p_to]}), { mode: 0o644 })
-    const pathfinder = new PathFinder(network, {
-        precision: 0.0005
-    });
-
-    const path = pathfinder.findPath(p_from, p_to);
-
-    if (!path)
-        debug.print("could not find route", p_from, p_to)
-
-    return geojson.LineString(path ? path.path : [p_from, p_to])
-}
-
-
 /*
  * T A K E - O F F
  */
 function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
-    var airplane = new common.Device(aircraft_model+":"+parking_name, {"aircraft": aircraft_model})
+    var airplane = new common.Device(aircraft_model + ":" + parking_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point's name
 
@@ -180,7 +131,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     airplane.addPointToTrack(parking, 0, null)
 
     // pushback to "pushback lane"
-    p = findClosest(parking, airport.taxiways)
+    p = geojson.findClosest(parking, airport.taxiways)
     if (p) {
         airplane.addPointToTrack(p, 0, 60) // 60 seconds to detach tow pushback
     } else {
@@ -189,21 +140,21 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     }
 
     // route from pushback lane to taxiways
-    p1 = findClosest(p, airport.taxiways)
+    p1 = geojson.findClosest(p, airport.taxiways)
     airplane.addPointToTrack(p1, 0, null) // 60 seconds to detach tow pushback
 
     // route to taxi hold position
     p_name = 'TH:' + runway_name
     p1 = geojson.findFeature(p_name, airport.taxiways, "name")
-    p2 = findClosest(p1, airport.taxiways)
+    p2 = geojson.findClosest(p1, airport.taxiways)
 
     if (p2) {
-        var r = route(p, p2, airport.taxiways)
-        airplane.addPathToTrack(r.coordinates, to_kmh(aircraft.taxi_speed), null)
+        var r = geojson.route(p, p2, airport.taxiways)
+        airplane.addPathToTrack(r.coordinates, common.to_kmh(aircraft.taxi_speed), null)
         // move to taxi hold point
         var hold = config.airport["taxi-hold"]
         var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0] - hold[0])) // 0-120 sec hold before T.O.
-        airplane.addPointToTrack(p1.geometry.coordinates, to_kmh(aircraft.taxi_speed), takeoffhold_time)
+        airplane.addPointToTrack(p1.geometry.coordinates, common.to_kmh(aircraft.taxi_speed), takeoffhold_time)
     } else {
         deug.error("cannot find taxihold point", p_name)
         return false
@@ -211,19 +162,19 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     // route to take-off hold position
     // from taxi-hold to taxiways
-    airplane.addPointToTrack(p2, to_kmh(aircraft.taxi_speed), 0)
+    airplane.addPointToTrack(p2, common.to_kmh(aircraft.taxi_speed), 0)
     p = p2
     p_name = 'TOH:' + runway_name
     p1 = geojson.findFeature(p_name, airport.taxiways, "name")
-    p2 = findClosest(p1, airport.taxiways)
+    p2 = geojson.findClosest(p1, airport.taxiways)
 
     if (p1) {
-        var r = route(p, p2, airport.taxiways)
-        airplane.addPathToTrack(r.coordinates, to_kmh(aircraft.taxi_speed), null)
+        var r = geojson.route(p, p2, airport.taxiways)
+        airplane.addPathToTrack(r.coordinates, common.to_kmh(aircraft.taxi_speed), null)
         var hold = config.airport["takeoff-hold"]
         var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0] - hold[0])) // 0-120 sec hold before T.O.
         // move to take-off hold
-        airplane.addPointToTrack(p1, to_kmh(aircraft.taxi_speed), takeoffhold_time)
+        airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxi_speed), takeoffhold_time)
     } else {
         deug.error("cannot find take-off hold point", p_name)
         return false
@@ -234,7 +185,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p_name = 'TO:' + runway_name
     p = geojson.findFeature(p_name, airport.taxiways, "name")
     if (p) {
-        airplane.addPointToTrack(p, to_kmh(aircraft.v2), null)
+        airplane.addPointToTrack(p, common.to_kmh(aircraft.v2), null)
     } else {
         deug.error("cannot find take-off point", p_name)
         return false
@@ -244,7 +195,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p_name = 'SID:' + runway_name.substring(0, 2) // remove L or R, only keep heading
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
-        airplane.addPointToTrack(p, to_kmh(aircraft.climbspeed1), null)
+        airplane.addPointToTrack(p, common.to_kmh(aircraft.climbspeed1), null)
     } else {
         deug.error("cannot find SID start", p_name)
         return false
@@ -271,7 +222,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
  * L A N D I N G
  */
 function land(aircraft_model, parking_name, runway_name, star_name) {
-    var airplane = new common.Device(aircraft_model+":"+parking_name, {"aircraft": aircraft_model})
+    var airplane = new common.Device(aircraft_model + ":" + parking_name, { "aircraft": aircraft_model })
 
     var p, p1, p2
     var p_name // point's name
@@ -290,7 +241,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
         p.geometry.coordinates.forEach(function(c, idx) {
             if (first) {
                 first = false
-                airplane.addPointToTrack(c, to_kmh(aircraft.vinitialdescend), null)
+                airplane.addPointToTrack(c, common.to_kmh(aircraft.vinitialdescend), null)
             } else
                 airplane.addPointToTrack(c, null, null)
         })
@@ -303,7 +254,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'STAR:' + runway_name.substring(0, 2) // remove L or R, only keep heading
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
-        airplane.addPointToTrack(p, to_kmh(aircraft.vapproach), null)
+        airplane.addPointToTrack(p, common.to_kmh(aircraft.vapproach), null)
     } else {
         deug.error("cannot find SID start", p_name)
         return false
@@ -325,7 +276,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'TD:' + runway_name
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
-        airplane.addPointToTrack(p, to_kmh(aircraft.vlanding), null)
+        airplane.addPointToTrack(p, common.to_kmh(aircraft.vlanding), null)
     } else {
         deug.error("cannot find touch down", p_name)
         return false
@@ -335,7 +286,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p_name = 'RX:' + runway_name
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
-        airplane.addPointToTrack(p, to_kmh(aircraft.taxispeed), null)
+        airplane.addPointToTrack(p, common.to_kmh(aircraft.taxispeed), null)
     } else {
         deug.error("cannot find runway exit", p_name)
         return false
@@ -343,8 +294,8 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
 
     // taxi to parking
     // runway exit to taxiway
-    p1 = findClosest(p, airport.taxiways)
-    airplane.addPointToTrack(p1, to_kmh(aircraft.taxispeed), null)
+    p1 = geojson.findClosest(p, airport.taxiways)
+    airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxispeed), null)
 
     // taxi to close to parking
     const parking = geojson.findFeature(parking_name, airport.parkings, "ref")
@@ -352,10 +303,10 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
         debug.print("parking not found", parking_name)
         return false
     }
-    p2 = findClosest(parking, airport.taxiways)
+    p2 = geojson.findClosest(parking, airport.taxiways)
 
-    var r = route(p1, p2, airport.taxiways)
-    airplane.addPathToTrack(r.coordinates, to_kmh(aircraft.taxi_speed), null)
+    var r = geojson.route(p1, p2, airport.taxiways)
+    airplane.addPathToTrack(r.coordinates, common.to_kmh(aircraft.taxi_speed), null)
 
 
     // last point is parking position (from taxiway to parking position)

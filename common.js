@@ -1,5 +1,16 @@
 const geojson = require('./geojson-util')
 
+const NAUTICAL_MILE = 1.852 // nautical mile in meters
+
+exports.to_kmh = function(kn) {
+    return kn * NAUTICAL_MILE
+}
+
+exports.to_kn = function(km) {
+    return kmh / NAUTICAL_MILE
+}
+
+
 exports.Device = function(name, props) {
     this._track = [] // array of coordinates for LineString
     this._points = [] // feature collection of Points
@@ -81,14 +92,23 @@ exports.Device = function(name, props) {
         this._props[name] = value
     }
 
-    this.getFeatures = function(add_points = false) {
-        var features = []
-        features.push(geojson.Feature(
-            geojson.LineString(this._track, {
+    this.getFeature = function(color = false) {
+        const l_color = this.getProp("color")
+        return geojson.Feature(
+            geojson.LineString(this._track), {
                 "name": this._name,
                 "speedsAtVertices": this._speeds,
-                "pausesAtVertices": this._pauses
-            })))
+                "pausesAtVertices": this._pauses,
+                "stroke": color ? color : (l_color ? l_color : "#dddddd"),
+                "stroke-width": 2,
+                "stroke-opacity": 1
+            })
+    }
+
+
+    this.getFeatures = function(add_points = false) {
+        var features = []
+        features.push(this.getFeature("#dd0000"))
         if (add_points && this._points.length > 0)
             features = features.concat(this._points)
 
