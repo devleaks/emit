@@ -66,15 +66,16 @@ function computeRunway(runways, wind, rwys, dft = 0) {
         wmin = t
     }
 
-    wind_int = Math.round((wind + 5) / 10)
-    return (wind_int > wmin && wind_int < wmax) ? runway_alt_txt : runway_heading_txt
+    wind_int = Math.round((parseInt(wind) + 5) / 10)
+    var wind_ret = (wind_int > wmin && wind_int < wmax) ? runway_alt_txt : runway_heading_txt
+    debug.print(wind, runway_heading, runway_alt, wmin, wmax, wind_int, wind_ret)
+    return wind_ret // (wind_int > wmin && wind_int < wmax) ? runway_alt_txt : runway_heading_txt
 }
 
 // try to build random values from airport data
-
 const landing = (Math.random() > 0.5)
 const runway = airport.runways.length > 1 ? airport.runways[Math.floor(Math.random() * airport.runways.length)] : airport.runways[0]
-const wind = METAR ? METAR["wind_dir_degrees"] : Math.round(Math.random() * 360)
+const wind = METAR ? METAR["wind_dir_degrees"][0] : Math.round(Math.random() * 360)
 const runway_inuse = computeRunway(runway, wind, airport.runways.length)
 const runway_heading = airport.runways.length > 1 ? runway_inuse.substring(0, 2) : runway_inuse
 const approach_paths = landing ? airport.star : airport.sid
@@ -95,12 +96,11 @@ program
     .option('-s, --airway <name>', 'SID or STAR name', approach)
     .option('-p, --parking <parking>', 'name of parking', parking.properties.ref)
     .option('-l, --landing', 'Perform landing rather than takeoff', landing)
-    .option('-w, --wind <wind>', 'Wind direction in degrees', wind)
     .parse(process.argv)
 
 debug.init(program.debug, [""], "main")
-
 debug.print(program.opts())
+
 
 function findAircraft(name) {
     return config.aircrafts[name]
@@ -268,7 +268,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.vapproach), null)
         airplane.addMarker(p, common.to_kmh(aircraft.vapproach), null, p_name)
     } else {
-        deug.error("cannot find SID start", p_name)
+        deug.error("cannot find STAR end", p_name)
         return false
     }
 
@@ -368,7 +368,7 @@ var airplane = program.landing ?
 if (airplane) {
     fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
     var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
-    console.log("wind: " + program.wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
+    console.log("wind: " + wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
     console.log(program.O + ' written')
 } else {
     console.log(program.opts())

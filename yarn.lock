@@ -1639,6 +1639,11 @@ combined-stream@^1.0.5, combined-stream@^1.0.6, combined-stream@~1.0.1, combined
   dependencies:
     delayed-stream "~1.0.0"
 
+comma-number@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/comma-number/-/comma-number-1.1.0.tgz#8d225043fc9fd71a5d3785b7459f32e1ca35013e"
+  integrity sha1-jSJQQ/yf1xpdN4W3RZ8y4co1AT4=
+
 commander@2, commander@^2.8.1, commander@~2.20.3:
   version "2.20.3"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
@@ -1669,7 +1674,7 @@ concat-stream@^1.4.8:
     readable-stream "^2.2.2"
     typedarray "^0.0.6"
 
-concat-stream@~1.4.4:
+concat-stream@~1.4.1, concat-stream@~1.4.4:
   version "1.4.11"
   resolved "https://registry.yarnpkg.com/concat-stream/-/concat-stream-1.4.11.tgz#1dc9f666f2621da9c618b1e7f8f3b2ff70b5f76f"
   integrity sha512-X3JMh8+4je3U1cQpG87+f9lXHDrqcb2MVLg9L7o8b1UZ0DzhRrUpdn65ttzu10PpJPPI3MQNkis+oha6TSA9Mw==
@@ -2197,6 +2202,14 @@ geojson-stream@0.0.1:
   dependencies:
     JSONStream "^1.0.0"
     through "^2.3.4"
+
+geojson-summary@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/geojson-summary/-/geojson-summary-0.5.0.tgz#9603c2450162b50eca1f8036b21d9e5c415a0988"
+  integrity sha1-lgPCRQFitQ7KH4A2sh2eXEFaCYg=
+  dependencies:
+    comma-number "^1.1.0"
+    concat-stream "~1.4.1"
 
 geojson-tools@^0.2.2:
   version "0.2.2"

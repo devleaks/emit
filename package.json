@@ -12,6 +12,7 @@
     "fs": "^0.0.1-security",
     "geojson-path-finder": "^1.5.2",
     "geojson-polygon-center": "^0.0.0",
+    "geojson-summary": "^0.5.0",
     "geojson-tools": "^0.2.2",
     "js-yaml": "^3.13.1",
     "jsonpath": "^1.0.2",

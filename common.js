@@ -34,9 +34,12 @@ exports.Device = function(name, props) {
         this._track.push(pcoord)
         const c = this._track.length - 1
 
-        this._points.push(geojson.Feature(geojson.Point(pcoord), {
-            "idx": c
-        }))
+        if (false) {
+            this._points.push(geojson.Feature(geojson.Point(pcoord), {
+                "addPointToTrack": true,
+                "idx": c
+            }))
+        }
 
         if (speed)
             this._speeds.push({ "idx": c, "speed": speed })
@@ -47,8 +50,11 @@ exports.Device = function(name, props) {
 
     // marker Point are features with a property "note"
     this.addMarker = function(point, speed, pause, note, color = "#aaaaaa") { // point = [lon, lat]
+        const c = this._track.length - 1
         if (geojson.isFeature(point)) {
             point.properties = point.properties ? point.properties : {}
+            point.properties["marker"] = true // signal we wrote this
+            point.properties["idx"] = c // we're around that point in the LineString track
             point.properties["speed"] = speed
             point.properties["pause"] = pause
             point.properties["note"] = note
@@ -58,7 +64,9 @@ exports.Device = function(name, props) {
             this._points.push(point)
         } else {
             this._points.push(geojson.Feature(
-                geojson.isGeom(point) ? point: geojson.Point(point), {
+                geojson.isGeom(point) ? point : geojson.Point(point), {
+                    "marker": true, // signal we wrote this
+                    "idx": c,
                     "speed": speed,
                     "pause": pause,
                     "note": note,
