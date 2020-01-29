@@ -109,48 +109,22 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
             dt = moment(sd).add(newt, 's').toISOString(true)
         }
 
-        if (program.give) {
-            if(program.name) {
-
-            console.log(
-                JSON.stringify(
-                    program.json ? {
-                        "lat": p[1],
-                        "lon": p[0],
-                        "ts": dt,
-                        "name": program.name
-                    } : [program.name, dt, [p[0], p[1]]]
-                )
-            )
-            } else {
-            console.log(
-                JSON.stringify(
-                    program.json ? {
-                        "lat": p[1],
-                        "lon": p[0],
-                        "ts": dt
-                    } : [dt, [p[0], p[1]]]
-                )
-            )
-            }
-        }
-
-        color = "#888888"
+        var color = "#888888"
         switch (k) {
             case 's':
-                color = "#eeeeee";
+                color = "#eeeeee"
                 break
             case 'e':
-                color = "#ff2600";
+                color = "#ff2600"
                 break
             case 'v':
-                color = "#fffc00";
+                color = "#fffc00"
                 break
             case 'f':
-                color = "#111111";
+                color = "#111111"
                 break
             case 'w':
-                color = "#00fa00";
+                color = "#00fa00"
                 break
             default:
                 color = "#888888"
@@ -169,6 +143,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
                 "coordinates": p
             },
             "properties": {
+                "emit": true,
                 "marker-color": color,
                 "marker-size": "medium",
                 "marker-symbol": "",
@@ -502,7 +477,12 @@ function doLineStringFeature(f, speed, rate, startdates) {
 
         lsidx += 1
     }
-    f.coordinates = newls
+    f.geometry.coordinates = newls
+    // they are no longer valid:
+    if(f.properties.hasOwnProperty("speedsAtVertices"))
+        delete(f.properties.speedsAtVertices)
+    if(f.properties.hasOwnProperty("pausesAtVertices"))
+        delete(f.properties.pausesAtVertices)
     debug.print("new ls length", newls.length)
     return { "feature": f, "points": points }
 }

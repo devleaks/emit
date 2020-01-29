@@ -188,18 +188,26 @@ exports.route = function(p_from, p_to, network, p = 0.0005) {
 
 
 
-/* Find closest point to network of roads (FeatureCollectionof LineStrings)
+/* Find closest point to network of roads (FeatureCollection of LineStrings)
  * Returns Point
  */
 exports.findClosest = function(p, network) {
-    if (typeof(p.nearestPointOnLine) == "undefined" || typeof(p.nearestPointOnLine[network._network_name]) == "undefined") {
-        p.nearestPointOnLine = p.nearestPointOnLine ? p.nearestPointOnLine : {}
-        if (typeof(network.mls) == "undefined") { // build suitable structure for nearestPointOnLine, cache it.
+    if(exports.isFeature(p)) { // cache result
+        p.properties = p.properties ? p.properties : {}
+        if (typeof(p.properties.nearestPointOnLine) == "undefined" || typeof(p.properties.nearestPointOnLine[network._network_name]) == "undefined") {
+            p.properties.nearestPointOnLine = p.properties.nearestPointOnLine ? p.properties.nearestPointOnLine : {}
+            if (!network.hasOwnProperty("mls")) { // build suitable structure for nearestPointOnLine, cache it.
+                network.mls = exports.multilinestring(network)
+            }
+            p.properties.nearestPointOnLine[network._network_name] = turf.nearestPointOnLine(network.mls, p)
+        }
+        return p.properties.nearestPointOnLine[network._network_name]
+    } else {
+        if (!network.hasOwnProperty("mls")) { // build suitable structure for nearestPointOnLine, cache it.
             network.mls = exports.multilinestring(network)
         }
-        p.nearestPointOnLine[network._network_name] = turf.nearestPointOnLine(network.mls, p)
+        return turf.nearestPointOnLine(network.mls, p)
     }
-    return p.nearestPointOnLine[network._network_name]
 }
 
 
