@@ -1,0 +1,1 @@
+kafka-console-producer.bat --broker-list ordralfabetix.com:9092 --topic KAFKA_TOPIC
