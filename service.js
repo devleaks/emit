@@ -1,11 +1,9 @@
 const fs = require('fs')
 const moment = require('moment')
 const turf = require('@turf/turf')
+const parse = require('csv-parse/lib/sync')
 
 var program = require('commander')
-
-const PathFinder = require('geojson-path-finder');
-const geojsonTool = require('geojson-tools')
 
 const config = require('./sim-config')
 const geojson = require('./geojson-util')
@@ -17,7 +15,8 @@ program
     .version('2.0.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
     .option('-d, --debug', 'output extra debugging')
-    .option('-c, --count <count>', 'Number of parking to visit', 10)
+    .option('-s <file>, --services <file>', 'CSV list of service to perform')
+    .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
@@ -170,15 +169,26 @@ function do_services(services) {
 
 var services = []
 
-const parkingfc = airport.parkings.features 
-for(var i = 0; i < program.count; i++) {
-    var p = parkingfc[Math.floor(Math.random()*(parkingfc.length))]
-    debug.print(p.properties.ref)
-    if (Math.random() > 0)
-        services.push({ "service": "fuel", "parking": p.properties.ref, "qty": (4000 + Math.floor(Math.random()*10) * 100), "datetime": null, "priority": 3 })
-    else
-        services.push({ "service": "catering", "parking": p.properties.ref, "qty": Math.floor(Math.random()*2), "datetime": null, "priority": 3 })
+
+if (program.S) {
+    const csvstring = fs.readFileSync(program.S, 'utf8')
+    const records = parse(csvstring, {columns: true})
+    records.forEach(function(s,idx) {
+        services.push(s)
+    })
+} else {
+    const parkingfc = airport.parkings.features
+    for (var i = 0; i < program.count; i++) {
+        var p = parkingfc[Math.floor(Math.random() * (parkingfc.length))]
+        if (Math.random() > 0)
+            services.push({ "service": "fuel", "parking": p.properties.ref, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+        else
+            services.push({ "service": "catering", "parking": p.properties.ref, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+        t = services[services.length - 1]
+        debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
+    }
 }
+
 
 var trucks = do_services(services)
 

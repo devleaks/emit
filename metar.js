@@ -7,8 +7,10 @@ const https = require('https')
 const moment = require('moment')
 const parseString = require('xml2js').parseString
 
+const debug = require('./debug.js')
+
 const fname = "eblg/json/METAR.json"
-const url = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString=EBLG"
+const url = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString="
 const too_late = 30 // min
 
 var program = require('commander')
@@ -16,14 +18,22 @@ var program = require('commander')
 
 program
     .version('1.0.0')
-    .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
+    .description('Fetches latest METAR data for supplied airport (ICAO code)')
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file', fname)
+    .option('-a <airport>, --airport <airport>', 'Fetches data for supplied airport ICAO code', "EBLG")
     .option('-r, --refresh', 'Force METAR update')
     .parse(process.argv)
 
+debug.init(program.debug, [""], "main")
+debug.print(program.opts())
+
+
+var furl = url + program.A
+debug.print(furl)
+
 function xmlToJson(url, callback) {
-    var req = https.get(url, function(res) {
+    var req = https.get(furl, function(res) {
         var xml = '';
 
         res.on('data', function(chunk) {

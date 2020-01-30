@@ -24,7 +24,7 @@ exec("ls -la", puts);
 // @todo: change zigzag option to action
 program
     .version('0.2.0')
-    .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
+    .description('generates a LineString Feature of zigzag movements')
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "zigzag.json")
     .requiredOption('-l, --length <length>', 'Length of segment')
