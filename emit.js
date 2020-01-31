@@ -299,7 +299,9 @@ function rn(p, n = 4) {
     return Math.round(p * r) / r
 }
 
-
+/*
+ *  We could add some random precision to GPS coordinates.
+ */
 function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
     debug.print("IN", lsidx, timing)
     var counter = 0
@@ -314,11 +316,11 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
                 timing.time += pause
                 timing.left = rate - pause - timing.left
             } else { // will not emit here, we just pause and then continue our trip
-                debug.print("pauseed 1 but carries on", pause)
+                debug.print("paused but carries on", pause)
                 timing.time += pause
                 timing.left -= pause
             }
-        } else { // will emit here, may be more than once. let's first emit once on left
+        } else { // will emit here, may be more than once. let's first emit once on time left
             emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
             counter++
             debug.print("pauseing 2 ...", timing.left)
@@ -330,7 +332,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
                 timing.time += rate
                 emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
-                debug.print("pauseing 3 ...", totpause)
+                debug.print("pauseing more ...", totpause)
                 totpause -= rate
             }
             // then set time to next emit
@@ -341,6 +343,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
     debug.print("OUT", timing)
     return timing
 }
+
 
 /** MAIN **/
 function doGeoJSON(f, speed, rate, startdate) {
@@ -370,6 +373,7 @@ function doGeoJSON(f, speed, rate, startdate) {
     return false // f is no geojson?
 }
 
+
 function doCollection(fc, speed, rate, startdate) {
     fc.features.forEach(function(f, idx) {
         if(f.geometry && f.geometry.type == "LineString") {
@@ -383,6 +387,7 @@ function doCollection(fc, speed, rate, startdate) {
     })
     return fc
 }
+
 
 function doLineStringFeature(f, speed, rate, startdates) {
     var speedsAtVertices = (f.properties && f.properties.speedsAtVertices) ? f.properties.speedsAtVertices : null

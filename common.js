@@ -44,7 +44,7 @@ exports.Device = function(name, props) {
         if (speed)
             this._speeds.push({ "idx": c, "speed": speed })
 
-        if (pause)
+        if (pause && pause > 0)
             this._pauses.push({ "idx": c, "pause": pause })
     }
 

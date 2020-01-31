@@ -122,7 +122,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         debug.print("aircraft", aircraft)
 
     // first point is parking position
-    const parking = geojson.findFeature(parking_name, airport.parkings, "ref")
+    const parking = geojson.findFeature(parking_name, airport.parkings, "name")
     if (!parking) {
         debug.print("parking not found", parking_name)
         return false
@@ -155,9 +155,9 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         airplane.addPathToTrack(r.coordinates, common.to_kmh(aircraft.taxi_speed), null)
         // move to taxi hold point
         var hold = config.airport["taxi-hold"]
-        var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0] - hold[0])) // 0-120 sec hold before T.O.
-        airplane.addPointToTrack(p1.geometry.coordinates, common.to_kmh(aircraft.taxi_speed), takeoffhold_time)
-        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), takeoffhold_time, p_name)
+        var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
+        airplane.addPointToTrack(p1.geometry.coordinates, common.to_kmh(aircraft.taxi_speed), hold_time)
+        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")")
     } else {
         deug.error("cannot find taxihold point", p_name)
         return false
@@ -175,10 +175,10 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         var r = geojson.route(p, p2, airport.taxiways)
         airplane.addPathToTrack(r.coordinates, common.to_kmh(aircraft.taxi_speed), null)
         var hold = config.airport["takeoff-hold"]
-        var takeoffhold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[0] - hold[0])) // 0-120 sec hold before T.O.
+        var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
         // move to take-off hold
-        airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxi_speed), takeoffhold_time)
-        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), takeoffhold_time, p_name)
+        airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxi_speed), hold_time)
+        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")")
     } else {
         deug.error("cannot find take-off hold point", p_name)
         return false
@@ -215,7 +215,13 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     var last = false
     if (p) { // @todo: Add line string?
         p.geometry.coordinates.forEach(function(c, idx) {
-            airplane.addPointToTrack(c, null, null) // speed = null means continue with same speed as before
+            if(idx == 2) { // simulates acceleration to 250kn
+                airplane.addPointToTrack(c, aircraft.climbspeed2, null)
+            } else if(idx == 4) { // simulate acceleration to cruse speed
+                airplane.addPointToTrack(c, aircraft.climbspeed3, null)
+            } else { // keep going
+                airplane.addPointToTrack(c, null, null)
+            }
             last = c
         })
     } else {
@@ -312,7 +318,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxispeed), null)
 
     // taxi to close to parking
-    const parking = geojson.findFeature(parking_name, airport.parkings, "ref")
+    const parking = geojson.findFeature(parking_name, airport.parkings, "name")
     if (!parking) {
         debug.print("parking not found", parking_name)
         return false

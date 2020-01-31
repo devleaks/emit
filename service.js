@@ -88,10 +88,10 @@ function serve(service, truck) {
     truck.addPointToTrack(p, truck.getProp("slow"), 30) // truck moves to serviceroad
 
     // get to parking on service road at full speed
-    var parking = geojson.findFeature(service.parking, airport.parkings, "ref")
+    var parking = geojson.findFeature(service.parking, airport.parkings, "name")
     debug.print(parking)
     if (!parking) {
-        debug.print("not found", "ref", service.parking)
+        debug.print("not found", "name", service.parking)
         return
     }
     var p1 = geojson.findClosest(parking, airport.serviceroads)
