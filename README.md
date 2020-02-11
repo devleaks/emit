@@ -51,3 +51,7 @@ device: {
         heading
     }
 }
+
+## Refactoring
+
+addPoint(point, properties)

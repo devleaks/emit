@@ -14,6 +14,7 @@ program
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .requiredOption('-s, --speed <speed>', 'Speed of vehicle in km/h')
+    .option('-a, --altitude', 'Add altitude to GeoJSON positions')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('--shift-date <seconds>', 'Event reporting is shifted by that amount of seconds', moment().toISOString())
@@ -24,10 +25,23 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, ["", "doLineStringFeature"], "main")
 debug.print(program.opts())
 
 
+// round to precision for display
+function rn(p, n = 4) {
+    r = Math.pow(10, n)
+    return Math.round(p * r) / r
+}
+
+// display lat/lon in with precision
+function ll(p, n = 4) {
+    return "(" + rn(p[1], n) + ',' + rn(p[0], n) + ( (p.length > 2) ? (',' + rn(p[0], n) + ")") : ")" )
+}
+
+
+// local wrapper to distance function
 function distance(p1, p2) {
     return geoutils.distance(p1[1], p1[0], p2[1], p2[0], 'K')
 }
@@ -136,7 +150,14 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
         brng = Math.round(brng * 10) / 10
         debug.print(k, idx, newls[idx], p, brng)
 
-        newls.push([p[0], p[1]])
+        //var alt = get_altitude(p, idx, ls)
+
+        if(program.altitude) {
+            newls.push([p[0], p[1], p[2]])
+        } else {
+            newls.push([p[0], p[1]])
+        }
+
         pts.push({
             "type": "Feature",
             "geometry": {
@@ -169,8 +190,22 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
 // From a table (vertex index,speed at that vertex) for some vertex only,
 // we build a simple table (vertex index, speed at vertex) for all vertices
 // we also get a table (vertex index, time at that vertext).
-
 function fillSpeed(a, len) {
+    fillValues(a, len, parseFloat(program.minSpeed), parseFloat(program.speed))
+} //@@todomust check that there are no 2 speeds=0 following each other with d>0
+
+
+// From a table (vertex index,altitude or gradient at that vertex) for some vertex only,
+// we build a simple table (vertex index, altitude at vertex) for all vertices.
+// If no altitude is given, ground level is assumed.
+// Altitude is spedicifed by a couple (altitude-type, altitude) where altitude type is
+// MSL (above (Mean) Sea Level)
+// AGL (Above Ground Level)
+// BAR (Aircraft Barometric Altitude)
+// Note: GeoJSON requires altitude in meter either "with z expressed as metres above mean sea level per WGS84" or "SHALL be the height in meters above the WGS 84 reference ellipsoid"
+// Well, for use its either above (airport) ground level, or above mean sea level, whereever level 0 migth be...
+// Note that an aircraft's ADS-B transmission broadcasts its "barometric altitude". Oh boy. 
+function fillValues(a, len, minval, dftval) {
     const minSpeed = parseFloat(program.minSpeed)
     const dft = parseFloat(program.speed)
 
@@ -185,7 +220,7 @@ function fillSpeed(a, len) {
     }
 
     if (typeof(a[0]) == "undefined")
-        a[0] = dft < minSpeed ? minSpeed : dft
+        a[0] = dft < minval ? minval : dftval
 
     for (var i = 1; i < len; i++) {
         if (typeof(a[i]) == "undefined") {
@@ -203,12 +238,38 @@ function fillSpeed(a, len) {
             }
             i = j
         } else {
-            a[i] = a[i] < minSpeed ? minSpeed : a[i]
+            a[i] = a[i] < minval ? minval : a[i]
         } // else a is set
     }
 } //@@todomust check that there are no 2 speeds=0 following each other with d>0
 
+// Shortcut:
+// From a table (vertex index,speed at that vertex) for some vertex only,
+// we build a simple table (vertex index, speed at vertex) for all vertices
+// we also get a table (vertex index, time at that vertext).
+function fillSpeed(a, len) {
+    fillValues(a, len, parseFloat(program.minSpeed), parseFloat(program.speed))
+}
 
+/*  Altitude functions
+ *
+ */
+function fillAltitude(a, len) {
+    fillValues(a, len, 0, 0)
+}
+
+function get_altitude(p, idx, ls, alt) { // linear interpolation
+    var d0 = distance(ls[idx], p)
+    var d1 = distance(ls[idx], ls[idx + 1])
+    return d1 == 0 ? -1 : alt[idx].alt + (alt[idx+1].alt - alt[idx].alt) * d0 / d1
+}
+
+// Return altitude MSL
+function altitudeMSL(altdef, ground = 0) {
+    return altdef.type == "MSL" ? altdef.alt : ground + altdef.alt
+}
+
+// nice display of seconds
 function sec2hms(i) {
     totalSeconds = Math.round(i * 3600)
     hours = Math.floor(totalSeconds / 3600)
@@ -287,16 +348,6 @@ function time2vtx(p, idx, ls, sp, rate) {
      })
 
     return r
-}
-
-function ll(p, n = 4) {
-    r = Math.pow(10, n)
-    return "(" + Math.round(p[1] * r) / r + ',' + Math.round(p[0] * r) / r + ")"
-}
-
-function rn(p, n = 4) {
-    r = Math.pow(10, n)
-    return Math.round(p * r) / r
 }
 
 /*
@@ -390,8 +441,9 @@ function doCollection(fc, speed, rate, startdate) {
 
 
 function doLineStringFeature(f, speed, rate, startdates) {
-    var speedsAtVertices = (f.properties && f.properties.speedsAtVertices) ? f.properties.speedsAtVertices : null
-    var pausesAtVertices = (f.properties && f.properties.pausesAtVertices) ? f.properties.pausesAtVertices : null
+    var speedsAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("speedsAtVertices")) ? f.properties.speedsAtVertices : null
+    var pausesAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("pausesAtVertices")) ? f.properties.pausesAtVertices : null
+    var altAtVertices    = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("altAtVertices"))    ? f.properties.altAtVertices    : null
     const ls = f.geometry.coordinates // linestring
     var lsidx = 0 // index in linestring
     var newls = [] // coordinates of new linestring
@@ -400,6 +452,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
 
     var speeds = []
     var pauses = []
+    var alt = []
 
     if (Array.isArray(speedsAtVertices)) {
         speedsAtVertices.forEach(function(sp) {
@@ -419,7 +472,22 @@ function doLineStringFeature(f, speed, rate, startdates) {
         })
     }
 
-    debug.print("arrays:" + ls.length + ":" + speeds.length + ":" + pauses.length)
+    if (program.altitude && Array.isArray(altAtVertices)) {
+        altAtVertices.forEach(function(wt) {
+            if (wt.idx < ls.length)
+                alt[wt.idx] = wt.alt
+        })
+        fillAltitude(alt, ls.length) // init altitude array
+        // place altitude on points
+        ls.forEach(function(p, idx) {
+            if(p.length == 2) { // has only 2 coord, so we add alt
+                p[2] = alt[idx]
+            }
+        })
+    }
+
+
+    debug.print("arrays:" + ls.length + ":" + speeds.length + ":" + pauses.length + ":" + alt.length)
 
     var maxstep = speed * rate / 3600
     var currpos = ls[lsidx] // start pos
@@ -489,6 +557,8 @@ function doLineStringFeature(f, speed, rate, startdates) {
         delete(f.properties.speedsAtVertices)
     if(f.properties.hasOwnProperty("pausesAtVertices"))
         delete(f.properties.pausesAtVertices)
+    if(f.properties.hasOwnProperty("altsAtVertices"))
+        delete(f.properties.altsAtVertices)
     debug.print("new ls length", newls.length)
     return { "feature": f, "points": points }
 }

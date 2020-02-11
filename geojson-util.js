@@ -45,10 +45,13 @@ exports.Feature = function(geom, props = false) {
 }
 
 exports.FeatureCollection = function(f, props = false) {
-    return {
+    return props ? {
         "type": "FeatureCollection",
         "features": f,
-        "properties": props ? props : {}
+        "properties": props
+    } : {
+        "type": "FeatureCollection",
+        "features": f
     }
 }
 
@@ -66,6 +69,27 @@ exports.LatLon = function(lat, lon, alt = false) {
 // Position is GeoJSON standard lon,lat
 exports.Position = function(lon, lat, alt = false) {
     return alt ? [lon, lat, alt] : [lon, lat]
+}
+
+/* Add Altitude to points only for now
+ */
+exports.altitude = function(f, alt) {
+    if (exports.isFeature(f) && exports.hasGeom(f)) {
+        f.geometry = exports.altitude(f.geometry)
+    } else if (exports.isGeom(f)) {
+        if (f.type == "Point") {
+            if (f.coordinates.length == 2) // no altitude, add it
+                f.coordinates.push(alt)
+            else(f.coordinates.length == 3) // altitude already present, replace it
+            f.coordinates[2] = alt
+        }
+    }
+    return f
+}
+
+// only for points
+exports.hasAltitude = function(f) {
+    return exports.coords(f) > 3
 }
 
 /* Convert a FeatureCollection of LineString into a single MultiLineString geometry
@@ -116,7 +140,7 @@ exports.isGeom = function(f) {
 }
 
 exports.hasGeom = function(f) {
-    return isFeature(f) && (isGeom(f.geometry) || isGeom(f))
+    return exports.isFeature(f) && (exports.isGeom(f.geometry) || exports.isGeom(f))
 }
 
 // returns feature's property or null
@@ -149,7 +173,7 @@ exports.toPoints = function(fc) {
 }
 
 exports.addProp = function(f, prop, value) {
-    if(! exports.isFeature(f))
+    if (!exports.isFeature(f))
         return
     f.properties |= {}
     f.properties[prop] = value
@@ -157,12 +181,12 @@ exports.addProp = function(f, prop, value) {
 }
 
 exports.copyProps = function(f_from, f_to, props = null) {
-    if(! exports.hasProperties(f_from))
+    if (!exports.hasProperties(f_from))
         return
     f_to.properties |= {}
-    if(props) {
+    if (props) {
         for (var prop in f_from.properties) {
-            if ( f_from.properties.hasOwnProperty(prop) && (props.indexOf(prop) > -1) ) {
+            if (f_from.properties.hasOwnProperty(prop) && (props.indexOf(prop) > -1)) {
                 f_to.properties[prop] = f_from.properties[prop]
             }
         }
@@ -192,7 +216,7 @@ exports.route = function(p_from, p_to, network, p = 0.0005) {
  * Returns Point
  */
 exports.findClosest = function(p, network) {
-    if(exports.isFeature(p)) { // cache result
+    if (exports.isFeature(p)) { // cache result
         p.properties = p.properties ? p.properties : {}
         if (typeof(p.properties.nearestPointOnLine) == "undefined" || typeof(p.properties.nearestPointOnLine[network._network_name]) == "undefined") {
             p.properties.nearestPointOnLine = p.properties.nearestPointOnLine ? p.properties.nearestPointOnLine : {}

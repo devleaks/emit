@@ -180,10 +180,10 @@ if (program.S) {
     const parkingfc = airport.parkings.features
     for (var i = 0; i < program.count; i++) {
         var p = parkingfc[Math.floor(Math.random() * (parkingfc.length))]
-        if (Math.random() > 0)
-            services.push({ "service": "fuel", "parking": p.properties.ref, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+        if (Math.random() > 0.3)
+            services.push({ "service": "fuel", "parking": p.properties.name, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
         else
-            services.push({ "service": "catering", "parking": p.properties.ref, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+            services.push({ "service": "catering", "parking": p.properties.name, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
         t = services[services.length - 1]
         debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
     }

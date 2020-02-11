@@ -8,7 +8,7 @@
     "@turf/turf": "^5.1.6",
     "aewx-metar-parser": "^0.10.1",
     "color-convert": "^2.0.1",
-    "commander": "^4.0.1",
+    "commander": "^4.1.1",
     "csv-parse": "^4.8.5",
     "fs": "^0.0.1-security",
     "geojson-path-finder": "^1.5.2",
@@ -19,7 +19,7 @@
     "jsonpath": "^1.0.2",
     "leaflet-routing-machine": "^3.2.12",
     "moment": "^2.24.0",
-    "simple-node-logger": "^18.12.23",
+    "simple-node-logger": "^18.12.24",
     "sqlite3": "^4.1.1",
     "vt-geojson": "^2.1.1",
     "xml2js": "^0.4.23"
