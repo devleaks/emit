@@ -50,43 +50,30 @@ exports.Device = function(name, props) {
 
     // marker Point are features with a property "note"
     this.addMarker = function(point, speed, pause, note, color = "#aaaaaa") { // point = [lon, lat]
-        function add_note(n, t) {
-            if(typeof n == "String") {
-                point.properties["note"] = note
-            } else if(typeof n == "Object") { // copies props
-                for (var prop in n) {
-                    if (n.hasOwnProperty(prop)) {
-                        t[prop] = n[prop]
-                    }
-                }
-            }
-        }
-
         const c = this._track.length - 1
         if (geojson.isFeature(point)) {
             point.properties = point.properties ? point.properties : {}
             point.properties["marker"] = true // signal we wrote this
-            point.properties["idx"] = c // we're around that point in the LineString _track
+            point.properties["idx"] = c // we're around that point in the LineString track
             point.properties["speed"] = speed
             point.properties["pause"] = pause
+            point.properties["note"] = note
             point.properties["marker-color"] = color
             point.properties["marker-size"] = "medium"
             point.properties["marker-symbol"] = ""
-            add_note(note, point.properties)
             this._points.push(point)
         } else {
-            var props = {
-                "marker": true, // signal we wrote this
-                "idx": c,
-                "speed": speed,
-                "pause": pause,
-                "marker-color": color,
-                "marker-size": "medium",
-                "marker-symbol": ""
-            }
-            add_note(note, props)
             this._points.push(geojson.Feature(
-                geojson.isGeom(point) ? point : geojson.Point(point), props))
+                geojson.isGeom(point) ? point : geojson.Point(point), {
+                    "marker": true, // signal we wrote this
+                    "idx": c,
+                    "speed": speed,
+                    "pause": pause,
+                    "note": note,
+                    "marker-color": color,
+                    "marker-size": "medium",
+                    "marker-symbol": ""
+                }))
         }
     }
 

@@ -94,7 +94,7 @@ program
     .option('-m, --aircraft <model>', 'aircraft model', aircraft)
     .option('-r, --runway <runway>', 'name of runway', runway_inuse)
     .option('-s, --airway <name>', 'SID or STAR name', approach)
-    .option('-p, --parking <parking>', 'name of parking', parking.properties.name)
+    .option('-p, --parking <parking>', 'name of parking', parking.properties.ref)
     .option('-l, --landing', 'Perform landing rather than takeoff', landing)
     .parse(process.argv)
 
@@ -130,7 +130,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     // start of ls
     airplane.addPointToTrack(parking, 0, null)
-    airplane.addMarker(parking, 0, null, "parking " + parking.properties.name)
+    airplane.addMarker(parking, 0, null, "parking " + parking.properties.ref)
 
     // pushback to "pushback lane"
     p = geojson.findClosest(parking, airport.taxiways)

@@ -56,9 +56,9 @@ exports.aircrafts = {
         "cg0": 12,
         "vclimb1": 200,
         "cg1": 12,
-        "vclimb2": 250,
+        "vclimb2": 220,
         "cg2": 10,
-        "vclimb3": 250,
+        "vclimb3": 220,
         "cg3": 10,
         "vcruze": 450,
         "vinitialdescend": 450,
@@ -80,9 +80,9 @@ exports.aircrafts = {
         "vs0": 12,
         "vclimb1": 200,
         "cs1": 14,
-        "vclimb2": 250,
+        "vclimb2": 220,
         "cs2": 10,
-        "vclimb3": 300,
+        "vclimb3": 220,
         "cs3": 10,
         "vcruze": 450,
         "vinitialdescend": 450,
@@ -101,24 +101,23 @@ exports.aircrafts = {
 exports.services = {
     "fuel": {
         "trucks": [{
-                "name": "fuel1",
-                "color": "#aa0000",
-                "capacity": 30000,
-                "speed": 40,
-                "slow": 20,
-                serviceTime: function(qty) { return qty / 50 },
-                refillTime: function(qty) { return qty / 75 }
-            },
-            {
-                "name": "fuel2",
-                "color": "#aa6600",
-                "capacity": 30000,
-                "speed": 40,
-                "slow": 20,
-                serviceTime: function(qty) { return qty / 50 },
-                refillTime: function(qty) { return qty / 75 }
-            }
-        ],
+            "name": "fuel1",
+            "color": "#aa0000",
+            "capacity": 30000,
+            "speed": 40,
+            "slow": 20,
+            serviceTime: function(qty) { return qty / 50 },
+            refillTime: function(qty) { return qty / 75 }
+        },
+        {
+            "name": "fuel2",
+            "color": "#aa6600",
+            "capacity": 30000,
+            "speed": 40,
+            "slow": 20,
+            serviceTime: function(qty) { return qty / 50 },
+            refillTime: function(qty) { return qty / 75 }
+        }],
         "base": [
             "FUEL1",
             "FUEL2"
@@ -138,20 +137,5 @@ exports.services = {
             "CATERING1"
         ],
         serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
-        refillTime: function(qty) { return qty * 12 * 60 }
-    },
-    "towing": {
-        "trucks": [{
-            "name": "tow1",
-            "color": "#00aa00",
-            "capacity": 1,
-            "speed": 20,
-            "slow": 5
-        }],
-        "base": [
-            "TOW1"
-        ],
-        serviceTime: function(qty) { return 420 }, // seconds
-        refillTime: function(qty) { return 0 }
-    }
+        refillTime: function(qty) { return qty * 12 * 60 }    }
 }

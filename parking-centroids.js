@@ -39,7 +39,7 @@ function pc(f) {
           var c = turf.centroid(f)
           c.properties = {}
           c.properties.aeroways = "parking_position"    // OSM standard (https://wiki.openstreetmap.org/wiki/Key:aeroway)
-          c.properties.name = f.properties.ID_Parking
+          c.properties.ref = f.properties.ID_Parking
           c.properties.apron = f.properties.ID_Apron_z
           return c
         }
