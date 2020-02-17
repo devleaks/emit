@@ -70,6 +70,10 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
     // We are at currpos, between ls[lsidx] and ls[lsidx+1]. We go towards ls[idx+1] for rate seconds.
     // 1. What is the speed at currpos. We assume linear accelleration.
     var totald = turf.distance(ls[lsidx], ls[lsidx + 1])
+
+    if(totald == 0)
+        return ls[lsidx + 1]
+
     var partiald = turf.distance(ls[lsidx], currpos)
     var leftd = totald - partiald // leftd = turf.distance(currpos, ls[lsidx+1])
     var portion = partiald / totald
