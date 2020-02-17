@@ -24,7 +24,7 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, ["", "doLineStringFeature"], "main")
 debug.print(program.opts())
 
 

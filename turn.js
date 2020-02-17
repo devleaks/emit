@@ -24,9 +24,6 @@ debug.init(program.debug, ["", "mkturn"], "main")
 debug.print(program.opts())
 
 
-function computerRadius() {
-    return 5 //km
-}
 
 function adjustLineOffset(line, offset, precision, count) {
     var offs = Math.abs(offset)
@@ -38,7 +35,7 @@ function adjustLineOffset(line, offset, precision, count) {
         offs = offs + 0.5 * diff
         debug.print(count, offset, precision, offs, diff)
     }
-    debug.print("out", offset, precision, offs, diff)
+    debug.print(offset, precision, offs, diff)
     return soffset * offs
 }
 
@@ -70,26 +67,26 @@ function lineOffset(line, offset) {
 
 function isRightTurn(bi, bo) { // returns 1 if right turn, -1 if left turn
     var s = bo - bi
-    if (s < 0) s += 360
-    debug.print(rn(bi, 0), rn(bo, 0), rn(s, 0), (s >= 0 & s < 180) ? 1 : -1)
+    if(s < 0) s += 360
+    debug.print(rn(bi,0), rn(bo,0), rn(s,0), (s >= 0 & s < 180) ? 1 : -1)
     return (s >= 0 & s < 180) ? 1 : -1
 }
 
 
 function isFromRight(bi, bo) { // returns 1 if coming from right, -1 if coming from left
     var s = bi - bo
-    if (s < 0) s += 360
+    if(s < 0) s += 360
     debug.print(bi, bo, s, (s >= 0 & s < 180) ? -1 : 1)
     return (s >= 0 & s < 180) ? -1 : 1
 }
 
 
-function goSouth(l1, l0, l2) { // not correct in South hemisphere
+function goSouth(l1, l0, l2) {
     return l0[1] > l1[1]
 }
 
 
-function goEast(l1, l0, l2) { // not correct west of Greenwich
+function goEast(l1, l0, l2) {
     return l0[0] > l1[0]
 }
 
@@ -115,7 +112,10 @@ function mkturn(l1, l0, l2, radius) {
     }))
 
     var center = turf.center(geojson.FeatureCollection(features))
-    geojson.colorPoint(center, "#dd2222", cnt.toString())
+    center.properties = center.properties ? center.properties : {}
+    center.properties["marker-color"] = "#222222"
+    center.properties["marker-size"] = "medium"
+    center.properties["marker-symbol"] = cnt.toString()
     features.push(center)
 
 
@@ -125,9 +125,6 @@ function mkturn(l1, l0, l2, radius) {
     features.push(geojson.Feature(geojson.LineString(line2)))
     var bearing1 = turf.bearing(l1, l0)
     var bearing2 = turf.bearing(l0, l2)
-    var turn = bearing2 - bearing1
-    if (turn < 0) turn += 360
-//    if (turn > 180) turn += 360
     const turnRight = isRightTurn(bearing1, bearing2)
     const fromRight = isFromRight(bearing1, bearing2)
     const need2flip = fromRight
@@ -140,17 +137,7 @@ function mkturn(l1, l0, l2, radius) {
         return goSouth(l1, l0, l2)
     }
 
-    debug.print("bearings", {
-        id: cnt,
-        in: rn(bearing1, 0),
-        out: rn(bearing2, 0),
-        turn: rn(turn,0),
-        turnRight: turnRight,
-        fromRight: fromRight,
-        goSouth: goSouth(l1, l0, l2),
-        goEast: goEast(l1, l0, l2),
-        needFlip: needFlip()
-    })
+    debug.print("bearings", cnt, rn(bearing1,0), rn(bearing2,0), "turn right:"+turnRight, "from right:"+fromRight, goSouth(l1, l0, l2), goEast(l1, l0, l2))
 
     var line1b = lineOffset(geojson.LineString(line1), turnRight * radius) // offset line is always on right side of line
     var line2b = lineOffset(geojson.LineString(line2), fromRight * radius)
@@ -167,10 +154,10 @@ function mkturn(l1, l0, l2, radius) {
         features.push(center)
 
         var pie2
-        if (needFlip()) {
-            pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing1 - 90, bearing2 - 90)
+        if( needFlip() ) {
+            pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing1-90, bearing2-90)
         } else {
-            pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing2 - 270, bearing1 - 270)
+            pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing2-270, bearing1-270)
             pie2.geometry.coordinates = pie2.geometry.coordinates.reverse()
         }
         features.push(pie2)
