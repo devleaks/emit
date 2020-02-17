@@ -1,15 +1,14 @@
 const fs = require('fs')
 const moment = require('moment')
-const turf = require('@turf/turf')
-
 var program = require('commander')
 
+const geoutils = require('./geoutils')
 const debug = require('./debug.js')
 
 debug.init(true, [""], "main")
 
 program
-    .version('1.2.0')
+    .version('1.1.0')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
@@ -42,20 +41,25 @@ function ll(p, n = 4) {
 }
 
 
+// local wrapper to distance function
+function distance(p1, p2) {
+    return geoutils.distance(p1[1], p1[0], p2[1], p2[0], 'K')
+}
+
+
 function point_on_line(c, n, d) {
-    var brng = turf.bearing(c, n)
-    const p = turf.destination(c, d, brng)
-    return p.geometry.coordinates
+    var brng = geoutils.bearing(c[1], c[0], n[1], n[0])
+    return geoutils.destVincenty(c[1], c[0], brng, 1000 * d) // distance must be in meter
 }
 
 
 function get_speed(currpos, lsidx, ls, speeds) { // linear acceleration
-    var totald = turf.distance(ls[lsidx], ls[lsidx + 1])
+    var totald = distance(ls[lsidx], ls[lsidx + 1])
     var s = 0
     if (totald == 0) {
         s = speeds[lsidx + 1]
     } else {
-        var partiald = turf.distance(ls[lsidx], currpos)
+        var partiald = distance(ls[lsidx], currpos)
         var portion = partiald / totald
         s = speeds[lsidx] + portion * (speeds[lsidx + 1] - speeds[lsidx])
     }
@@ -69,9 +73,9 @@ function get_speed(currpos, lsidx, ls, speeds) { // linear acceleration
 function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
     // We are at currpos, between ls[lsidx] and ls[lsidx+1]. We go towards ls[idx+1] for rate seconds.
     // 1. What is the speed at currpos. We assume linear accelleration.
-    var totald = turf.distance(ls[lsidx], ls[lsidx + 1])
-    var partiald = turf.distance(ls[lsidx], currpos)
-    var leftd = totald - partiald // leftd = turf.distance(currpos, ls[lsidx+1])
+    var totald = distance(ls[lsidx], ls[lsidx + 1])
+    var partiald = distance(ls[lsidx], currpos)
+    var leftd = totald - partiald // leftd = distance(currpos, ls[lsidx+1])
     var portion = partiald / totald
     var v0 = speeds[lsidx] + portion * (speeds[lsidx + 1] - speeds[lsidx])
     v0 = v0 < program.minSpeed ? program.minSpeed : v0
@@ -99,8 +103,8 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
         "rate": rate,
         "rate/h": rate/3600,
         "dist": dist,
-        "ctr dist": turf.distance(currpos, nextpos),
-        "leftvtx": turf.distance(nextpos,ls[lsidx+1])
+        "ctr dist": distance(currpos, nextpos),
+        "leftvtx": distance(nextpos,ls[lsidx+1])
      })
 
     return nextpos
@@ -142,7 +146,7 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
         }
 
 
-        var brng = (newls.length > 0) ? turf.bearing(newls[newls.length - 1], p) : null
+        var brng = (newls.length > 0) ? geoutils.bearing(newls[(newls.length-1)][1], newls[(newls.length-1)][0], p[1], p[0]) : null
         brng = Math.round(brng * 10) / 10
         debug.print(k, idx, newls[idx], p, brng)
 
@@ -255,8 +259,8 @@ function fillAltitude(a, len) {
 }
 
 function get_altitude(p, idx, ls, alt) { // linear interpolation
-    var d0 = turf.distance(ls[idx], p)
-    var d1 = turf.distance(ls[idx], ls[idx + 1])
+    var d0 = distance(ls[idx], p)
+    var d1 = distance(ls[idx], ls[idx + 1])
     return d1 == 0 ? -1 : alt[idx].alt + (alt[idx+1].alt - alt[idx].alt) * d0 / d1
 }
 
@@ -286,7 +290,7 @@ function eta(ls, speed) {
     debug.print("v0", 0, speed[0], speed[0], 0, "00:00:00", "00:00:00")
     for (var i = 1; i < speed.length; i++) {
         var t = 0
-        var d = turf.distance(ls[i - 1], ls[i])
+        var d = distance(ls[i - 1], ls[i])
         if (speed[i - 1] != speed[i]) {
             t = 2 * d / Math.abs(speed[i] + speed[i - 1]) // acceleration is uniform, so average speed is OK for segment.
         } else {
@@ -299,9 +303,9 @@ function eta(ls, speed) {
 }
 
 function time2vtx(p, idx, ls, sp, rate) {
-    var d = turf.distance(p, ls[idx + 1])
-    var d0 = turf.distance(ls[idx], p)
-    var de = turf.distance(ls[idx], ls[idx + 1])
+    var d = distance(p, ls[idx + 1])
+    var d0 = distance(ls[idx], p)
+    var de = distance(ls[idx], ls[idx + 1])
     var vp = 0
     if (d0 == 0)
         vp = sp[idx]
@@ -323,11 +327,11 @@ function time2vtx(p, idx, ls, sp, rate) {
 
     /* control */
     p1 = point_in_rate_sec(p, rate, idx, ls, sp)
-    d1 = turf.distance(p1, ls[idx+1])
+    d1 = distance(p1, ls[idx+1])
     p2 = point_in_rate_sec(p, r, idx, ls, sp)
-    d2 = turf.distance(p2, ls[idx+1])
-    d3 = turf.distance(p,p1)
-    d4 = turf.distance(p,p2)
+    d2 = distance(p2, ls[idx+1])
+    d3 = distance(p,p1)
+    d4 = distance(p,p2)
     debug.print("CONTROL", {
         "index": idx,
         "d2next": d,
@@ -531,7 +535,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
             }
 
             if (timeleft2vtx > 0) { // may be portion of segment left
-                var d0 = turf.distance(currpos, nextvtx)
+                var d0 = distance(currpos, nextvtx)
                 debug.print("jumping to next vertex..", nextvtx, d0 + " km", timeleft2vtx + " secs")
                 time += timeleft2vtx
                 emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
