@@ -98,6 +98,7 @@ cnt = 0
 function mkturn(l1, l0, l2, radius) {
     var features = []
     cnt++
+    debug.print(l1, l0, l2, radius)
     features.push(geojson.Feature(geojson.Point(l1), {
         "marker-color": "#dddddd",
         "marker-size": "medium",
@@ -127,7 +128,7 @@ function mkturn(l1, l0, l2, radius) {
     var bearing2 = turf.bearing(l0, l2)
     var turn = bearing2 - bearing1
     if (turn < 0) turn += 360
-//    if (turn > 180) turn += 360
+    //    if (turn > 180) turn += 360
     const turnRight = isRightTurn(bearing1, bearing2)
     const fromRight = isFromRight(bearing1, bearing2)
     const need2flip = fromRight
@@ -144,7 +145,7 @@ function mkturn(l1, l0, l2, radius) {
         id: cnt,
         in: rn(bearing1, 0),
         out: rn(bearing2, 0),
-        turn: rn(turn,0),
+        turn: rn(turn, 0),
         turnRight: turnRight,
         fromRight: fromRight,
         goSouth: goSouth(l1, l0, l2),
@@ -205,13 +206,23 @@ function mkturn(l1, l0, l2, radius) {
 var features = []
 
 if (program.file) {
+    const r = 5
     const jsonstring = fs.readFileSync(program.file, 'utf8')
     fc = JSON.parse(jsonstring)
-    for (var i = 0; i < fc.features.length; i += 3) {
-        const t = mkturn(fc.features[i].geometry.coordinates,
-            fc.features[i + 1].geometry.coordinates,
-            fc.features[i + 2].geometry.coordinates,
-            5)
+    for (var i = 0; i < fc.features.length; i += 1) {
+        var t
+        if (fc.features[i].geometry.type == "LineString") {
+            t = mkturn(fc.features[i].geometry.coordinates[0],
+                fc.features[i].geometry.coordinates[1],
+                fc.features[i].geometry.coordinates[2],
+                r)
+        } else {
+            t = mkturn(fc.features[i].geometry.coordinates,
+                fc.features[i + 1].geometry.coordinates,
+                fc.features[i + 2].geometry.coordinates,
+                r)
+            i += 2
+        }
         features = features.concat(t)
     }
 }

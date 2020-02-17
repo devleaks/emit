@@ -244,3 +244,24 @@ exports.complexify = function(fc) {
             f.geometry.coordinates = geojsonTool.complexify(f.geometry.coordinates, 0.01); // 1=1 km. 0.01 = 10m (minimum)
     })
 }
+
+/*  Utility functions to add/set/reset color of a Point or LineString feature for geojson.io
+ */
+exports.colorPoint = function(p, color, letter, size = "medium") {
+    p.properties = p.hasOwnProperty("properties") ? p.properties : {}
+    p.properties["marker-color"] = color
+    p.properties["marker-size"] = size
+    p.properties["marker-symbol"] = letter
+}
+
+exports.colorLineString = function(line, color, width = 2) {
+    line.properties = line.hasOwnProperty("properties") ? line.properties : {}
+    line.properties["stroke"] = color
+    line.properties["stroke-width"] = width
+    line.properties["stroke-opacity"] = 1
+}
+
+
+
+
+
