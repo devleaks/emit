@@ -18,6 +18,9 @@ addMarker add "sync" event (e.g. point.properties.sync = 4).
 when generating csv, date passed as argument will be the date of the synced event.
 
 
+## CSV sync to sync=n event
+
+
 ### Airplane altitude
 
 Currently, planes crawl on the ground. Kinda fast cars.
@@ -28,3 +31,4 @@ Altitude will be added soon.
 ## Refactoring
 
 addPoint(point, properties) / addMarker
+

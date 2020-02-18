@@ -125,7 +125,7 @@ exports.Device = function(name, props) {
                 "name": this._name,
                 "speedsAtVertices": this._speeds,
                 "pausesAtVertices": this._pauses,
-                "stroke": color ? color : (l_color ? l_color : "#dddddd"),
+                "stroke": color ? color : (l_color ? l_color : "#444444"),
                 "stroke-width": 2,
                 "stroke-opacity": 1
             })

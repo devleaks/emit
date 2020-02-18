@@ -112,7 +112,7 @@ exports.findFeature = function(query, fc, property) {
     var f = false
     var idx = 0
     while (!f && idx < fc.features.length) {
-        if (fc.features[idx].properties && fc.features[idx].properties[property] && fc.features[idx].properties[property] == query)
+        if (fc.features[idx].hasOwnProperty("properties") && fc.features[idx].properties.hasOwnProperty(property) && fc.features[idx].properties[property] == query)
             f = fc.features[idx]
         idx++
     }
@@ -218,8 +218,8 @@ exports.route = function(p_from, p_to, network, p = 0.0005) {
 exports.findClosest = function(p, network) {
     if (exports.isFeature(p)) { // cache result
         p.properties = p.properties ? p.properties : {}
-        if (typeof(p.properties.nearestPointOnLine) == "undefined" || typeof(p.properties.nearestPointOnLine[network._network_name]) == "undefined") {
-            p.properties.nearestPointOnLine = p.properties.nearestPointOnLine ? p.properties.nearestPointOnLine : {}
+        if (! p.properties.hasOwnProperty("nearestPointOnLine") || ! p.properties.nearestPointOnLine.hasOwnProperty(network._network_name)) {
+            p.properties.nearestPointOnLine = p.properties.hasOwnProperty("nearestPointOnLine") ? p.properties.nearestPointOnLine : {}
             if (!network.hasOwnProperty("mls")) { // build suitable structure for nearestPointOnLine, cache it.
                 network.mls = exports.multilinestring(network)
             }

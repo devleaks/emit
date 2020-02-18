@@ -13,7 +13,7 @@ program
     .option('-d, --debug', 'output extra debugging')
     .option('-n, --name <name>', 'device name', "device")
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
-    .option('-e, --event <event>', 'Event name to sync date [p]pushback/parking or [t]takeoff/touchdown', 'p')
+    .option('-e, --event <event>', 'Sync event number to sync date on', 0)
     .option('-r, --random <delay>', 'Add or substract random delay to start-date', 0)
     .option('-o <file>, --output <file>', 'Save to file, default to out.csv', "out.csv")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
@@ -37,50 +37,41 @@ function tocsv(f, sd) {
 function justDoIt(fc, startdate) {
     var events = []
     var last_event = false
-    var contact = false
-    var first = false
+    var first_event = false
+    var sync_event = false
     var ls = false
 
     fc.features.forEach(function(f, idx) {
         if (f.type == "Feature" && f.geometry.type == "Point") {
             if (f.properties && f.properties.hasOwnProperty("emit") && f.properties.emit) {
-                if(! first) first = f
+                if(! first_event) first_event = f
                 events.push(f)
                 last_event = f
             }
-            if (f.properties && f.properties.hasOwnProperty("marker") && f.properties.marker) {
-                if (!contact && f.properties.note) {
-                    var subnote = f.properties.note.substr(0, 3)
-                    if (subnote == 'TO:' || subnote == 'TD:') {
-                        contact = f
-                        debug.print("contact", contact)
-                    }
+            if (!sync_event && f.properties && f.properties.hasOwnProperty("sync") && f.properties.marker) {
+                if (f.properties.sync == program.event) {
+                    sync_event = f
+                    console.log("sync event "+program.event+" found")
                 }
             }
         } else if (f.type == "Feature" && f.geometry.type == "LineString") {
             ls = f
         }
     })
-    debug.print("last_event", last_event)
 
-    if (!contact) {
-        debug.warning("could not find contact point")
-        //return false
-    }
 
     // synchronize event
     var timeshift = 0
-    if (program.event == 'p') { // need to find takeoff or landing
-        if (contact && contact.properties.note.substr(0, 3) == "TD:") { // TouchDown = Arrival, TakeOff = Departure
-            timeshift = -last_event.properties.elapsed
-        } // for takeoff, timeshift = 0, time of pushback
-    } else { // need to shift for takeoff or touchdown event
-        // contact.properties.idx is the orignal's vertex number in the original line string.
-        // we keep that index number in the new LineString under the "vertex" property.
-        // so we need to find the index of the event that was emited at or around that vertex index.
-        const point = geojson.findFeature(contact.properties.idx, geojson.FeatureCollection(events), "vertex")
-        debug.print("events", events.length, contact.properties.idx, point)
-        timeshift = -point.properties.elapsed
+    if (sync_event) {
+        const point = geojson.findFeature(sync_event.properties.idx, geojson.FeatureCollection(events), "vertex")
+        if(point) {
+            debug.print("events", events.length, sync_event.properties.idx, point)
+            timeshift = -point.properties.elapsed
+        } else {
+            debug.warning("sync point not found")
+        }
+    } else if (program.event && !sync_event) {
+        debug.warning("could not find sync point, using default")
     }
 
     // add/remove random delay (seconds)

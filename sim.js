@@ -84,11 +84,13 @@ const parking = airport.parkings.features[Math.floor(Math.random() * airport.par
 const aircrafts = Object.keys(config.aircrafts)
 const aircraft = aircrafts[Math.floor(Math.random() * aircrafts.length)]
 
+var syncCount = 0
+
 program
     .version('2.0.0')
     .description('generates GeoJSON features for one aircraft takeoff or landing')
     .option('-d, --debug', 'output extra debugging')
-    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
+    .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .option('-m, --aircraft <model>', 'aircraft model', aircraft)
     .option('-r, --runway <runway>', 'name of runway', runway_inuse)
     .option('-s, --airway <name>', 'SID or STAR name', approach)
@@ -111,6 +113,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     var airplane = new common.Device(aircraft_model + ":" + parking_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point's name
+    var syncCount = 0
 
     const aircraft = findAircraft(airplane.getProp("aircraft"))
     if (!aircraft) {
@@ -128,7 +131,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
 
     // start of ls
     airplane.addPointToTrack(parking, 0, null)
-    airplane.addMarker(parking, 0, null, "parking " + parking.properties.name)
+    airplane.addMarker(parking, 0, null, "parking " + parking.properties.name, syncCount++)
 
     // pushback to "pushback lane"
     p = geojson.findClosest(parking, airport.taxiways)
@@ -155,7 +158,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         var hold = config.airport["taxi-hold"]
         var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
         airplane.addPointToTrack(p1.geometry.coordinates, common.to_kmh(aircraft.taxi_speed), hold_time)
-        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")")
+        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")", syncCount++)
     } else {
         deug.error("cannot find taxihold point", p_name)
         return false
@@ -176,7 +179,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
         // move to take-off hold
         airplane.addPointToTrack(p1, common.to_kmh(aircraft.taxi_speed), hold_time)
-        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")")
+        airplane.addMarker(p1, common.to_kmh(aircraft.taxi_speed), hold_time, p_name + "(hold: "+hold_time+")", syncCount++)
     } else {
         deug.error("cannot find take-off hold point", p_name)
         return false
@@ -188,7 +191,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p = geojson.findFeature(p_name, airport.taxiways, "name")
     if (p) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.v2), null)
-        airplane.addMarker(p, common.to_kmh(aircraft.v2), null, p_name)
+        airplane.addMarker(p, common.to_kmh(aircraft.v2), null, p_name, syncCount++)
     } else {
         deug.error("cannot find take-off point", p_name)
         return false
@@ -199,7 +202,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.climbspeed1), null)
-        airplane.addMarker(p, common.to_kmh(aircraft.climbspeed1), null, p_name)
+        airplane.addMarker(p, common.to_kmh(aircraft.climbspeed1), null, p_name, syncCount++)
     } else {
         deug.error("cannot find SID start", p_name)
         return false
@@ -227,7 +230,7 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
         return false
     }
     // should add a point when leaving airspace?
-    airplane.addMarker(last, null, null, p_name)
+    airplane.addMarker(last, null, null, p_name, syncCount++)
     return airplane
 }
 
@@ -237,9 +240,9 @@ function takeoff(aircraft_model, parking_name, runway_name, sid_name) {
  */
 function land(aircraft_model, parking_name, runway_name, star_name) {
     var airplane = new common.Device(aircraft_model + ":" + parking_name, { "aircraft": aircraft_model })
-
     var p, p1, p2
     var p_name // point's name
+    var syncCount = 0
 
     const aircraft = findAircraft(airplane.getProp("aircraft"))
     if (!aircraft) {
@@ -256,7 +259,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
             if (first) {
                 first = false
                 airplane.addPointToTrack(c, common.to_kmh(aircraft.vinitialdescend), null)
-                airplane.addMarker(c, common.to_kmh(aircraft.vinitialdescend), null, p_name)
+                airplane.addMarker(c, common.to_kmh(aircraft.vinitialdescend), null, p_name, syncCount++)
             } else
                 airplane.addPointToTrack(c, null, null)
         })
@@ -270,7 +273,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.vapproach), null)
-        airplane.addMarker(p, common.to_kmh(aircraft.vapproach), null, p_name)
+        airplane.addMarker(p, common.to_kmh(aircraft.vapproach), null, p_name, syncCount++)
     } else {
         deug.error("cannot find STAR end", p_name)
         return false
@@ -293,7 +296,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.vlanding), null)
-        airplane.addMarker(p, common.to_kmh(aircraft.vlanding), null, p_name)
+        airplane.addMarker(p, common.to_kmh(aircraft.vlanding), null, p_name, syncCount++)
     } else {
         deug.error("cannot find touch down", p_name)
         return false
@@ -304,7 +307,7 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
         airplane.addPointToTrack(p, common.to_kmh(aircraft.taxispeed), null)
-        airplane.addMarker(p, common.to_kmh(aircraft.taxispeed), null, p_name)
+        airplane.addMarker(p, common.to_kmh(aircraft.taxispeed), null, p_name, syncCount++)
     } else {
         deug.error("cannot find runway exit", p_name)
         return false
@@ -329,51 +332,20 @@ function land(aircraft_model, parking_name, runway_name, star_name) {
 
     // last point is parking position (from taxiway to parking position)
     airplane.addPointToTrack(parking, 0, null)
-    airplane.addMarker(parking, 0, null, parking_name)
+    airplane.addMarker(parking, 0, null, parking_name, syncCount++)
 
     return airplane
 }
 
-/* tests date for EBLG
-    "sid": {
-        "04": [
-            "BUB7R",
-            "CIV3R",
-            "LNO8R"
-        ],
-        "22": [
-            "BUB7S",
-            "CIV3S",
-            "LNO5E",
-            "LNO7S"
-        ]
-    },
-    "star": {
-        "04": [
-            "LNO4D",
-            "GESLO4D",
-            "CIV5D",
-            "KOK5D",
-            "NIK5D"
-        ],
-        "22": [
-            "LNO4X",
-            "GESLO4X",
-            "CIV5X",
-            "KOK5X",
-            "NIK5X"
-        ]
-    }
-*/
 var airplane = program.landing ?
     land(program.aircraft, program.parking, program.runway, program.airway) :
     takeoff(program.aircraft, program.parking, program.runway, program.airway)
 
 if (airplane) {
-    fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
+    fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
     var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
     console.log("wind: " + wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
-    console.log(program.O + ' written')
+    console.log(program.output + ' written')
 } else {
     console.log(program.opts())
     console.log('no file written')

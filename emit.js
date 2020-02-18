@@ -1,5 +1,4 @@
 const fs = require('fs')
-const moment = require('moment')
 const turf = require('@turf/turf')
 
 var program = require('commander')
@@ -17,8 +16,7 @@ program
     .option('-s, --speed <speed>', 'Speed of vehicle in km/h', 30)
     .option('-a, --altitude', 'Add altitude to GeoJSON positions')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
-    .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
-    .option('--shift-date <seconds>', 'Event reporting is shifted by that amount of seconds', moment().toISOString())
+    .option('-j, --jitter <distance>', 'GPS precision in meter', 0)
     .option('-s, --silent', 'Does not report position when stopped')
     .option('-n, --name <name>', 'Set reporting device name on output')
     .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
@@ -41,13 +39,22 @@ function ll(p, n = 4) {
     return "(" + rn(p[1], n) + ',' + rn(p[0], n) + ( (p.length > 2) ? (',' + rn(p[0], n) + ")") : ")" )
 }
 
-
+// get a point in line with c-n at distance d from c, in the direction of n
 function point_on_line(c, n, d) {
     var brng = turf.bearing(c, n)
     const p = turf.destination(c, d, brng)
     return p.geometry.coordinates
 }
 
+/*  Add jitter around point, random direction, random distance between 0 and r (meters)
+ *  @todo: Jitter 3D
+ */
+function jitter(p) {
+    const r = program.jitter
+    if(r == 0) return p
+    const j = turf.destination(p, Math.random() * r / 1000, Math.random() * 360)
+    return j.geometry.coordinates
+}
 
 function get_speed(currpos, lsidx, ls, speeds) { // linear acceleration
     var totald = turf.distance(ls[lsidx], ls[lsidx + 1])
@@ -111,18 +118,12 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 }
 
 
-function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)ertex, (f)inish
+function emit(newls, t, p, s, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
     if (   (k == 's' || k == 'e')                   // normal emit
         || (k == 'w' && !program.silent)            // stopped. does not emit if silent
         || (k == 'v' && program.vertices)           // at vertice, only emit if requested
         || (k == 'f' && program.lastPoint)  ) {     // at last point, only emit if requested
-
-        var newt = program.shiftDate ? t + parseInt(program.shiftDate) : t
-
-        if (sd && sd.isValid()) {
-            dt = moment(sd).add(newt, 's').toISOString(true)
-        }
 
         var color = "#888888"
         switch (k) {
@@ -146,30 +147,32 @@ function emit(newls, t, p, s, sd, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)
         }
 
 
-        var brng = (newls.length > 0) ? turf.bearing(newls[newls.length - 1], p) : null
+        var brng = (newls.length > 0) ? turf.bearing(newls[newls.length - 1], p) : 0
         brng = Math.round(brng * 10) / 10
         debug.print(k, idx, newls[idx], p, brng)
+
+        const jp = jitter(p)
 
         //var alt = get_altitude(p, idx, ls)
 
         if(program.altitude) {
-            newls.push([p[0], p[1], p[2]])
+            newls.push([jp[0], jp[1], jp[2]])
         } else {
-            newls.push([p[0], p[1]])
+            newls.push([jp[0], jp[1]])
         }
 
         pts.push({
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": p
+                "coordinates": jp
             },
             "properties": {
                 "emit": true,
                 "marker-color": color,
                 "marker-size": "medium",
                 "marker-symbol": "",
-                "timestamp": dt,
+                "nojitter": p,
                 "elapsed": t,
                 "vertex": idx,
                 "sequence": pts.length,
@@ -353,14 +356,14 @@ function time2vtx(p, idx, ls, sp, rate) {
 /*
  *  We could add some random precision to GPS coordinates.
  */
-function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds) {
+function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds) {
     debug.print("IN", lsidx, timing)
     var counter = 0
     if (pause && pause > 0) {
         debug.print("must pause", pause)
         if (pause < rate) {
             if (pause > timing.left) { // will emit here
-                emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+                emit(newls, timing.time + timing.left, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
                 debug.print("pauseing 1 ...", pause)
                 // keep wating but no emit since pause < rate
@@ -372,7 +375,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
                 timing.left -= pause
             }
         } else { // will emit here, may be more than once. let's first emit once on time left
-            emit(newls, timing.time + timing.left, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+            emit(newls, timing.time + timing.left, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
             counter++
             debug.print("pauseing 2 ...", timing.left)
             timing.time += timing.left
@@ -381,7 +384,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
             // then let's emit as many time as we pause
             while (totpause > 0) {
                 timing.time += rate
-                emit(newls, timing.time, pos, 'w', startdate, points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+                emit(newls, timing.time, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
                 debug.print("pauseing more ...", totpause)
                 totpause -= rate
@@ -397,12 +400,12 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate,
 
 
 /** MAIN **/
-function doGeoJSON(f, speed, rate, startdate) {
+function doGeoJSON(f, speed, rate) {
     if (f.type == "FeatureCollection") {
-        return doCollection(f, speed, rate, startdate)
+        return doCollection(f, speed, rate)
     } else if (f.type == "Feature") {
         if (f.geometry && f.geometry.type == "LineString") { // feature can omot geometry
-            var fret = doLineStringFeature(f, speed, rate, startdate)
+            var fret = doLineStringFeature(f, speed, rate)
             if (fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
                 var fc = {
                     type: "FeatureCollection",
@@ -418,17 +421,17 @@ function doGeoJSON(f, speed, rate, startdate) {
         var fret = doLineStringFeature({
             "type": "Feature",
             "geometry": f
-        }, speed, rate, startdate)
+        }, speed, rate)
         return fret.feature.geometry
     }
     return false // f is no geojson?
 }
 
 
-function doCollection(fc, speed, rate, startdate) {
+function doCollection(fc, speed, rate) {
     fc.features.forEach(function(f, idx) {
         if(f.geometry && f.geometry.type == "LineString") {
-            var fret = doLineStringFeature(f, speed, rate, startdate)
+            var fret = doLineStringFeature(f, speed, rate)
             if (fret.feature)
                 fc.features[idx] = fret.feature
             if (fret.points && fret.points.length > 0) { // add points of emission if requested (-p option)
@@ -440,7 +443,7 @@ function doCollection(fc, speed, rate, startdate) {
 }
 
 
-function doLineStringFeature(f, speed, rate, startdates) {
+function doLineStringFeature(f, speed, rates) {
     var speedsAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("speedsAtVertices")) ? f.properties.speedsAtVertices : null
     var pausesAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("pausesAtVertices")) ? f.properties.pausesAtVertices : null
     var altAtVertices    = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("altAtVertices"))    ? f.properties.altAtVertices    : null
@@ -491,7 +494,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
 
     var maxstep = speed * rate / 3600
     var currpos = ls[lsidx] // start pos
-    emit(newls, time, currpos, 's', startdate, points, speeds[0], "start", lsidx) // emit it
+    emit(newls, time, currpos, 's', points, speeds[0], "start", lsidx) // emit it
     var timeleft2vtx = 0 // time to next point
     var to_next_emit = rate
 
@@ -504,7 +507,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
             debug.print("moving from vertex with time remaining.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx) // if we are here, we know we will not reach the next vertex
             time += to_next_emit // during this to_next_emit time 
             p = point_in_rate_sec(currpos, to_next_emit, lsidx, ls, speeds, maxstep)
-            emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining", lsidx)
+            emit(newls, time, p, 'e', points, get_speed(p, lsidx, ls, speeds), "moving from vertex with time remaining", lsidx)
             //var d0 = distance(currpos,p)
             //debug.print("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
             currpos = p
@@ -514,11 +517,11 @@ function doLineStringFeature(f, speed, rate, startdates) {
         if ((to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit)) { // may be portion of segment left
             debug.print("moving to next vertex with time left.. (" + lsidx + ")", nextvtx, to_next_emit, timeleft2vtx)
             time += timeleft2vtx
-            emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], "moving on edge with time remaining to next vertex", lsidx)
+            emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), points, speeds[lsidx + 1], "moving on edge with time remaining to next vertex", lsidx)
             currpos = nextvtx
             to_next_emit -= timeleft2vtx // time left before next emit
-            // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
-            var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
+            // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds)
+            var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds)
             time = timing.time
             to_next_emit = timing.left
             //debug.print("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
@@ -527,7 +530,7 @@ function doLineStringFeature(f, speed, rate, startdates) {
                 debug.print("moving on edge..", rate, timeleft2vtx)
                 time += rate
                 p = point_in_rate_sec(currpos, rate, lsidx, ls, speeds, maxstep)
-                emit(newls, time, p, 'e', startdate, points, get_speed(p, lsidx, ls, speeds), "en route", lsidx)
+                emit(newls, time, p, 'e', points, get_speed(p, lsidx, ls, speeds), "en route", lsidx)
                 //debug.print("in "+ rate + " sec moved",distance(currpos,p)+" km")
                 currpos = p
                 timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate)
@@ -538,11 +541,11 @@ function doLineStringFeature(f, speed, rate, startdates) {
                 var d0 = turf.distance(currpos, nextvtx)
                 debug.print("jumping to next vertex..", nextvtx, d0 + " km", timeleft2vtx + " secs")
                 time += timeleft2vtx
-                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), startdate, points, speeds[lsidx + 1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
+                emit(newls, time, nextvtx, (lsidx == (ls.length - 2)) ? 'f' : 'v' + (lsidx + 1), points, speeds[lsidx + 1], (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex", lsidx) // vertex
                 currpos = nextvtx
                 to_next_emit = rate - timeleft2vtx // time left before next emit
-                // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, startdate, points, speeds)
-                var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, startdate, points, speeds)
+                // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds)
+                var timing = pauseAtVertex({ "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds)
                 time = timing.time
                 to_next_emit = timing.left
                 //debug.print(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")
@@ -568,14 +571,8 @@ function doLineStringFeature(f, speed, rate, startdates) {
 const jsonstring = fs.readFileSync(program.file, 'utf8')
 const rate = parseInt(program.rate) // s
 const speed = parseInt(program.speed) // km/h
-const startdate = moment(program.startDate)
 
-if(!startdate.isValid()) {
-    debug.print('start date is not valid',startdate)
-    return false
-}
-
-const fc = doGeoJSON(JSON.parse(jsonstring), speed, rate, startdate)
+const fc = doGeoJSON(JSON.parse(jsonstring), speed, rate)
 fs.writeFileSync(program.O, JSON.stringify(fc), { mode: 0o644 })
 console.log(program.O + ' written')
 
