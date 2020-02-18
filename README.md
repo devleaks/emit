@@ -1,6 +1,8 @@
 # emit
- 
-node emit.js -f test-5-simpler.json -r 100 -s 60 -d --vertices
+
+node emit -h 
+
+node emit -d -f test-5-simpler.json -r 100 -s 60 --vertices
 
 
 ## To Do
@@ -11,16 +13,9 @@ Set the datetime for a given position. Exemple: I want a plane to touch down at 
 
 So need to compute path & timing first, then produce output so that touch down at 14:25:30.
 
+addMarker add "sync" event (e.g. point.properties.sync = 4).
 
-### Alternate method to specify speed on path (eaasier to enter)
-
-Specify speeds with external Point feature rather than speedsAtVertices and pausesAtVertices array
-
-
-
-Next to a path (LineString), add Point(s) with properties like speed, pause, etc.
-
-Find point on path that is the closest to supplied Point and use porperties of that point to determine behavior (speed, pause) of device
+when generating csv, date passed as argument will be the date of the synced event.
 
 
 ### Airplane altitude
@@ -30,28 +25,6 @@ Altitude will be added soon.
 
 
 
-## Standard device
-
-
-device: {
-    track: [
-        [lon, lat] *
-    ],
-    points: [ "Points"
-    ],
-    speeds: [
-      {idx: , speed: }
-    ],
-    waits: [
-      {idx: , pause: }
-    ],
-    current: {
-        position: [],
-        speed: ,
-        heading
-    }
-}
-
 ## Refactoring
 
-addPoint(point, properties)
+addPoint(point, properties) / addMarker

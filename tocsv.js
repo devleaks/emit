@@ -38,11 +38,13 @@ function justDoIt(fc, startdate) {
     var events = []
     var last_event = false
     var contact = false
+    var first = false
     var ls = false
 
     fc.features.forEach(function(f, idx) {
         if (f.type == "Feature" && f.geometry.type == "Point") {
             if (f.properties && f.properties.hasOwnProperty("emit") && f.properties.emit) {
+                if(! first) first = f
                 events.push(f)
                 last_event = f
             }
@@ -62,14 +64,14 @@ function justDoIt(fc, startdate) {
     debug.print("last_event", last_event)
 
     if (!contact) {
-        debug.error("could not find contact point")
-        return false
+        debug.warning("could not find contact point")
+        //return false
     }
 
     // synchronize event
     var timeshift = 0
     if (program.event == 'p') { // need to find takeoff or landing
-        if (contact.properties.note.substr(0, 3) == "TD:") { // TouchDown = Arrival, TakeOff = Departure
+        if (contact && contact.properties.note.substr(0, 3) == "TD:") { // TouchDown = Arrival, TakeOff = Departure
             timeshift = -last_event.properties.elapsed
         } // for takeoff, timeshift = 0, time of pushback
     } else { // need to shift for takeoff or touchdown event

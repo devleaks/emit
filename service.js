@@ -1,5 +1,4 @@
 const fs = require('fs')
-const moment = require('moment')
 const turf = require('@turf/turf')
 const parse = require('csv-parse/lib/sync')
 
@@ -15,14 +14,18 @@ program
     .version('2.0.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
     .option('-d, --debug', 'output extra debugging')
-    .option('-s <file>, --services <file>', 'CSV list of service to perform')
+    .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
+    .option('-f, --file <file>', 'CSV file with list of services to perform')
+    .option('-s, --start <parking>', 'Default place name to start service from', 'FUEL1')
+    .option('-p, --park', 'Append a last trip to send service vehicle to base station')
+    .option('-l, --service-list <services>', 'Comma separated list of services example: fuel,catering', 'fuel')
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
-    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
 debug.init(program.debug, [""], "main")
 debug.print(program.opts())
 
+var syncCount = 0
 var airport = {}
 
 var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
@@ -68,7 +71,12 @@ function refill(truck) {
     truck.addPathToTrack(r.coordinates, truck.getProp("speed"), null)
 
     // ADD STOP TO EXPLAIN REFILL 
-    truck.addMarker(refillStation, 0, truck.refillTime(truck.getProp("capacity") - truck.getProp("load")), "refill " + (truck.getProp("capacity") - truck.getProp("load")))
+    truck.addMarker(refillStation,
+        0,
+        truck.refillTime(truck.getProp("capacity") - truck.getProp("load")),
+        "refill " + (truck.getProp("capacity") - truck.getProp("load")),
+        syncCount++,
+        truck.getProp("color"))
 
     truck.addPointToTrack(refillStation, 0, truck.refillTime(truck.getProp("capacity") - truck.getProp("load"))) // move truck from serviceroad to refill station + refill
     truck.setProp("position", refillStation.geometry.coordinates) // at refill station
@@ -107,7 +115,12 @@ function serve(service, truck) {
     truck.setProp("load", truck.getProp("load") - service.qty)
     truck.setProp("position", parking.geometry.coordinates)
     // ADD STOP TO EXPLAIN SERVICE OPERATION
-    truck.addMarker(parking, 0, truck.refillTime(truck.getProp("capacity") - truck.getProp("load")), "serving " + parking.properties.ref + " " + service.qty)
+    truck.addMarker(parking,
+        0,
+        truck.refillTime(truck.getProp("capacity") - truck.getProp("load")),
+        "serving " + parking.properties.name + " " + service.qty,
+        syncCount++,
+        truck.getProp("color"))
     truck.setProp("status", "available")
 }
 
@@ -132,7 +145,12 @@ function selectTruck(trucks, service) {
     if (typeof(device.refillTime) == "undefined")
         device.refillTime = config.services[service.service].refillTime
 
-    var rsn = selectRefillStation(device) // no check
+    var rsn
+    if(program.start) {
+       rsn = program.start
+    } else {
+       rsn = selectRefillStation(device) // no check
+    }
     var rs = geojson.findFeature(rsn, airport.pois, "name") // no check
 
     device.setProp("position", rs.geometry.coordinates)
@@ -163,6 +181,14 @@ function do_services(services) {
         services = optimize(trucks, services)
         debug.print("..done")
     }
+    if(program.park) {
+        for (var service in trucks) {
+            if (trucks.hasOwnProperty(service)) {
+                refill(trucks[service])
+                debug.print('refilled', trucks[service]._name)
+            }
+        }
+    }
     return trucks
 }
 
@@ -170,8 +196,8 @@ function do_services(services) {
 var services = []
 
 
-if (program.S) {
-    const csvstring = fs.readFileSync(program.S, 'utf8')
+if (program.file) {
+    const csvstring = fs.readFileSync(program.file, 'utf8')
     const records = parse(csvstring, {columns: true})
     records.forEach(function(s,idx) {
         services.push(s)
@@ -179,13 +205,26 @@ if (program.S) {
 } else {
     const parkingfc = airport.parkings.features
     for (var i = 0; i < program.count; i++) {
+        var print = true
         var p = parkingfc[Math.floor(Math.random() * (parkingfc.length))]
-        if (Math.random() > 0.3)
-            services.push({ "service": "fuel", "parking": p.properties.name, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
-        else
-            services.push({ "service": "catering", "parking": p.properties.name, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
-        t = services[services.length - 1]
-        debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
+        var servlist = program.serviceList.split(',')
+        var serv = servlist[Math.floor(Math.random()*servlist.length)]
+        switch(serv) {
+            case 'fuel':
+                services.push({ "service": "fuel", "parking": p.properties.name, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+                break
+            case 'catering':
+                services.push({ "service": "catering", "parking": p.properties.name, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+                break
+            default:
+                debug.warning("unknown or unconfigured service "+serv+".")
+                print = false
+        }
+        if(print) {
+            t = services[services.length - 1]
+            debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
+            print = true
+        }
     }
 }
 
@@ -198,8 +237,12 @@ for (var service in trucks) {
         const truck = trucks[service]
         var f = truck.getFeatures()
         features = features.concat(f)
+        // add remarkable point
+        var p = truck._points
+        if(p && p.length > 0)
+            features = features.concat(p)
     }
 }
 
-fs.writeFileSync(program.O, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
-debug.print(program.O + ' written')
+fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
+debug.print(program.output + ' written')

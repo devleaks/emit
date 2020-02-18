@@ -49,16 +49,21 @@ exports.Device = function(name, props) {
     }
 
     // marker Point are features with a property "note"
-    this.addMarker = function(point, speed, pause, note, color = "#aaaaaa") { // point = [lon, lat]
+    this.addMarker = function(point, speed, pause, note, sync = false, color = "#aaaaaa") { // point = [lon, lat]
         function add_note(n, t) {
             if(typeof n == "String") {
-                point.properties["note"] = note
+                t["note"] = note
             } else if(typeof n == "Object") { // copies props
                 for (var prop in n) {
                     if (n.hasOwnProperty(prop)) {
                         t[prop] = n[prop]
                     }
                 }
+            }
+        }
+        function add_sync(n, t) {
+            if(n !== false) {
+                t["sync"] = n
             }
         }
 
@@ -73,6 +78,7 @@ exports.Device = function(name, props) {
             point.properties["marker-size"] = "medium"
             point.properties["marker-symbol"] = ""
             add_note(note, point.properties)
+            add_sync(sync, point.properties)
             this._points.push(point)
         } else {
             var props = {
@@ -85,6 +91,7 @@ exports.Device = function(name, props) {
                 "marker-symbol": ""
             }
             add_note(note, props)
+            add_sync(sync, props)
             this._points.push(geojson.Feature(
                 geojson.isGeom(point) ? point : geojson.Point(point), props))
         }
@@ -127,7 +134,7 @@ exports.Device = function(name, props) {
 
     this.getFeatures = function(add_points = false) {
         var features = []
-        features.push(this.getFeature("#dd0000"))
+        features.push(this.getFeature())
         if (add_points && this._points.length > 0) {
             features = features.concat(this._points)
         }

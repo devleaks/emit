@@ -1,5 +1,4 @@
 const fs = require('fs')
-const moment = require('moment')
 const turf = require('@turf/turf')
 
 var program = require('commander')
@@ -11,7 +10,6 @@ const config = require('./sim-config')
 const geojson = require('./geojson-util')
 const common = require('./common')
 const debug = require('./debug.js')
-
 
 debug.init(true, [""], "main")
 

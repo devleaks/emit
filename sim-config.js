@@ -143,7 +143,7 @@ exports.services = {
     "towing": {
         "trucks": [{
             "name": "tow1",
-            "color": "#00aa00",
+            "color": "#0000aa",
             "capacity": 1,
             "speed": 20,
             "slow": 5

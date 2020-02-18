@@ -14,7 +14,7 @@ program
     .option('-d, --debug', 'output extra debugging')
     .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
-    .requiredOption('-s, --speed <speed>', 'Speed of vehicle in km/h')
+    .option('-s, --speed <speed>', 'Speed of vehicle in km/h', 30)
     .option('-a, --altitude', 'Add altitude to GeoJSON positions')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('--start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
