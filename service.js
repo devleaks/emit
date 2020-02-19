@@ -5,9 +5,9 @@ const parse = require('csv-parse/lib/sync')
 var program = require('commander')
 
 const config = require('./sim-config')
-const geojson = require('./geojson-util')
-const common = require('./common')
-const debug = require('./debug.js')
+const geojson = require('./lib/geojson-util')
+const common = require('./lib/common')
+const debug = require('./lib/debug.js')
 
 
 program

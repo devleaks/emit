@@ -2,8 +2,8 @@ const fs = require('fs')
 var program = require('commander')
 const moment = require('moment')
 
-const geojson = require('./geojson-util')
-const debug = require('./debug.js')
+const geojson = require('./lib/geojson-util')
+const debug = require('./lib/debug.js')
 
 debug.init(true, [""], "main")
 
@@ -13,6 +13,8 @@ program
     .option('-d, --debug', 'output extra debugging')
     .option('-n, --name <name>', 'device name', "device")
     .option('-q, --queue <name>', 'Kafka queue name', "queue")
+    .option('-1, --first', 'Add header line')
+    .option('-p, --payload', 'Add payload column with all properties')
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-e, --event <event>', 'Sync event number to sync date on', 0)
     .option('-r, --random <delay>', 'Add or substract random delay to start-date', 0)
@@ -24,13 +26,19 @@ debug.init(program.debug, ["","justDoIt"], "main")
 debug.print(program.opts())
 
 function tocsv(f, sd) {
+    function quote(s) {
+        return "'"+s+"'"
+    }
     var s = program.queue+','+program.name
     s += ',' + moment(sd).add(f.properties.elapsed, 's').toISOString(true) // rebase time
     s += ',' + f.geometry.coordinates[1] + ',' + f.geometry.coordinates[0]
     if (f.geometry.coordinates.length > 2) // alt
         s += ',' + f.geometry.coordinates[2]
-    s += ',' + f.properties.speed
+    s += ',' + geojson.rn(f.properties.speed, 2)
     s += ',' + f.properties.bearing
+    if(program.payload) {
+        s += ',' + quote(JSON.stringify(f.properties))
+    }
     debug.print(s)
     return s
 }
@@ -88,7 +96,8 @@ function justDoIt(fc, startdate) {
     startdate.add(timeshift, 's')
     debug.print("startdate", startdate.toISOString())
 
-    var strbuf = "name,timestamp,lat,lon,speed,heading\n"
+    const cols =  "queue,name,timestamp,lat,lon,speed,heading"
+    var strbuf = (program.first ? (program.payload ? cols + ",payload" : cols) : "") + "\n"
     events.forEach(function(f, idx) {
         strbuf += tocsv(f, startdate) + "\n"
     })

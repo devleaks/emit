@@ -111,3 +111,5 @@ tests/.DS_Store
 eblg
 tests/npm-interactive-cli-module-demo/
 out.csv
+
+tests/

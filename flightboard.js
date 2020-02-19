@@ -4,8 +4,8 @@ const parse = require('csv-parse/lib/sync')
 
 var program = require('commander')
 
-const geojson = require('./geojson-util')
-const debug = require('./debug.js')
+const geojson = require('./lib/geojson-util')
+const debug = require('./lib/debug.js')
 
 
 program

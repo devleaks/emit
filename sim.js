@@ -6,10 +6,11 @@ var program = require('commander')
 const PathFinder = require('geojson-path-finder');
 const geojsonTool = require('geojson-tools')
 
+const geojson = require('./lib/geojson-util')
+const common = require('./lib/common')
+const debug = require('./lib/debug.js')
+
 const config = require('./sim-config')
-const geojson = require('./geojson-util')
-const common = require('./common')
-const debug = require('./debug.js')
 
 debug.init(true, [""], "main")
 

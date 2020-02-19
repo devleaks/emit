@@ -3,10 +3,10 @@ const turf = require('@turf/turf')
 
 var program = require('commander')
 
-const geojson = require('./geojson-util')
-const debug = require('./debug.js')
+const geojson = require('./lib/geojson-util')
+const debug = require('./lib/debug.js')
 
-debug.init(true, ["doLineStringFeature"], "main")
+debug.init(true, [""], "main")
 
 program
     .version('1.2.0')
@@ -107,7 +107,7 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
 }
 
 
-function emit(newls, t, p, s, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)ertex, (f)inish
+function emit(newls, t, p, s, pts, spd, cmt, idx, alt = false) { //s=(s)tart, (e)dge, (v)ertex, (f)inish
     var k = s.charAt(0)
     if (   (k == 's' || k == 'e')                   // normal emit
         || (k == 'w' && !program.silent)            // stopped. does not emit if silent
@@ -137,14 +137,17 @@ function emit(newls, t, p, s, pts, spd, cmt, idx) { //s=(s)tart, (e)dge, (v)erte
 
 
         var brng = (newls.length > 0) ? turf.bearing(newls[newls.length - 1], p) : 0
+
+        if(pts.length == 1) { // retro add bearing of first element
+           pts[0].properties.bearing = Math.round(turf.bearing(newls[0], p) * 10) / 10
+        }
+
         brng = Math.round(brng * 10) / 10
         debug.print(k, idx, newls[idx], p, brng)
 
         const jp = jitter(p)
 
-        //var alt = get_altitude(p, idx, ls)
-
-        if(program.altitude) {
+        if(program.altitude && alt) {
             newls.push([jp[0], jp[1], jp[2]])
         } else {
             newls.push([jp[0], jp[1]])

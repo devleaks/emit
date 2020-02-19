@@ -32,3 +32,8 @@ Altitude will be added soon.
 
 addPoint(point, properties) / addMarker
 
+
+
+```
+list.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
+```
