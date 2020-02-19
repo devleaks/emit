@@ -12,6 +12,7 @@ program
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
     .option('-n, --name <name>', 'device name', "device")
+    .option('-q, --queue <name>', 'Kafka queue name', "queue")
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-e, --event <event>', 'Sync event number to sync date on', 0)
     .option('-r, --random <delay>', 'Add or substract random delay to start-date', 0)
@@ -23,7 +24,7 @@ debug.init(program.debug, ["","justDoIt"], "main")
 debug.print(program.opts())
 
 function tocsv(f, sd) {
-    var s = program.name
+    var s = program.queue+','+program.name
     s += ',' + moment(sd).add(f.properties.elapsed, 's').toISOString(true) // rebase time
     s += ',' + f.geometry.coordinates[1] + ',' + f.geometry.coordinates[0]
     if (f.geometry.coordinates.length > 2) // alt
