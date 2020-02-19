@@ -9,7 +9,7 @@
  */
 const fs = require('fs')
 var program = require('commander')
-const debug = require('./debug.js')
+const debug = require('./lib/debug.js')
 
 debug.init(true, [""], "main")
 

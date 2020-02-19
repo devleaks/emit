@@ -1,6 +1,7 @@
 const fs = require('fs')
 var program = require('commander')
 const moment = require('moment')
+const turf = require('@turf/turf')
 
 const geojson = require('./lib/geojson-util')
 const debug = require('./lib/debug.js')
@@ -60,7 +61,7 @@ function justDoIt(fc, startdate) {
             if (!sync_event && f.properties && f.properties.hasOwnProperty("sync") && f.properties.marker) {
                 if (f.properties.sync == program.event) {
                     sync_event = f
-                    console.log("sync event "+program.event+" found")
+                    debug.print("sync event", f)
                 }
             }
         } else if (f.type == "Feature" && f.geometry.type == "LineString") {
@@ -72,12 +73,12 @@ function justDoIt(fc, startdate) {
     // synchronize event
     var timeshift = 0
     if (sync_event) {
-        const point = geojson.findFeature(sync_event.properties.idx, geojson.FeatureCollection(events), "vertex")
+        const point = turf.nearestPoint(sync_event, geojson.FeatureCollection(events))
         if(point) {
-            debug.print("events", events.length, sync_event.properties.idx, point)
+            debug.print("events", events.length, sync_event.properties.idx, point, turf.distance(point, sync_event))
             timeshift = -point.properties.elapsed
         } else {
-            debug.warning("sync point not found")
+            debug.warning("sync point not found", events.length, sync_event.properties.idx)
         }
     } else if (program.event && !sync_event) {
         debug.warning("could not find sync point, using default")

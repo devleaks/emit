@@ -16,13 +16,13 @@ program
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .option('-f, --file <file>', 'CSV file with list of services to perform')
-    .option('-s, --start <parking>', 'Default place name to start service from', 'FUEL1')
+    .option('-s, --start <parking>', 'Default place name to start service from. Must be in format "databaseName:positionName". Example: parkings:126', 'FUEL1')
     .option('-p, --park', 'Append a last trip to send service vehicle to base station')
     .option('-l, --service-list <services>', 'Comma separated list of services example: fuel,catering', 'fuel')
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, ["selectTruck"], "main")
 debug.print(program.opts())
 
 var syncCount = 0
@@ -140,18 +140,30 @@ function selectTruck(trucks, service) {
     var device = new common.Device(truck_type.name, truck_type)
     device.setProp("service", service.service)
 
-    if (typeof(device.serviceTime) == "undefined")
+    if (!device.hasOwnProperty("serviceTime"))
         device.serviceTime = config.services[service.service].serviceTime
-    if (typeof(device.refillTime) == "undefined")
+    if (!device.hasOwnProperty("refillTime"))
         device.refillTime = config.services[service.service].refillTime
 
     var rsn
-    if(program.start) {
-       rsn = program.start
+    var db = 'pois'
+    if (program.start) {
+        const startplace = program.start.split(":")
+        db = startplace[0]
+        rsn = startplace[1]
+        if (! airport.hasOwnProperty(db)) {
+            debug.error("cannot find position database '" + db + "'")
+            return false
+        }
     } else {
-       rsn = selectRefillStation(device) // no check
+        rsn = selectRefillStation(device) // no check
     }
-    var rs = geojson.findFeature(rsn, airport.pois, "name") // no check
+    debug.print(rsn,db)
+    var rs = geojson.findFeature(rsn, airport[db], "name") // no check
+    if (!rs) {
+        debug.error("cannot find position '"+rsn+"' in database '" + db + "'")
+        return false
+    }
 
     device.setProp("position", rs.geometry.coordinates)
     device.setProp("load", truck_type.capacity)
@@ -173,6 +185,9 @@ function do_services(services) {
         debug.print("doing..", service)
         var truck = selectTruck(trucks, service)
 
+        if(! truck)
+            return false
+
         if (service.qty > truck.getProp("load")) {
             refill(truck)
         }
@@ -181,7 +196,7 @@ function do_services(services) {
         services = optimize(trucks, services)
         debug.print("..done")
     }
-    if(program.park) {
+    if (program.park) {
         for (var service in trucks) {
             if (trucks.hasOwnProperty(service)) {
                 refill(trucks[service])
@@ -198,8 +213,8 @@ var services = []
 
 if (program.file) {
     const csvstring = fs.readFileSync(program.file, 'utf8')
-    const records = parse(csvstring, {columns: true})
-    records.forEach(function(s,idx) {
+    const records = parse(csvstring, { columns: true })
+    records.forEach(function(s, idx) {
         services.push(s)
     })
 } else {
@@ -208,8 +223,8 @@ if (program.file) {
         var print = true
         var p = parkingfc[Math.floor(Math.random() * (parkingfc.length))]
         var servlist = program.serviceList.split(',')
-        var serv = servlist[Math.floor(Math.random()*servlist.length)]
-        switch(serv) {
+        var serv = servlist[Math.floor(Math.random() * servlist.length)]
+        switch (serv) {
             case 'fuel':
                 services.push({ "service": "fuel", "parking": p.properties.name, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
                 break
@@ -217,10 +232,10 @@ if (program.file) {
                 services.push({ "service": "catering", "parking": p.properties.name, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
                 break
             default:
-                debug.warning("unknown or unconfigured service "+serv+".")
+                debug.warning("unknown or unconfigured service " + serv + ".")
                 print = false
         }
-        if(print) {
+        if (print) {
             t = services[services.length - 1]
             debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
             print = true
@@ -239,7 +254,7 @@ for (var service in trucks) {
         features = features.concat(f)
         // add remarkable point
         var p = truck._points
-        if(p && p.length > 0)
+        if (p && p.length > 0)
             features = features.concat(p)
     }
 }
