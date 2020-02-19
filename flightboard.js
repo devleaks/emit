@@ -21,7 +21,9 @@ debug.print(program.opts())
 
 var airport = {}
 
-// list.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
+function needsTurnaround(p) {
+    return true
+}
 
 var features = []
 

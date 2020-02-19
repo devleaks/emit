@@ -3,22 +3,22 @@ const turf = require('@turf/turf')
 
 var program = require('commander')
 
+const geojson = require('./geojson-util')
 const debug = require('./debug.js')
 
-debug.init(true, [""], "main")
+debug.init(true, ["doLineStringFeature"], "main")
 
 program
     .version('1.2.0')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
-    .option('-o <file>, --output <file>', 'Save to file, default to out.json', "out.json")
+    .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .option('-s, --speed <speed>', 'Speed of vehicle in km/h', 30)
     .option('-a, --altitude', 'Add altitude to GeoJSON positions')
     .option('-r, --rate <rate>', 'Rate of event report in seconds, default 30 s', 30)
     .option('-j, --jitter <distance>', 'GPS precision in meter', 0)
     .option('-s, --silent', 'Does not report position when stopped')
-    .option('-n, --name <name>', 'Set reporting device name on output')
     .option('--min-speed <speed>', 'Minimum speed for objects (km/h)', 5)
     .option('-v, --vertices', 'Emit event at vertices (change of direction)')
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
@@ -27,17 +27,6 @@ program
 debug.init(program.debug, [""], "main")
 debug.print(program.opts())
 
-
-// round to precision for display
-function rn(p, n = 4) {
-    r = Math.pow(10, n)
-    return Math.round(p * r) / r
-}
-
-// display lat/lon in with precision
-function ll(p, n = 4) {
-    return "(" + rn(p[1], n) + ',' + rn(p[0], n) + ( (p.length > 2) ? (',' + rn(p[0], n) + ")") : ")" )
-}
 
 // get a point in line with c-n at distance d from c, in the direction of n
 function point_on_line(c, n, d) {
@@ -96,10 +85,10 @@ function point_in_rate_sec(currpos, rate, lsidx, ls, speeds) {
     var nextpos = point_on_line(currpos, ls[lsidx + 1], dist)
 
     debug.print({
-        "prevvtx": ll(ls[lsidx]),
-        "startp": ll(currpos),
-        "nextvtx": ll(ls[lsidx+1]),
-        "nextpos": ll(nextpos),
+        "prevvtx": geojson.ll(ls[lsidx]),
+        "startp": geojson.ll(currpos),
+        "nextvtx": geojson.ll(ls[lsidx+1]),
+        "nextpos": geojson.ll(nextpos),
         "totald": totald,
         "covered": partiald,
         "lefd": leftd,
@@ -353,8 +342,8 @@ function time2vtx(p, idx, ls, sp, rate) {
     return r
 }
 
-/*
- *  We could add some random precision to GPS coordinates.
+
+/* When on pause, forces speed to 0
  */
 function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds) {
     debug.print("IN", lsidx, timing)
@@ -363,7 +352,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, sp
         debug.print("must pause", pause)
         if (pause < rate) {
             if (pause > timing.left) { // will emit here
-                emit(newls, timing.time + timing.left, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+                emit(newls, timing.time + timing.left, pos, 'w', points, 0, (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
                 debug.print("pauseing 1 ...", pause)
                 // keep wating but no emit since pause < rate
@@ -375,7 +364,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, sp
                 timing.left -= pause
             }
         } else { // will emit here, may be more than once. let's first emit once on time left
-            emit(newls, timing.time + timing.left, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+            emit(newls, timing.time + timing.left, pos, 'w', points, 0, (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
             counter++
             debug.print("pauseing 2 ...", timing.left)
             timing.time += timing.left
@@ -384,7 +373,7 @@ function pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, sp
             // then let's emit as many time as we pause
             while (totpause > 0) {
                 timing.time += rate
-                emit(newls, timing.time, pos, 'w', points, speeds[lsidx + 1], (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
+                emit(newls, timing.time, pos, 'w', points, 0, (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter, lsidx) // vertex
                 counter++
                 debug.print("pauseing more ...", totpause)
                 totpause -= rate
@@ -512,6 +501,8 @@ function doLineStringFeature(f, speed, rates) {
             //debug.print("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
             currpos = p
             to_next_emit = rate // time before next emit reset to standard rate
+            timeleft2vtx = time2vtx(currpos, lsidx, ls, speeds, rate) // time to next point
+            debug.print(timeleft2vtx + " sec to next vertex (new eval)", rate, to_next_emit)
         }
 
         if ((to_next_emit < rate) && (to_next_emit > 0) && (timeleft2vtx < to_next_emit)) { // may be portion of segment left
@@ -573,6 +564,6 @@ const rate = parseInt(program.rate) // s
 const speed = parseInt(program.speed) // km/h
 
 const fc = doGeoJSON(JSON.parse(jsonstring), speed, rate)
-fs.writeFileSync(program.O, JSON.stringify(fc), { mode: 0o644 })
-console.log(program.O + ' written')
+fs.writeFileSync(program.output, JSON.stringify(fc), { mode: 0o644 })
+console.log(program.output + ' written')
 

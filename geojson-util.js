@@ -261,7 +261,15 @@ exports.colorLineString = function(line, color, width = 2) {
     line.properties["stroke-opacity"] = 1
 }
 
+/*  Displays latitute and longitude nicely
+ */
+exports.ll = function(p, n = 4) {
+    return "(" + exports.rn(p[1], n) + ',' + exports.rn(p[0], n) + ( (p.length > 2) ? (',' + exports.rn(p[0], n) + ")") : ")" )
+}
 
-
-
-
+/*  Rounds number to precision for display
+ */
+exports.rn = function(p, n = 4) {
+    r = Math.pow(10, n)
+    return Math.round(p * r) / r
+}
