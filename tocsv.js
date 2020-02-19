@@ -18,7 +18,7 @@ program
     .option('-p, --payload', 'Add payload column with all properties')
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-e, --event <event>', 'Sync event number to sync date on', 0)
-    .option('-r, --random <delay>', 'Add or substract random delay to start-date', 0)
+    .option('-r, --random <delay>', 'Add or substract random delay to start-date in minutes', 0)
     .option('-o <file>, --output <file>', 'Save to file, default to out.csv', "out.csv")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
@@ -87,13 +87,14 @@ function justDoIt(fc, startdate) {
     // add/remove random delay (seconds)
     var delay = 0
     if (program.random > 0) {
-        delay = Math.round(Math.random() * program.random)
+        delay = Math.round(Math.random() * program.random * 60)
         delay *= Math.random() > 0.5 ? 1 : -1
     }
-    debug.print("timeshift", timeshift, delay)
+    debug.print("timeshift", timeshift, moment.duration(timeshift, "seconds").humanize(), delay, moment.duration(delay, "seconds").humanize())
 
     timeshift += delay
 
+    debug.print("total timeshift", timeshift, moment.duration(timeshift, "seconds").humanize())
     startdate.add(timeshift, 's')
     debug.print("startdate", startdate.toISOString())
 

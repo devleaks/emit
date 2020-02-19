@@ -142,6 +142,7 @@ function emit(newls, t, p, s, pts, spd, cmt, idx, alt = false) { //s=(s)tart, (e
            pts[0].properties.bearing = Math.round(turf.bearing(newls[0], p) * 10) / 10
         }
 
+        if(brng < 0) brng += 360
         brng = Math.round(brng * 10) / 10
         debug.print(k, idx, newls[idx], p, brng)
 
