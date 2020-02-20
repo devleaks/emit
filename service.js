@@ -1,215 +1,32 @@
 const fs = require('fs')
-const turf = require('@turf/turf')
 const parse = require('csv-parse/lib/sync')
 
 var program = require('commander')
 
-const config = require('./sim-config')
 const geojson = require('./lib/geojson-util')
-const common = require('./lib/common')
+const service = require('./lib/service-lib.js')
 const debug = require('./lib/debug.js')
 
+const config = require('./sim-config')
 
 program
-    .version('2.0.0')
+    .version('2.1.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .option('-f, --file <file>', 'CSV file with list of services to perform')
-    .option('-s, --start <parking>', 'Default place name to start service from. Must be in format "databaseName:positionName". Example: parkings:126', 'FUEL1')
+    .option('-s, --start <parking>', 'Default place name to start service from. Must be in format "databaseName:positionName". Example: parkings:126', 'pois:FUEL1')
     .option('-p, --park', 'Append a last trip to send service vehicle to base station')
     .option('-l, --service-list <services>', 'Comma separated list of services example: fuel,catering', 'fuel')
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .parse(process.argv)
 
-debug.init(program.debug, ["selectTruck"], "main")
+debug.init(program.debug, [""], "main")
 debug.print(program.opts())
 
-var syncCount = 0
-var airport = {}
-
-var jsonfile = fs.readFileSync(config.airport.parkings, 'utf8')
-airport.parkings = JSON.parse(jsonfile)
-airport.parkings._network_name = "parking"
-
-jsonfile = fs.readFileSync(config.airport.pois, 'utf8')
-airport.pois = JSON.parse(jsonfile)
-airport.pois._network_name = "pois"
-
-jsonfile = fs.readFileSync(config.airport.service, 'utf8')
-airport.serviceroads = JSON.parse(jsonfile)
-airport.serviceroads._network_name = "serviceroads"
-
-geojson.complexify(airport.serviceroads)
-
-
-/* =========================================================
- * Service functional function
- */
-/* Refill: Move truck from its position to refueling station (fuel)
- * Augment truck trip line string.
- * Return nothing.
- */
-function selectRefillStation(truck) {
-    return config.services[truck.getProp("service")]["base"][0] // take first one for now
-}
-
-function refill(truck) {
-    // get to service_road
-    var p = geojson.findClosest(truck.getProp("position"), airport.serviceroads)
-    truck.addPointToTrack(p, truck.getProp("slow"), 30) // move truck from where it is to service road
-
-    var refillStationName = selectRefillStation(truck)
-    var refillStation = geojson.findFeature(refillStationName, airport.pois, "name")
-    // get closest point to fuel on serviceroad
-    var p1 = geojson.findClosest(refillStation, airport.serviceroads)
-    //debug.print("closest to refillStation", refillStation, p1)
-
-    // get to refill area on service roads
-    var r = geojson.route(p, p1, airport.serviceroads)
-
-    truck.addPathToTrack(r.coordinates, truck.getProp("speed"), null)
-
-    // ADD STOP TO EXPLAIN REFILL 
-    truck.addMarker(refillStation,
-        0,
-        truck.refillTime(truck.getProp("capacity") - truck.getProp("load")),
-        "refill " + (truck.getProp("capacity") - truck.getProp("load")),
-        syncCount++,
-        truck.getProp("color"))
-
-    truck.addPointToTrack(refillStation, 0, truck.refillTime(truck.getProp("capacity") - truck.getProp("load"))) // move truck from serviceroad to refill station + refill
-    truck.setProp("position", refillStation.geometry.coordinates) // at refill station
-    truck.setProp("load", truck.getProp("capacity")) // refilled
-}
-
-
-/* Serve: Move truck from its position to parking position of aircraft to service. Add time spent at aircraft to perform service.
- * Augment truck trip line string.
- * Return nothing.
- */
-function serve(service, truck) {
-    truck.setProp("status", "busy")
-    // get from truck position to service road, move there slowly
-    var p = geojson.findClosest(truck.getProp("position"), airport.serviceroads)
-    //debug.print("closest to truck", truck.position, p)
-    truck.addPointToTrack(p, truck.getProp("slow"), 30) // truck moves to serviceroad
-
-    // get to parking on service road at full speed
-    var parking = geojson.findFeature(service.parking, airport.parkings, "name")
-    debug.print(parking)
-    if (!parking) {
-        debug.print("not found", "name", service.parking)
-        return
-    }
-    var p1 = geojson.findClosest(parking, airport.serviceroads)
-    //debug.print("closest to parking", parking, p1)
-
-    // move truck from where it was to close to parking on serviceroads
-    var r = geojson.route(p, p1, airport.serviceroads)
-    truck.addPathToTrack(r.coordinates, truck.getProp("speed"), null)
-
-    // get from service road to parking slowly and service plane
-    // service
-    truck.addPointToTrack(parking, truck.getProp("slow"), truck.serviceTime(service.qty))
-    truck.setProp("load", truck.getProp("load") - service.qty)
-    truck.setProp("position", parking.geometry.coordinates)
-    // ADD STOP TO EXPLAIN SERVICE OPERATION
-    truck.addMarker(parking,
-        0,
-        truck.refillTime(truck.getProp("capacity") - truck.getProp("load")),
-        "serving " + parking.properties.name + " " + service.qty,
-        syncCount++,
-        truck.getProp("color"))
-    truck.setProp("status", "available")
-}
-
-/* Hook to place your fuel truck delivery optimization function. Called after each service.
- * The first array element will be poped out of the returning array.
- */
-function optimize(trucks, services) {
-    return services
-}
-
-function selectTruck(trucks, service) {
-    if (trucks.hasOwnProperty(service.service))
-        return trucks[service.service]
-
-    const truck_type = config.services[service.service]["trucks"][0] // take first one for now
-
-    var device = new common.Device(truck_type.name, truck_type)
-    device.setProp("service", service.service)
-
-    if (!device.hasOwnProperty("serviceTime"))
-        device.serviceTime = config.services[service.service].serviceTime
-    if (!device.hasOwnProperty("refillTime"))
-        device.refillTime = config.services[service.service].refillTime
-
-    var rsn
-    var db = 'pois'
-    if (program.start) {
-        const startplace = program.start.split(":")
-        db = startplace[0]
-        rsn = startplace[1]
-        if (! airport.hasOwnProperty(db)) {
-            debug.error("cannot find position database '" + db + "'")
-            return false
-        }
-    } else {
-        rsn = selectRefillStation(device) // no check
-    }
-    debug.print(rsn,db)
-    var rs = geojson.findFeature(rsn, airport[db], "name") // no check
-    if (!rs) {
-        debug.error("cannot find position '"+rsn+"' in database '" + db + "'")
-        return false
-    }
-
-    device.setProp("position", rs.geometry.coordinates)
-    device.setProp("load", truck_type.capacity)
-
-    trucks[service.service] = device
-    debug.print('added', device)
-    return device
-}
-
-
-/*
- * R E F U E L
- */
-function do_services(services) {
-    var service = null
-    var trucks = []
-
-    while (service = services.pop()) {
-        debug.print("doing..", service)
-        var truck = selectTruck(trucks, service)
-
-        if(! truck)
-            return false
-
-        if (service.qty > truck.getProp("load")) {
-            refill(truck)
-        }
-        serve(service, truck)
-
-        services = optimize(trucks, services)
-        debug.print("..done")
-    }
-    if (program.park) {
-        for (var service in trucks) {
-            if (trucks.hasOwnProperty(service)) {
-                refill(trucks[service])
-                debug.print('refilled', trucks[service]._name)
-            }
-        }
-    }
-    return trucks
-}
-
+var airport = service.readAirport(config)
 
 var services = []
-
 
 if (program.file) {
     const csvstring = fs.readFileSync(program.file, 'utf8')
@@ -244,12 +61,12 @@ if (program.file) {
 }
 
 
-var trucks = do_services(services)
+var trucks = service.doServices(services, airport, program)
 
 var features = []
-for (var service in trucks) {
-    if (trucks.hasOwnProperty(service)) {
-        const truck = trucks[service]
+for (var svc in trucks) {
+    if (trucks.hasOwnProperty(svc)) {
+        const truck = trucks[svc]
         var f = truck.getFeatures()
         features = features.concat(f)
         // add remarkable point
