@@ -17,6 +17,7 @@ program
     .option('-f, --file <file>', 'CSV file with list of services to perform')
     .option('-s, --start <parking>', 'Default place name to start service from. Must be in format "databaseName:positionName". Example: parkings:126', 'pois:FUEL1')
     .option('-p, --park', 'Append a last trip to send service vehicle to base station')
+    .option('-t, --technical', 'Add payload to Point')
     .option('-l, --service-list <services>', 'Comma separated list of services example: fuel,catering', 'fuel')
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .parse(process.argv)

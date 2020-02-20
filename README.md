@@ -11,3 +11,5 @@ Altitude will be added soon.
 
 addPoint(point, properties) / addMarker
 
+addPointToTrack
+addMarker
