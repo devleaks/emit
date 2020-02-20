@@ -6,7 +6,14 @@ var program = require('commander')
 
 const geojson = require('./lib/geojson-util')
 const debug = require('./lib/debug.js')
+const simulator = require('./lib/movement-lib.js')
+const tocsv = require('./lib/tocsv-lib.js')
+const service = require('./lib/service-lib.js')
 
+const config = require('./sim-config')
+
+var airport = simulator.readAirport(config)
+const defaults = simulator.makeDefaults(config, airport)
 
 program
     .version('1.0.0')
@@ -24,8 +31,10 @@ function takeOff(flightschedule, arrival) {
     var idx = 0
     while (!departure && idx < flightschedule.length) {
         var flight = flightschedule[idx]
-        if (flight.plane == arrival.plane && flight.zuludatetime > arrival.zuludatetime) {
-            // && flight.parking == arrival.parking
+        if (flight.plane == arrival.plane
+            // && flight.parking == arrival.parking)
+            &&
+            flight.zuludatetime > arrival.zuludatetime) {
             departure = flight
         }
         idx++
@@ -33,18 +42,44 @@ function takeOff(flightschedule, arrival) {
     return departure
 }
 
-function doDeparture(flight) {
-    debug.print(flight)
+function doDeparture(flight, runway) {
+    const sid = simulator.randomSID(airport, runway)
+    flight.geojson = simulator.takeoff(airport, defaults.aircraft, flight.parking, runway, sid)
+    flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    fs.writeFileSync(flight.filename + '.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    debug.print(flight.filename)
 }
 
-function doArrival(flight) {
-    debug.print(flight)
+function doArrival(flight, runway) {
+    const star = simulator.randomSTAR(airport, runway)
+    flight.geojson = simulator.land(airport, defaults.aircraft, flight.parking, runway, star)
+    flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    fs.writeFileSync(flight.filename + '.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    debug.print(flight.filename)
 }
 
 function doTurnaround(arrival, departure) {
     const duration = moment(arrival.zuludatetime, moment.ISO_8601).diff(moment(departure.zuludatetime, moment.ISO_8601))
+    var services = []
 
-    debug.print("turnaround", arrival, departure, moment.duration(duration).humanize())
+    services.push({ "service": "fuel", "parking": arrival.parking, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+    services.push({ "service": "catering", "parking": arrival.parking, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+
+    var trucks = service.doServices(services, airport, {})
+    var features = []
+    for (var svc in trucks) {
+        if (trucks.hasOwnProperty(svc)) {
+            const truck = trucks[svc]
+            var f = truck.getFeatures()
+            features = features.concat(f)
+            // add remarkable point
+            var p = truck._points
+            if (p && p.length > 0)
+                features = features.concat(p)
+        }
+    }
+    fs.writeFileSync(arrival.filename + 'SERVICE.json', JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
+    debug.print("turnaround", moment.duration(duration).humanize(), services.length)
 }
 
 
@@ -57,12 +92,13 @@ function doFlightboard(flightboard) {
     })
     sfb = flightboard.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
     // 1. Generate flights
+    const runway = "22L"
     sfb.forEach(function(flight, idx) {
         if (flight.move == "departure") {
-            doDeparture(flight)
+            doDeparture(flight, runway)
         } else { // arrival
             // generate arrival
-            doArrival(flight)
+            doArrival(flight, runway)
             // does it leave later?
             var departure = takeOff(sfb, flight)
             if (departure) {
