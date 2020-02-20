@@ -9,7 +9,4 @@ Altitude will be added soon.
 
 ## To refactor
 
-addPoint(point, properties) / addMarker
-
-addPointToTrack
-addMarker
+emit
