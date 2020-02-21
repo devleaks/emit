@@ -25,7 +25,7 @@ var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)
 
 program
-    .version('1.0.0')
+    .version('1.1.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
     .requiredOption('-f, --flightboard <file>', 'CSV flightboard')

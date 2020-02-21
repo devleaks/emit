@@ -23,7 +23,7 @@ const isLanding = (Math.random() > 0.5)
 const runway = airportData.randomRunway(wind)
 
 program
-    .version('2.1.0')
+    .version('2.2.0')
     .description('generates GeoJSON features for one aircraft takeoff or landing')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")

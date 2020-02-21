@@ -10,7 +10,7 @@ const tocsv = require('./lib/tocsv-lib.js')
 debug.init(true, [""], "main")
 
 program
-    .version('1.1.0')
+    .version('1.2.0')
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
     .option('-n, --name <name>', 'device name', "device")
