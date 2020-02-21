@@ -49,6 +49,7 @@ exports.airport = {
 // altitudes are in meters or FL
 exports.aircrafts = {
     "A321Neo": {
+        "type": "PAX",
         "takeoff-distance": 2200,
         "landing-distance": 1700,
         "taxispeed": 15,
@@ -73,6 +74,7 @@ exports.aircrafts = {
         "dg4": 10
     },
     "B747": {
+        "type": "CARGO",
         "takeoff-distance": 2200,
         "landing-distance": 1700,
         "taxispeed": 15,

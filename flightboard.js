@@ -14,10 +14,15 @@ const service = require('./lib/service-lib.js')
 const emit = require('./lib/emit-lib.js')
 const tocsv = require('./lib/tocsv-lib.js')
 
+const airportData = require('./lib/airport.js')
+const aircraftData = require('./lib/aircraft.js')
+
+debug.init(true, [""], "main")
+
 const config = require('./sim-config')
 
-var airport = simulator.readAirport(config)
-const defaults = simulator.makeDefaults(config, airport)
+var airport = airportData.init(config)
+var aircraft = aircraftData.init(config.aircrafts)
 
 program
     .version('1.0.0')
@@ -48,8 +53,8 @@ function takeOff(flightschedule, arrival) {
 }
 
 function doDeparture(flight, runway) {
-    const sid = simulator.randomSID(airport, runway)
-    flight.geojson = simulator.takeoff(airport, defaults.aircraft, flight.parking, runway, sid)
+    const sid = airportData.randomSID(runway)
+    flight.geojson = simulator.takeoff(airport, aircraftData.randomAircraft(), flight.parking, runway, sid)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), {speed: 30, rate: 30})
 
     flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
@@ -65,8 +70,8 @@ function doDeparture(flight, runway) {
 }
 
 function doArrival(flight, runway) {
-    const star = simulator.randomSTAR(airport, runway)
-    flight.geojson = simulator.land(airport, defaults.aircraft, flight.parking, runway, star)
+    const star = airportData.randomSTAR(runway)
+    flight.geojson = simulator.land(airport, aircraftData.randomAircraft(), flight.parking, runway, star)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), {speed: 30, rate: 30})
 
     flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")

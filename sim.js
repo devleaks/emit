@@ -8,25 +8,30 @@ const geojsonTool = require('geojson-tools')
 
 const geojson = require('./lib/geojson-util')
 const debug = require('./lib/debug.js')
+const airportData = require('./lib/airport.js')
+const aircraftData = require('./lib/aircraft.js')
 
 debug.init(true, [""], "main")
 
 const config = require('./sim-config')
 
-var airport = simulator.readAirport(config)
+var airport = airportData.init(config)
+var aircraft = aircraftData.init(config.aircrafts)
 
-const defaults = simulator.makeDefaults(config, airport)
+const wind = airport.METAR ? airport.METAR["wind_dir_degrees"][0] : Math.round(Math.random() * 360)
+const isLanding = (Math.random() > 0.5)
+const runway = airportData.randomRunway(wind)
 
 program
     .version('2.1.0')
     .description('generates GeoJSON features for one aircraft takeoff or landing')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
-    .option('-m, --aircraft <model>', 'aircraft model', defaults.aircraft)
-    .option('-r, --runway <runway>', 'name of runway', defaults.runway_inuse)
-    .option('-s, --airway <name>', 'SID or STAR name', defaults.approach)
-    .option('-p, --parking <parking>', 'name of parking', defaults.parking.properties.name)
-    .option('-l, --landing', 'Perform landing rather than takeoff', defaults.landing)
+    .option('-m, --aircraft <model>', 'aircraft model', aircraftData.randomAircraft())
+    .option('-r, --runway <runway>', 'name of runway', runway)
+    .option('-s, --airway <name>', 'SID or STAR name', isLanding ? airportData.randomSTAR(runway) : airportData.randomSID(runway))
+    .option('-p, --parking <parking>', 'name of parking', airportData.randomParking())
+    .option('-l, --landing', 'Perform landing rather than takeoff', isLanding)
     .parse(process.argv)
 
 debug.init(program.debug, [""], "main")
@@ -40,7 +45,7 @@ var airplane = program.landing ?
 if (airplane) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
     var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
-    console.log("wind: " + defaults.wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
+    console.log("wind: " + wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
     console.log(program.output + ' written')
 } else {
     console.log(program.opts())
