@@ -5,9 +5,13 @@ var program = require('commander')
 
 const geojson = require('./lib/geojson-util')
 const service = require('./lib/service-lib.js')
-const debug = require('./lib/debug.js')
+const debug = require('./lib/debug')
 
 const config = require('./sim-config')
+
+const airportData = require('./lib/airport.js')
+
+var airport = airportData.init(config)
 
 program
     .version('2.1.0')
@@ -25,8 +29,6 @@ program
 debug.init(program.debug, [""], "main")
 debug.print(program.opts())
 
-var airport = service.readAirport(config)
-
 var services = []
 
 if (program.file) {
@@ -36,18 +38,18 @@ if (program.file) {
         services.push(s)
     })
 } else {
-    const parkingfc = airport.parkings.features
     for (var i = 0; i < program.count; i++) {
-        var print = true
-        var p = parkingfc[Math.floor(Math.random() * (parkingfc.length))]
-        var servlist = program.serviceList.split(',')
+        const servlist = program.serviceList.split(',')
+        var p = airportData.randomParking()
         var serv = servlist[Math.floor(Math.random() * servlist.length)]
+        var print = true
+
         switch (serv) {
             case 'fuel':
-                services.push({ "service": "fuel", "parking": p.properties.name, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+                services.push({ "service": "fuel", "parking": p, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
                 break
             case 'catering':
-                services.push({ "service": "catering", "parking": p.properties.name, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+                services.push({ "service": "catering", "parking": p, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
                 break
             default:
                 debug.warning("unknown or unconfigured service " + serv + ".")

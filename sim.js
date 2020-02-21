@@ -7,13 +7,13 @@ const PathFinder = require('geojson-path-finder');
 const geojsonTool = require('geojson-tools')
 
 const geojson = require('./lib/geojson-util')
-const debug = require('./lib/debug.js')
-const airportData = require('./lib/airport.js')
-const aircraftData = require('./lib/aircraft.js')
-
-debug.init(true, [""], "main")
+const debug = require('./lib/debug')
 
 const config = require('./sim-config')
+const airportData = require('./lib/airport.js')
+const aircraftData = require('./lib/aircraft')
+
+debug.init(true, [""], "main")
 
 var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)

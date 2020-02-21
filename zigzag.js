@@ -6,7 +6,7 @@
 var fs = require('fs')
 var moment = require('moment')
 var program = require('commander')
-const debug = require('./lib/debug.js')
+const debug = require('./lib/debug')
 const zigzag = require('./lib/zigzag-lib.js')
 
 debug.init(true, [""], "main")

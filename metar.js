@@ -7,7 +7,7 @@ const https = require('https')
 const moment = require('moment')
 const parseString = require('xml2js').parseString
 
-const debug = require('./lib/debug.js')
+const debug = require('./lib/debug')
 
 const fname = "eblg/json/METAR.json"
 const url = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString="

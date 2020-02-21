@@ -41,7 +41,9 @@ exports.airport = {
         ]
     },
     "taxi-hold": [60, 300],
-    "takeoff-hold": [10, 60]
+    "takeoff-hold": [10, 60],
+    "departure-delay": [-15, 30],
+    "arrival-delay": [-20, 30]
 }
 
 // aircraft speeds are in kn
@@ -126,7 +128,31 @@ exports.services = {
             "FUEL2"
         ],
         serviceTime: function(qty) { return qty / 50 },
-        refillTime: function(qty) { return qty / 75 }
+        refillTime: function(qty) { return qty / 75 },
+        randomQuantity: function() { return (4000 + Math.floor(Math.random() * 10) * 100) }
+    },
+    "baggage": {
+        "trucks": [{
+                "name": "baggage1",
+                "color": "#aa0000",
+                "capacity": 30000,
+                "speed": 40,
+                "slow": 20
+            },
+            {
+                "name": "baggage2",
+                "color": "#aa6600",
+                "capacity": 30000,
+                "speed": 40,
+                "slow": 20
+            }
+        ],
+        "base": [
+            "BAGGAGE1"
+        ],
+        serviceTime: function(qty) { return 15*60 },
+        refillTime: function(qty) { return 10*60 },
+        randomQuantity: function() { return (6 + Math.floor(Math.random() * 8)) }
     },
     "catering": {
         "trucks": [{
@@ -140,7 +166,8 @@ exports.services = {
             "CATERING1"
         ],
         serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
-        refillTime: function(qty) { return qty * 12 * 60 }
+        refillTime: function(qty) { return qty * 12 * 60 },
+        randomQuantity: function() { return (1 + Math.floor(Math.random() * 2)) }
     },
     "towing": {
         "trucks": [{
@@ -154,6 +181,22 @@ exports.services = {
             "TOW1"
         ],
         serviceTime: function(qty) { return 420 }, // seconds
-        refillTime: function(qty) { return 0 }
+        refillTime: function(qty) { return 0 },
+        randomQuantity: function() { return 1 }
+    },
+    "cargo": {
+        "trucks": [{
+            "name": "cargo1",
+            "color": "#00aa00",
+            "capacity": 8,
+            "speed": 20,
+            "slow": 10
+        }],
+        "base": [
+            "CARGO1"
+        ],
+        serviceTime: function(qty) { return qty * 90 }, // seconds
+        refillTime: function(qty) { return qty * 90 },
+        randomQuantity: function() { return (4 + Math.floor(Math.random() * 4)) }
     }
 }

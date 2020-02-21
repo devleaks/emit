@@ -2,7 +2,7 @@ const fs = require('fs')
 var program = require('commander')
 const moment = require('moment')
 
-const debug = require('./lib/debug.js')
+const debug = require('./lib/debug')
 const tocsv = require('./lib/tocsv-lib.js')
 
 /* COMMAND LINE PARAMETERS

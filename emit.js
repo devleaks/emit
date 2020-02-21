@@ -4,9 +4,7 @@ const turf = require('@turf/turf')
 var program = require('commander')
 
 const emit = require('./lib/emit-lib')
-const debug = require('./lib/debug.js')
-
-debug.init(true, [""], "main")
+const debug = require('./lib/debug')
 
 program
     .version('2.0.0')
@@ -24,17 +22,12 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, [""])
 debug.print(program.opts())
-
 
 /* MAIN
  */
 const jsonstring = fs.readFileSync(program.file, 'utf8')
-const rate = parseInt(program.rate) // s
-const speed = parseInt(program.speed) // km/h
-
 const fc = emit.emitGeoJSON(JSON.parse(jsonstring), program)
 fs.writeFileSync(program.output, JSON.stringify(fc), { mode: 0o644 })
 console.log(program.output + ' written')
-

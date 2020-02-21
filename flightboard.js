@@ -4,7 +4,7 @@ const parse = require('csv-parse/lib/sync')
 
 var program = require('commander')
 
-const debug = require('./lib/debug.js')
+const debug = require('./lib/debug')
 
 const geojson = require('./lib/geojson-util')
 
@@ -15,7 +15,7 @@ const emit = require('./lib/emit-lib.js')
 const tocsv = require('./lib/tocsv-lib.js')
 
 const airportData = require('./lib/airport.js')
-const aircraftData = require('./lib/aircraft.js')
+const aircraftData = require('./lib/aircraft')
 
 debug.init(true, [""], "main")
 
@@ -40,9 +40,11 @@ function takeOff(flightschedule, arrival) {
     var idx = 0
     while (!departure && idx < flightschedule.length) {
         var flight = flightschedule[idx]
-        if (flight.plane
-            && flight.plane == arrival.plane
-            // && flight.parking == arrival.parking)
+        if (( (flight.plane
+                    && flight.plane == arrival.plane)
+              ||
+              (flight.parking
+                    && flight.parking == arrival.parking) )
             &&
             flight.zuludatetime > arrival.zuludatetime) {
             departure = flight
