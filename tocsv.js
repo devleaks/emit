@@ -20,7 +20,7 @@ program
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', moment().toISOString())
     .option('-e, --event <event>', 'Sync event number to sync date on', 0)
     .option('-r, --random <delay>', 'Add or substract random delay to start-date in minutes', 0)
-    .option('-o <file>, --output <file>', 'Save to file, default to out.csv', "out.csv")
+    .option('-o, --output <file>', 'Save to file, default to out.csv', "out.csv")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
 
@@ -47,8 +47,8 @@ var res = tocsv.tocsv(JSON.parse(jsonstring), startdate, program)
 /* OUTPUT
  */
 if (res) {
-    fs.writeFileSync(program.O, res, { mode: 0o644 })
-    console.log(program.O + ' written')
+    fs.writeFileSync(program.output, res, { mode: 0o644 })
+    console.log(program.output + ' written')
 } else {
     console.log('nothing saved')
 }

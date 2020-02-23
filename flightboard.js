@@ -92,33 +92,9 @@ function doArrival(flight, runway) {
 function addRefuel(arrival, delay) {
     var stime = moment(arrival.isodatetime, moment.ISO_8601)
     stime.add(delay, "m")
-    var services = []
     var svc = { "service": "fuel", "parking": arrival.parking, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": stime.toISOString(), "priority": 3 }
-    services.push(svc)
-    debug.print(arrival.parking, stime.format("HH:mm"), svc.qty)
-    var trucks = service.doServices(services, airport, {})
-    var features = []
-    for (var svc in trucks) {
-        if (trucks.hasOwnProperty(svc)) {
-            const truck = trucks[svc]
-            var f = truck.getFeatures()
-            if(f.length > 0)
-                features = features.concat(f)
-            // add remarkable point
-            var p = truck._points
-            if (p && p.length > 0)
-                features = features.concat(p)
-        }
-    }
-    var f = geojson.FeatureCollection(features)
-    arrival.serviceGeojson["fuel"] = geojson.cleanCopy(f)
-    arrival.serviceEvents["fuel"] = emit.emitCollection(f, {speed: 20, rate: 60, park: true, payload: true})
-
-    const csv = tocsv.tocsv(arrival.serviceEvents["fuel"], stime, {
-        name: "fuel",
-        queue: "service"
-    })
-    return csv
+    SERVICES.push(svc)
+    debug.print(svc)
 }
 
 
@@ -126,33 +102,8 @@ function addCatering(arrival, delay) {
     var stime = moment(arrival.isodatetime, moment.ISO_8601)
     stime.add(delay, "m")
     var svc = { "service": "catering", "parking": arrival.parking, "qty": 1 + Math.floor(Math.random() * 2), "datetime": stime.toISOString(), "priority": 3 }
-    var services = []
-    services.push(svc)
-    services.push(svc)
-    debug.print(arrival.parking, stime.format("HH:mm"), svc.qty)
-    var trucks = service.doServices(services, airport, {})
-    var features = []
-    for (var svc in trucks) {
-        if (trucks.hasOwnProperty(svc)) {
-            const truck = trucks[svc]
-            var f = truck.getFeatures()
-            if(f.length > 0)
-                features = features.concat(f)
-            // add remarkable point
-            var p = truck._points
-            if (p && p.length > 0)
-                features = features.concat(p)
-        }
-    }
-    var f = geojson.FeatureCollection(features)
-    arrival.serviceGeojson["catering"] = geojson.cleanCopy(f)
-    arrival.serviceEvents["catering"] = emit.emitCollection(f, {speed: 20, rate: 60, park: true})
-
-    const csv = tocsv.tocsv(arrival.serviceEvents["catering"], stime, {
-        name: "catering",
-        queue: "service"
-    })
-    return csv
+    SERVICES.push(svc)
+    debug.print(svc)
 }
 
 
@@ -162,12 +113,34 @@ function doTurnaround(arrival, departure) {
 
     arrival.serviceGeojson = {}
     arrival.serviceEvents  = {}
-    csv += addRefuel(arrival, 25)
-    csv += addCatering(arrival, 10)
-
-    fs.writeFileSync(arrival.filename + 'SERVICE.csv', csv, { mode: 0o644 })
-
+    addRefuel(arrival, 25)
+    addCatering(arrival, 10)
     debug.print("turnaround", moment.duration(duration).humanize())
+}
+
+function doServices() {
+    var trucks = service.doServices(SERVICES, airport, {})
+    var features = []
+    for (var svc in trucks) {
+        if (trucks.hasOwnProperty(svc)) {
+            const truck = trucks[svc]
+            var f = truck.getFeatures()
+            if(f.length > 0)
+                features = features.concat(f)
+            // add remarkable point
+            var p = truck._points
+            if (p && p.length > 0)
+                features = features.concat(p)
+        }
+    }
+    var f = geojson.FeatureCollection(features)
+    var emissions = emit.emitCollection(f, {speed: 20, rate: 60, park: true, payload: true})
+
+    const csv = tocsv.tocsv(emissions, moment(), {
+        queue: "service"
+    })
+
+    fs.writeFileSync('SERVICE.csv', csv, { mode: 0o644 })
 }
 
 
@@ -194,6 +167,8 @@ function doFlightboard(flightboard) {
             } // departure will be generated later
         }
     })
+    // now plan and generate services
+    doServices()
 }
 
 var features = []

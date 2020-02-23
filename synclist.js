@@ -30,8 +30,8 @@ function pc(f) {
             f.features[idx] = pc(f.features[idx])
         })
     } else if(f.type == "Feature") {
-      if(f.properties && f.properties.sync) {
-        console.log(cnt++, f.properties.sync)
+      if(f.hasOwnProperty("properties") && f.properties.hasOwnProperty("sync")) {
+        console.log(cnt++, f.properties.idx, f.properties.comment, f.properties.sync)
       }
     }
 }
