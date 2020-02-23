@@ -24,6 +24,8 @@ const config = require('./sim-config')
 var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)
 
+var SERVICES = []
+
 program
     .version('1.1.0')
     .description('generates flights from flight board (departure and arrival)')
@@ -32,7 +34,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doFlightboard", "doTurnaround", "doDeparture", "doArrival"], "main")
+debug.init(program.debug, ["doCatering","doRefuel"], "main")
 debug.print(program.opts())
 
 function takeOff(flightschedule, arrival) {
@@ -87,11 +89,13 @@ function doArrival(flight, runway) {
     debug.print(flight.filename)
 }
 
-function doRefuel(arrival, delay) {
+function addRefuel(arrival, delay) {
     var stime = moment(arrival.isodatetime, moment.ISO_8601)
     stime.add(delay, "m")
     var services = []
-    services.push({ "service": "fuel", "parking": arrival.parking, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": stime.toISOString(), "priority": 3 })
+    var svc = { "service": "fuel", "parking": arrival.parking, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": stime.toISOString(), "priority": 3 }
+    services.push(svc)
+    debug.print(arrival.parking, stime.format("HH:mm"), svc.qty)
     var trucks = service.doServices(services, airport, {})
     var features = []
     for (var svc in trucks) {
@@ -118,11 +122,14 @@ function doRefuel(arrival, delay) {
 }
 
 
-function doCatering(arrival, delay) {
+function addCatering(arrival, delay) {
     var stime = moment(arrival.isodatetime, moment.ISO_8601)
     stime.add(delay, "m")
+    var svc = { "service": "catering", "parking": arrival.parking, "qty": 1 + Math.floor(Math.random() * 2), "datetime": stime.toISOString(), "priority": 3 }
     var services = []
-    services.push({ "service": "catering", "parking": arrival.parking, "qty": Math.floor(Math.random() * 2), "datetime": stime.toISOString(), "priority": 3 })
+    services.push(svc)
+    services.push(svc)
+    debug.print(arrival.parking, stime.format("HH:mm"), svc.qty)
     var trucks = service.doServices(services, airport, {})
     var features = []
     for (var svc in trucks) {
@@ -155,8 +162,8 @@ function doTurnaround(arrival, departure) {
 
     arrival.serviceGeojson = {}
     arrival.serviceEvents  = {}
-    csv += doRefuel(arrival, 25)
-    csv += doCatering(arrival, 10)
+    csv += addRefuel(arrival, 25)
+    csv += addCatering(arrival, 10)
 
     fs.writeFileSync(arrival.filename + 'SERVICE.csv', csv, { mode: 0o644 })
 
