@@ -25,7 +25,7 @@ program
     .option('-r, --refresh', 'Force METAR update')
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 

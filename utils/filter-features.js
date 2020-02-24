@@ -4,7 +4,7 @@ const convert = require('color-convert')
 var program = require('commander')
 const debug = require('./debug.js')
 
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 program
     .version('1.0.0')

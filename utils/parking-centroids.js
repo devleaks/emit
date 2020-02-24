@@ -8,7 +8,7 @@ const turf = require('@turf/turf')
 var program = require('commander')
 
 const debug = require('./debug.js')
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 
 program

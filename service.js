@@ -1,5 +1,6 @@
 const fs = require('fs')
 const parse = require('csv-parse/lib/sync')
+const moment = require('moment')
 
 var program = require('commander')
 
@@ -26,7 +27,7 @@ program
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, ["selectTruck","prepareServices"])
 debug.print(program.opts())
 
 var services = []
@@ -38,6 +39,7 @@ if (program.file) {
         services.push(s)
     })
 } else {
+    var now = moment()
     for (var i = 0; i < program.count; i++) {
         const servlist = program.serviceList.split(',')
         var p = airportData.randomParking()
@@ -46,15 +48,16 @@ if (program.file) {
 
         switch (serv) {
             case 'fuel':
-                services.push({ "service": "fuel", "parking": p, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": null, "priority": 3 })
+                services.push({ "service": "fuel", "parking": p, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": now.toISOString(), "datetime-max": null, "priority": 3 })
                 break
             case 'catering':
-                services.push({ "service": "catering", "parking": p, "qty": Math.floor(Math.random() * 2), "datetime": null, "priority": 3 })
+                services.push({ "service": "catering", "parking": p, "qty": Math.floor(Math.random() * 2), "datetime": null, "datetime-max": null, "priority": 3 })
                 break
             default:
                 debug.warning("unknown or unconfigured service " + serv + ".")
                 print = false
         }
+        now.add(3, "minutes")
         if (print) {
             t = services[services.length - 1]
             debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
@@ -69,13 +72,15 @@ var trucks = service.doServices(services, airport, program)
 var features = []
 for (var svc in trucks) {
     if (trucks.hasOwnProperty(svc)) {
-        const truck = trucks[svc]
-        var f = truck.getFeatures()
-        features = features.concat(f)
-        // add remarkable point
-        var p = truck._points
-        if (p && p.length > 0)
-            features = features.concat(p)
+
+        trucks[svc].forEach(function(truck, idx) {
+            var f = truck.getFeatures()
+            features = features.concat(f)
+            // add remarkable point
+            var p = truck._points
+            if (p && p.length > 0)
+                features = features.concat(p)
+        })
     }
 }
 

@@ -11,6 +11,7 @@ program
     .version('1.2.0')
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
+    .option('-k, --kafka', 'send to kafka')
     .option('-r, --rate <delay>', 'Let that amount of time between events', 1)
     .option('-s, --speed <factor>', 'Increases speed by that foactor')
     .option('-o, --output <file>', 'Save to file, default to out.csv', "out.csv")

@@ -22,7 +22,7 @@ program
     .option('-o, --bearing-out <out>' , 'bearing out', 90)
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 

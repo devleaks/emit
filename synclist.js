@@ -11,7 +11,7 @@ const fs = require('fs')
 var program = require('commander')
 const debug = require('./lib/debug')
 
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 program
     .version('1.0.0')

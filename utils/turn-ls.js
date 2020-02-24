@@ -20,7 +20,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["", "mkturn"], "main")
+debug.init(program.debug, ["", "mkturn"])
 debug.print(program.opts())
 
 

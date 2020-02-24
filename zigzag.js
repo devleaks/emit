@@ -9,7 +9,7 @@ var program = require('commander')
 const debug = require('./lib/debug')
 const zigzag = require('./lib/zigzag-lib.js')
 
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 program
     .version('1.1.0')

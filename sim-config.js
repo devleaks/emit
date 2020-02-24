@@ -110,8 +110,8 @@ exports.services = {
                 "capacity": 30000,
                 "speed": 40,
                 "slow": 20,
-                serviceTime: function(qty) { return qty / 50 },
-                refillTime: function(qty) { return qty / 75 }
+                serviceTime: function(qty) { return qty / 5 },
+                refillTime: function(qty) { return qty / 7.5 }
             },
             {
                 "name": "fuel2",
@@ -119,16 +119,16 @@ exports.services = {
                 "capacity": 30000,
                 "speed": 40,
                 "slow": 20,
-                serviceTime: function(qty) { return qty / 50 },
-                refillTime: function(qty) { return qty / 75 }
+                serviceTime: function(qty) { return qty / 5 },
+                refillTime: function(qty) { return qty / 7.5 }
             }
         ],
         "base": [
             "FUEL1",
             "FUEL2"
         ],
-        serviceTime: function(qty) { return qty / 50 },
-        refillTime: function(qty) { return qty / 75 },
+        serviceTime: function(qty) { return qty / 5 },
+        refillTime: function(qty) { return qty / 7.5 },
         randomQuantity: function() { return (4000 + Math.floor(Math.random() * 10) * 100) }
     },
     "baggage": {

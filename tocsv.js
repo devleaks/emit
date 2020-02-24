@@ -7,7 +7,7 @@ const tocsv = require('./lib/tocsv-lib.js')
 
 /* COMMAND LINE PARAMETERS
  */
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 program
     .version('1.2.0')

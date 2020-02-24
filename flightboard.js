@@ -17,7 +17,7 @@ const tocsv = require('./lib/tocsv-lib.js')
 const airportData = require('./lib/airport.js')
 const aircraftData = require('./lib/aircraft')
 
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 const config = require('./sim-config')
 
@@ -34,7 +34,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doCatering","doRefuel"], "main")
+debug.init(program.debug, ["doCatering","doRefuel"])
 debug.print(program.opts())
 
 function takeOff(flightschedule, arrival) {

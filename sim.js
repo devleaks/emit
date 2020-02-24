@@ -13,7 +13,7 @@ const config = require('./sim-config')
 const airportData = require('./lib/airport.js')
 const aircraftData = require('./lib/aircraft')
 
-debug.init(true, [""], "main")
+debug.init(true, [""])
 
 var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)
@@ -34,7 +34,7 @@ program
     .option('-l, --landing', 'Perform landing rather than takeoff', isLanding)
     .parse(process.argv)
 
-debug.init(program.debug, [""], "main")
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 
