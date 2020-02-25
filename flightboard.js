@@ -34,7 +34,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doCatering","doRefuel"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 function takeOff(flightschedule, arrival) {
@@ -42,12 +42,10 @@ function takeOff(flightschedule, arrival) {
     var idx = 0
     while (!departure && idx < flightschedule.length) {
         var flight = flightschedule[idx]
-        if (( (flight.plane
-                    && flight.plane == arrival.plane)
-              ||
-              (flight.parking
-                    && flight.parking == arrival.parking) )
-            &&
+        if (((flight.plane &&
+                    flight.plane == arrival.plane) ||
+                (flight.parking &&
+                    flight.parking == arrival.parking)) &&
             flight.zuludatetime > arrival.zuludatetime) {
             departure = flight
         }
@@ -58,14 +56,13 @@ function takeOff(flightschedule, arrival) {
 
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
-    flight.geojson = simulator.takeoff(airport, aircraftData.randomAircraft(), flight.parking, runway, sid)
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), {speed: 30, rate: 30})
+    flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
     flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
-        name: flight.flight,
         queue: "aircraft"
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
@@ -75,14 +72,13 @@ function doDeparture(flight, runway) {
 
 function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
-    flight.geojson = simulator.land(airport, aircraftData.randomAircraft(), flight.parking, runway, star)
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), {speed: 30, rate: 30})
+    flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
     flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
-        name: flight.flight,
         queue: "aircraft"
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
@@ -112,7 +108,7 @@ function doTurnaround(arrival, departure) {
     var csv = ''
 
     arrival.serviceGeojson = {}
-    arrival.serviceEvents  = {}
+    arrival.serviceEvents = {}
     addRefuel(arrival, 25)
     addCatering(arrival, 10)
     debug.print("turnaround", moment.duration(duration).humanize())
@@ -123,18 +119,20 @@ function doServices() {
     var features = []
     for (var svc in trucks) {
         if (trucks.hasOwnProperty(svc)) {
-            const truck = trucks[svc]
-            var f = truck.getFeatures()
-            if(f.length > 0)
+
+            trucks[svc].forEach(function(truck, idx) {
+                var f = truck.getFeatures()
                 features = features.concat(f)
-            // add remarkable point
-            var p = truck._points
-            if (p && p.length > 0)
-                features = features.concat(p)
+                // add remarkable point
+                var p = truck._points
+                if (p && p.length > 0)
+                    features = features.concat(p)
+            })
         }
     }
+
     var f = geojson.FeatureCollection(features)
-    var emissions = emit.emitCollection(f, {speed: 20, rate: 60, park: true, payload: true})
+    var emissions = emit.emitCollection(f, { speed: 20, rate: 60, park: true, payload: true })
 
     const csv = tocsv.tocsv(emissions, moment(), {
         queue: "service"
