@@ -127,6 +127,8 @@ exports.services = {
             "FUEL1",
             "FUEL2"
         ],
+        "afterOnBlocks": 20,
+        "beforeOffBlocks": 15,
         serviceTime: function(qty) { return qty / 5 },
         refillTime: function(qty) { return qty / 7.5 },
         randomQuantity: function() { return (4000 + Math.floor(Math.random() * 10) * 100) }
@@ -150,6 +152,8 @@ exports.services = {
         "base": [
             "BAGGAGE1"
         ],
+        "afterOnBlocks": 10,
+        "beforeOffBlocks": 10,
         serviceTime: function(qty) { return 15*60 },
         refillTime: function(qty) { return 10*60 },
         randomQuantity: function() { return (6 + Math.floor(Math.random() * 8)) }
@@ -180,6 +184,8 @@ exports.services = {
         "base": [
             "TOW1"
         ],
+        "afterOnBlocks": 0,
+        "beforeOffBlocks": 2,
         serviceTime: function(qty) { return 420 }, // seconds
         refillTime: function(qty) { return 0 },
         randomQuantity: function() { return 1 }
@@ -195,6 +201,8 @@ exports.services = {
         "base": [
             "CARGO1"
         ],
+        "afterOnBlocks": 10,
+        "beforeOffBlocks": 10,
         serviceTime: function(qty) { return qty * 90 }, // seconds
         refillTime: function(qty) { return qty * 90 },
         randomQuantity: function() { return (4 + Math.floor(Math.random() * 4)) }

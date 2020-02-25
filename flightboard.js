@@ -34,9 +34,11 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, [""])
+debug.init(program.debug, ["addRefuel"])
 debug.print(program.opts())
 
+/*  Utility function: Does this arrival flight leave later on?
+ */
 function takeOff(flightschedule, arrival) {
     var departure = false
     var idx = 0
@@ -54,13 +56,15 @@ function takeOff(flightschedule, arrival) {
     return departure
 }
 
+/*  Generate full departure (write down CSV)
+ */
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
-    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    flight.filename = flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft"
@@ -70,12 +74,14 @@ function doDeparture(flight, runway) {
     debug.print(flight.filename)
 }
 
+/*  Generate full arrival (write down CSV)
+ */
 function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    flight.filename = flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
@@ -85,35 +91,62 @@ function doArrival(flight, runway) {
     debug.print(flight.filename)
 }
 
-function addRefuel(arrival, delay) {
-    var stime = moment(arrival.isodatetime, moment.ISO_8601)
-    stime.add(delay, "m")
-    var svc = { "service": "fuel", "parking": arrival.parking, "qty": (4000 + Math.floor(Math.random() * 10) * 100), "datetime": stime.toISOString(), "priority": 3 }
+function addRefuel(arrival, departure) {
+    const serviceName = "fuel"
+    const serviceData = airport.config.services[serviceName]
+
+    var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["afterOnBlocks"], "m")
+
+    var dtime = moment(departure.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["beforeOffBlocks"], "m")
+
+    var svc = { "service": serviceName,
+                "parking": arrival.parking,
+                "qty": serviceData.randomQuantity(),
+                "datetime": atime.toISOString(),
+                "datetime-max": dtime.toISOString(),
+                "priority": 3 }
     SERVICES.push(svc)
     debug.print(svc)
 }
 
 
-function addCatering(arrival, delay) {
-    var stime = moment(arrival.isodatetime, moment.ISO_8601)
-    stime.add(delay, "m")
-    var svc = { "service": "catering", "parking": arrival.parking, "qty": 1 + Math.floor(Math.random() * 2), "datetime": stime.toISOString(), "priority": 3 }
+function addCatering(arrival, departure) {
+    const serviceName = "catering"
+    const serviceData = airport.config.services[serviceName]
+
+    var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["afterOnBlocks"], "m")
+
+    var dtime = moment(departure.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["beforeOffBlocks"], "m")
+
+    var svc = { "service": serviceName,
+                "parking": arrival.parking,
+                "qty": serviceData.randomQuantity(),
+                "datetime": atime.toISOString(),
+                "datetime-max": dtime.toISOString(),
+                "priority": 3 }
     SERVICES.push(svc)
     debug.print(svc)
 }
 
-
+/*  Generate turnaround services for plane
+ */
 function doTurnaround(arrival, departure) {
     const duration = moment(arrival.zuludatetime, moment.ISO_8601).diff(moment(departure.zuludatetime, moment.ISO_8601))
-    var csv = ''
 
-    arrival.serviceGeojson = {}
-    arrival.serviceEvents = {}
-    addRefuel(arrival, 25)
-    addCatering(arrival, 10)
+    arrival.serviceGeojson = {} // to store linestring of service
+    arrival.serviceEvents = {}  // to store emitted events of service
+
+    addRefuel(arrival, departure)
+    addCatering(arrival, departure)
+
     debug.print("turnaround", moment.duration(duration).humanize())
 }
 
+//
 function doServices() {
     var trucks = service.doServices(SERVICES, airport, {})
     var features = []
@@ -138,15 +171,16 @@ function doServices() {
         queue: "service"
     })
 
-    fs.writeFileSync('SERVICE.csv', csv, { mode: 0o644 })
+    fs.writeFileSync('SERVICES.csv', csv, { mode: 0o644 })
 }
 
-
+/*  M A I N
+ */
 function doFlightboard(flightboard) {
     // cleanup datetime
     flightboard.forEach(function(flight, idx) {
         const day = flight.date == "" ? moment().format("YYYY-MM-DD") : flight.date
-        flight.isodatetime = day + "T" + flight.time + ":00.000" + moment().format("Z")
+        flight.isodatetime = day + "T" + flight.time + ":00.000" + moment().format("Z") // flight time: 08:15, 22:55
         flight.zuludatetime = moment(flight.isodatetime, moment.ISO_8601).toISOString()
     })
     sfb = flightboard.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
