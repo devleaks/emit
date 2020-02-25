@@ -27,7 +27,8 @@ program
     .description('generates GeoJSON features for one aircraft takeoff or landing')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
-    .option('-m, --aircraft <model>', 'aircraft model', aircraftData.randomAircraft())
+    .option('-n, --name <name>', 'aircraft name', aircraftData.randomAircraftICAO())
+    .option('-m, --aircraft <model>', 'aircraft model', aircraftData.randomAircraftModel())
     .option('-r, --runway <runway>', 'name of runway', runway)
     .option('-s, --airway <name>', 'SID or STAR name', isLanding ? airportData.randomSTAR(runway) : airportData.randomSID(runway))
     .option('-p, --parking <parking>', 'name of parking', airportData.randomParking())
@@ -39,13 +40,13 @@ debug.print(program.opts())
 
 
 var airplane = program.landing ?
-    simulator.land(airport, program.aircraft, program.parking, program.runway, program.airway) :
-    simulator.takeoff(airport, program.aircraft, program.parking, program.runway, program.airway)
+    simulator.land(airport, program.name, program.aircraft, program.parking, program.runway, program.airway) :
+    simulator.takeoff(airport, program.name, program.aircraft, program.parking, program.runway, program.airway)
 
 if (airplane) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
     var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
-    console.log("wind: " + wind + ": " + (program.landing ? "landed " : "takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
+    console.log("wind: " + wind + "; " + program.name + (program.landing ? " landed " : " takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
     console.log(program.output + ' written')
 } else {
     console.log(program.opts())

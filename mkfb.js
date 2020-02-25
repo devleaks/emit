@@ -9,6 +9,7 @@ const debug = require('./lib/debug')
 const config = require('./sim-config')
 
 const airportData = require('./lib/airport.js')
+const aircraftData = require('./lib/aircraft')
 
 var airport = airportData.init(config)
 
@@ -17,7 +18,6 @@ var airports = require('./eblg/json/airports.js')
 // round to next 5 minutes
 const now = moment();
 const now5 = moment(now).add(5 - (now.minute() % 5), "minutes").add(- now.second(), "seconds").add(- now.millisecond(), "milliseconds")
-console.log(now5.toISOString())
 
 program
     .version('1.0.0')
@@ -79,25 +79,25 @@ function randomFlightboard(cnt, startdate, type = false) {
     var airline = randomAirline(type)
 
     var time = startdate ? moment(startdate) : moment()
-    console.log(time.toISOString())
     var flight = 100
     for (var i = 0; i < cnt; i++) {
         var parking = airportData.randomParking()
+        var aircraft = aircraftData.randomAircraftICAO()
         var airport = airports.randomAirport()
         var ltype = type ? type : (Math.random() > 0.5 ? 'PAX':'CARGO')
         time.add(nextFlight(2), 'm')
         flightname = randomFlightname(ltype)
         // arrival
-        debug.print('arrival', flightname, airport, time.format('HH:mm'), parking)
-        txt += 'arrival,' + flightname + ',' + airport + ',,' + time.format('HH:mm') + ',,' + parking + ',\n'
+        debug.print('arrival', flightname, airport, time.format('HH:mm'), aircraft, parking)
+        txt += 'arrival,' + flightname + ',' + airport + ',,' + time.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
         // turnaround
         var time2 = moment(time)
         time2.add(turnAround(), 'm')
         // departure
         airport = airports.randomAirport()
         flightname = randomFlightname(ltype)
-        debug.print('departure', flightname, airport, time2.format('HH:mm'), parking)
-        txt += 'departure,' + flightname + ',' + airport + ',,' + time2.format('HH:mm') + ',,' + parking + ',\n'
+        debug.print('departure', flightname, airport, time2.format('HH:mm'), aircraft, parking)
+        txt += 'departure,' + flightname + ',' + airport + ',,' + time2.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
     }
     return txt
 }
