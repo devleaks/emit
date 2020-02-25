@@ -15,7 +15,7 @@ const airportData = require('./lib/airport.js')
 var airport = airportData.init(config)
 
 program
-    .version('2.2.0')
+    .version('2.3.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
@@ -57,7 +57,7 @@ if (program.file) {
                 debug.warning("unknown or unconfigured service " + serv + ".")
                 print = false
         }
-        now.add(3, "minutes")
+        now.add(10, "minutes")
         if (print) {
             t = services[services.length - 1]
             debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)
