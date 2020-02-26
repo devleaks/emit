@@ -34,7 +34,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["addRefuel"])
+debug.init(program.debug, ["doServices"])
 debug.print(program.opts())
 
 /*  Utility function: Does this arrival flight leave later on?
@@ -63,7 +63,7 @@ function doDeparture(flight, runway) {
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    flight.filename = 'FLIGHT-'+flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
@@ -81,7 +81,7 @@ function doArrival(flight, runway) {
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    flight.filename = 'FLIGHT-'+flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
@@ -101,12 +101,14 @@ function addRefuel(arrival, departure) {
     var dtime = moment(departure.isodatetime, moment.ISO_8601)
     atime.add(serviceData["beforeOffBlocks"], "m")
 
-    var svc = { "service": serviceName,
-                "parking": arrival.parking,
-                "qty": serviceData.randomQuantity(),
-                "datetime": atime.toISOString(),
-                "datetime-max": dtime.toISOString(),
-                "priority": 3 }
+    var svc = {
+        "service": serviceName,
+        "parking": arrival.parking,
+        "qty": serviceData.randomQuantity(),
+        "datetime": atime.toISOString(),
+        "datetime-max": dtime.toISOString(),
+        "priority": 3
+    }
     SERVICES.push(svc)
     debug.print(svc)
 }
@@ -122,12 +124,14 @@ function addCatering(arrival, departure) {
     var dtime = moment(departure.isodatetime, moment.ISO_8601)
     atime.add(serviceData["beforeOffBlocks"], "m")
 
-    var svc = { "service": serviceName,
-                "parking": arrival.parking,
-                "qty": serviceData.randomQuantity(),
-                "datetime": atime.toISOString(),
-                "datetime-max": dtime.toISOString(),
-                "priority": 3 }
+    var svc = {
+        "service": serviceName,
+        "parking": arrival.parking,
+        "qty": serviceData.randomQuantity(),
+        "datetime": atime.toISOString(),
+        "datetime-max": dtime.toISOString(),
+        "priority": 3
+    }
     SERVICES.push(svc)
     debug.print(svc)
 }
@@ -138,7 +142,7 @@ function doTurnaround(arrival, departure) {
     const duration = moment(arrival.zuludatetime, moment.ISO_8601).diff(moment(departure.zuludatetime, moment.ISO_8601))
 
     arrival.serviceGeojson = {} // to store linestring of service
-    arrival.serviceEvents = {}  // to store emitted events of service
+    arrival.serviceEvents = {} // to store emitted events of service
 
     addRefuel(arrival, departure)
     addCatering(arrival, departure)
@@ -149,29 +153,36 @@ function doTurnaround(arrival, departure) {
 //
 function doServices() {
     var trucks = service.doServices(SERVICES, airport, {})
-    var features = []
     for (var svc in trucks) {
         if (trucks.hasOwnProperty(svc)) {
-
+            console.log(svc, trucks[svc].length)
             trucks[svc].forEach(function(truck, idx) {
-                var f = truck.getFeatures()
-                features = features.concat(f)
-                // add remarkable point
-                var p = truck._points
-                if (p && p.length > 0)
-                    features = features.concat(p)
+                // get trip
+                const fn = 'SERVICE-'+truck.getProp("service")+'-'+truck.getName()
+                truck._features = truck.getFeatures()
+                // add remarkable point (for sync)
+                if (truck._points && truck._points.length > 0)
+                    truck._features = truck._features.concat(truck._points)
+                truck.geojson = geojson.FeatureCollection(truck._features)
+                fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
+
+                // we emit it
+                truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
+                    speed: 20,
+                    rate: 60,
+                    park: true,
+                    payload: true
+                })
+                fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
+
+                truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
+                    queue: "service",
+                    event: "*"
+                })
+                fs.writeFileSync(fn+'.csv', truck._csv, { mode: 0o644 })
             })
         }
     }
-
-    var f = geojson.FeatureCollection(features)
-    var emissions = emit.emitCollection(f, { speed: 20, rate: 60, park: true, payload: true })
-
-    const csv = tocsv.tocsv(emissions, moment(), {
-        queue: "service"
-    })
-
-    fs.writeFileSync('SERVICES.csv', csv, { mode: 0o644 })
 }
 
 /*  M A I N
