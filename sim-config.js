@@ -111,7 +111,7 @@ exports.services = {
                 "speed": 40,
                 "slow": 20,
                 serviceTime: function(qty) { return qty / 5 },
-                refillTime: function(qty) { return qty / 7.5 }
+                refillTime: function(qty) { return qty / 50 }
             },
             {
                 "name": "fuel2",
@@ -120,7 +120,7 @@ exports.services = {
                 "speed": 40,
                 "slow": 20,
                 serviceTime: function(qty) { return qty / 5 },
-                refillTime: function(qty) { return qty / 7.5 }
+                refillTime: function(qty) { return qty / 50 }
             }
         ],
         "base": [
@@ -130,8 +130,8 @@ exports.services = {
         "afterOnBlocks": 20,
         "beforeOffBlocks": 15,
         serviceTime: function(qty) { return qty / 5 },
-        refillTime: function(qty) { return qty / 7.5 },
-        randomQuantity: function() { return (4000 + Math.floor(Math.random() * 10) * 100) }
+        refillTime: function(qty) { return qty / 50 },
+        randomQuantity: function() { return (4000 + Math.floor(Math.random() * 10) * 500) }
     },
     "baggage": {
         "trucks": [{
