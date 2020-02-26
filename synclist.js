@@ -23,19 +23,30 @@ program
 debug.print(program.opts())
 
 var cnt = 0
+var last = false
+var finish = false
 
 function pc(f) {
-    if(f.type == "FeatureCollection") {
+     if (f.type == "FeatureCollection") {
+        f.features = f.features.sort((a, b) => (a.properties.elapsed > b.properties.elapsed) ? 1 : -1)
         f.features.forEach(function(f1, idx) {
-            f.features[idx] = pc(f.features[idx])
+            pc(f1)
         })
-    } else if(f.type == "Feature") {
-      if(f.hasOwnProperty("properties") && f.properties.hasOwnProperty("sync")) {
-        console.log(cnt++, f.properties.idx, f.properties.comment, f.properties.sync)
-      }
+        console.log(cnt++, last.properties.elapsed, "last")
+        console.log(cnt++, finish.properties.elapsed, "finished")
+    } else if (f.type == "Feature") {
+        if (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("emit")) {
+            if (f.properties.hasOwnProperty("sync")) {
+                console.log(cnt++, f.properties.elapsed, f.properties.sync)
+            }
+            if(f.properties.hasOwnProperty("category") && f.properties.category == "f") {
+                last = f                
+            }
+            finish = f   
+        }
     }
 }
 
 const jsonstring = fs.readFileSync(program.file, 'utf8')
-console.log("event", "name")
+console.log("event", "elapsed", "name")
 var pc = pc(JSON.parse(jsonstring))
