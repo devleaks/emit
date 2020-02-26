@@ -13,7 +13,7 @@ program
     .version('1.2.0')
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
-    .option('-n, --name <name>', 'device name', "device")
+    .option('-n, --name <name>', 'device name')
     .option('-q, --queue <name>', 'Kafka queue name', "queue")
     .option('-1, --first', 'Add header line')
     .option('-p, --payload', 'Add payload column with all properties')
@@ -41,7 +41,10 @@ if (!startdate.isValid()) {
 
 /* MAIN
  */
-var res = tocsv.tocsv(JSON.parse(jsonstring), startdate, program)
+var res = (program.event == '*') ?
+            tocsv.tocsv_sync_all(JSON.parse(jsonstring), startdate, program)
+            :
+            tocsv.tocsv(JSON.parse(jsonstring), startdate, program)
 
 
 /* OUTPUT
