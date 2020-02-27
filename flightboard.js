@@ -30,6 +30,7 @@ program
     .version('1.2.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
+    .option('-p, --payload', 'Add payload column with all properties')
     .requiredOption('-f, --flightboard <file>', 'CSV flightboard')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
@@ -63,14 +64,14 @@ function doDeparture(flight, runway) {
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = 'FLIGHT-'+flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    flight.filename = 'FLIGHT-' + flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
     // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
-        queue: "aircraft"
+        queue: "aircraft",
+        payload: program.payload
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
-
     debug.print(flight.filename)
 }
 
@@ -81,11 +82,12 @@ function doArrival(flight, runway) {
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
 
-    flight.filename = 'FLIGHT-'+flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
-    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    flight.filename = 'FLIGHT-' + flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
+    // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
-        queue: "aircraft"
+        queue: "aircraft",
+        payload: program.payload
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
     debug.print(flight.filename)
@@ -152,13 +154,14 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-    var trucks = service.doServices(SERVICES, airport, {})
+    var trucks = service.doServices(SERVICES, airport, {
+        park: true
+    })
     for (var svc in trucks) {
         if (trucks.hasOwnProperty(svc)) {
-            console.log(svc, trucks[svc].length)
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = 'SERVICE-'+truck.getProp("service")+'-'+truck.getName()
+                const fn = 'SERVICE-' + truck.getProp("service") + '-' + truck.getName()
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)
@@ -168,18 +171,17 @@ function doServices() {
 
                 // we emit it
                 truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
-                    speed: 20,
-                    rate: 60,
-                    park: true,
-                    payload: true
+                    speed: truck.getProp("speed"),
+                    rate: truck.getProp("rate")
                 })
                 fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
                 truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",
-                    event: "*"
+                    event: "*",
+                    payload: program.payload
                 })
-                fs.writeFileSync(fn+'.csv', truck._csv, { mode: 0o644 })
+                fs.writeFileSync(fn + '.csv', truck._csv, { mode: 0o644 })
             })
         }
     }

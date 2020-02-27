@@ -36,6 +36,7 @@ then
     rm -f $tempfile
     cat FLIGHT-*.csv SERVICE-*.csv | sort -t , -k 3 -o out.csv
     ls -l out.csv
+    wc -l out.csv
 fi
 
 if [ $CLEAN = "YES" ]

@@ -37,7 +37,7 @@ function rndInt(n) {
 }
 
 function nextFlight(n) {
-    return 5 + 5 * rndInt(n)
+    return 75 + 5 * rndInt(n)
 }
 
 function turnAround(type = false) {

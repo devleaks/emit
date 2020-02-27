@@ -57,7 +57,6 @@ if (program.file) {
                 debug.warning("unknown or unconfigured service " + serv + ".")
                 print = false
         }
-        now.add(20, "minutes")
         if (print) {
             t = services[services.length - 1]
             debug.print(t.service, t.parking, t.qty, t.datetime, t.priority)

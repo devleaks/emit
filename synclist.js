@@ -21,6 +21,7 @@ program
     .parse(process.argv)
 
 debug.print(program.opts())
+debug.init(program.debug, ["pc"])
 
 var cnt = 0
 var last = false
@@ -32,12 +33,12 @@ function pc(f) {
         f.features.forEach(function(f1, idx) {
             pc(f1)
         })
-        console.log(cnt++, last.properties.elapsed, "last")
-        console.log(cnt++, finish.properties.elapsed, "finished")
+        debug.print(cnt++, last, "last")
+        debug.print(cnt++, finish, "finished")
     } else if (f.type == "Feature") {
         if (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("emit")) {
             if (f.properties.hasOwnProperty("sync")) {
-                console.log(cnt++, f.properties.elapsed, f.properties.sync)
+                debug.print(cnt++, f.properties.hasOwnProperty("elapsed") ? f.properties.elapsed : f.properties.scheduled, f.properties.sync)
             }
             if(f.properties.hasOwnProperty("category") && f.properties.category == "f") {
                 last = f                

@@ -110,7 +110,7 @@ exports.services = {
                 "capacity": 30000,
                 "speed": 40,
                 "slow": 20,
-                "rate": 60,
+                "rate": 10,
                 serviceTime: function(qty) { return qty / 5 },
                 refillTime: function(qty) { return qty / 50 }
             },
@@ -118,9 +118,9 @@ exports.services = {
                 "name": "fuel2",
                 "color": "#aa6600",
                 "capacity": 30000,
-                "speed": 40,
-                "slow": 20,
-                "rate": 60,
+                "speed": 30,
+                "slow": 15,
+                "rate": 10,
                 serviceTime: function(qty) { return qty / 5 },
                 refillTime: function(qty) { return qty / 50 }
             }
@@ -129,7 +129,7 @@ exports.services = {
             "FUEL1",
             "FUEL2"
         ],
-        "rate": 60,
+        "rate": 10,
         "afterOnBlocks": 20,
         "beforeOffBlocks": 15,
         serviceTime: function(qty) { return qty / 5 },
@@ -174,7 +174,10 @@ exports.services = {
         "base": [
             "CATERING1"
         ],
-        "rate": 30,
+        "afterOnBlocks": 5,
+        "beforeOffBlocks": 10,
+        "rate": 10,
+        "speed": 40,
         serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
         refillTime: function(qty) { return qty * 12 * 60 },
         randomQuantity: function() { return (1 + Math.floor(Math.random() * 2)) }
