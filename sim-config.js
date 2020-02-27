@@ -110,6 +110,7 @@ exports.services = {
                 "capacity": 30000,
                 "speed": 40,
                 "slow": 20,
+                "rate": 60,
                 serviceTime: function(qty) { return qty / 5 },
                 refillTime: function(qty) { return qty / 50 }
             },
@@ -119,6 +120,7 @@ exports.services = {
                 "capacity": 30000,
                 "speed": 40,
                 "slow": 20,
+                "rate": 60,
                 serviceTime: function(qty) { return qty / 5 },
                 refillTime: function(qty) { return qty / 50 }
             }
@@ -127,6 +129,7 @@ exports.services = {
             "FUEL1",
             "FUEL2"
         ],
+        "rate": 60,
         "afterOnBlocks": 20,
         "beforeOffBlocks": 15,
         serviceTime: function(qty) { return qty / 5 },
@@ -152,6 +155,8 @@ exports.services = {
         "base": [
             "BAGGAGE1"
         ],
+        "rate": 30,
+        "rate-quiet": true,
         "afterOnBlocks": 10,
         "beforeOffBlocks": 10,
         serviceTime: function(qty) { return 15*60 },
@@ -169,6 +174,7 @@ exports.services = {
         "base": [
             "CATERING1"
         ],
+        "rate": 30,
         serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
         refillTime: function(qty) { return qty * 12 * 60 },
         randomQuantity: function() { return (1 + Math.floor(Math.random() * 2)) }
@@ -184,6 +190,8 @@ exports.services = {
         "base": [
             "TOW1"
         ],
+        "rate": 30,
+        "rate-quiet": true,
         "afterOnBlocks": 0,
         "beforeOffBlocks": 2,
         serviceTime: function(qty) { return 420 }, // seconds
@@ -201,6 +209,7 @@ exports.services = {
         "base": [
             "CARGO1"
         ],
+        "rate": 30,
         "afterOnBlocks": 10,
         "beforeOffBlocks": 10,
         serviceTime: function(qty) { return qty * 90 }, // seconds

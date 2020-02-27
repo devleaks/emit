@@ -27,7 +27,7 @@ program
     .option('-c, --count <count>', 'Generate a random service file with «count» parkings to visit', 10)
     .parse(process.argv)
 
-debug.init(program.debug, ["selectTruck","prepareServices"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 var services = []

@@ -22,7 +22,7 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug.init(program.debug, ["emit"])
+debug.init(program.debug, ["emit","pauseAtVertex"])
 debug.print(program.opts())
 
 /* MAIN
