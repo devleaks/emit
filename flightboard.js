@@ -27,14 +27,14 @@ var aircraft = aircraftData.init(config.aircrafts)
 var SERVICES = []
 
 program
-    .version('1.1.0')
+    .version('1.2.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
     .requiredOption('-f, --flightboard <file>', 'CSV flightboard')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doServices"])
+debug.init(program.debug, [])
 debug.print(program.opts())
 
 /*  Utility function: Does this arrival flight leave later on?

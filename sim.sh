@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# sim.sh rel. 1.0.0
+#
 
 COUNT=0
 CLEAN="NO"

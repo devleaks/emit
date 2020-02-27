@@ -7,7 +7,7 @@ const emit = require('./lib/emit-lib')
 const debug = require('./lib/debug')
 
 program
-    .version('2.1.0')
+    .version('2.2.0')
     .description('replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
@@ -22,7 +22,7 @@ program
     .option('-l, --last-point', 'Emit event at last point of line string, even if time rate is not elapsed')
     .parse(process.argv)
 
-debug.init(program.debug, ["emit","pauseAtVertex"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 /* MAIN

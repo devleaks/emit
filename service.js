@@ -15,7 +15,7 @@ const airportData = require('./lib/airport.js')
 var airport = airportData.init(config)
 
 program
-    .version('2.3.0')
+    .version('2.4.0')
     .description('generates GeoJSON features for aircraft service. Creates a single truck for each service')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")

@@ -18,7 +18,7 @@ program
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
 
-debug.init(program.debug, ["ksend","_post"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 

@@ -20,7 +20,7 @@ const now = moment();
 const now5 = moment(now).add(5 - (now.minute() % 5), "minutes").add(- now.second(), "seconds").add(- now.millisecond(), "milliseconds")
 
 program
-    .version('1.0.0')
+    .version('1.1.0')
     .description('generates flightboard')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.csv")
@@ -29,7 +29,7 @@ program
     .option('-t, --type <type>', 'Type of flights {PAX|CARGO}')
     .parse(process.argv)
 
-debug.init(program.debug, ["randomFlightboard"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 function rndInt(n) {
@@ -47,46 +47,17 @@ function turnAround(type = false) {
     return base + rndextra
 }
 
-// C... = CARGO, P... = PAX
-function randomAirline(type) {
-    const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    var char = UPPERCASE.charAt(Math.floor(Math.random() * UPPERCASE.length))
-    var airline
-    switch (type) {
-        case 'CARGO':
-            airline = 'C' + char
-            break
-        case 'PAX':
-            airline = 'P' + char
-            break
-        default:
-            airline = (Math.random() > 0.5 ? 'C' : 'P') + char
-    }
-    return airline
-}
-
-var _flightnum = 100
-
-function randomFlightname(type) {
-    var airline = randomAirline(type)
-    if (_flightnum > 980) _flightnum = 100 // loop
-    _flightnum += (1 + rndInt(10))
-    return airline + _flightnum.toString().padStart(3, '0')
-}
-
 function randomFlightboard(cnt, startdate, type = false) {
     var txt = 'move,flight,airport,date,time,plane,parking,comment\n'
-    var airline = randomAirline(type)
-
     var time = startdate ? moment(startdate) : moment()
-    var flight = 100
+
     for (var i = 0; i < cnt; i++) {
         var parking = airportData.randomParking()
         var aircraft = aircraftData.randomAircraftICAO()
         var airport = airports.randomAirport()
         var ltype = type ? type : (Math.random() > 0.5 ? 'PAX':'CARGO')
         time.add(nextFlight(2), 'm')
-        flightname = randomFlightname(ltype)
+        flightname = aircraftData.randomFlightname(ltype, false)
         // arrival
         debug.print('arrival', flightname, airport, time.format('HH:mm'), aircraft, parking)
         txt += 'arrival,' + flightname + ',' + airport + ',,' + time.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
@@ -95,7 +66,7 @@ function randomFlightboard(cnt, startdate, type = false) {
         time2.add(turnAround(), 'm')
         // departure
         airport = airports.randomAirport()
-        flightname = randomFlightname(ltype)
+        flightname = aircraftData.randomFlightname(ltype, true)
         debug.print('departure', flightname, airport, time2.format('HH:mm'), aircraft, parking)
         txt += 'departure,' + flightname + ',' + airport + ',,' + time2.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
     }
