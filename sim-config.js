@@ -43,7 +43,11 @@ exports.airport = {
     "taxi-hold": [60, 300],
     "takeoff-hold": [10, 60],
     "departure-delay": [-15, 30],
-    "arrival-delay": [-20, 30]
+    "arrival-delay": [-20, 30],
+    "aprons": {
+        "PAX": [2],
+        "CARGO": [3, 4, 5, 6]
+    }
 }
 
 // aircraft speeds are in kn
@@ -159,8 +163,8 @@ exports.services = {
         "rate-quiet": true,
         "afterOnBlocks": 10,
         "beforeOffBlocks": 10,
-        serviceTime: function(qty) { return 15*60 },
-        refillTime: function(qty) { return 10*60 },
+        serviceTime: function(qty) { return 15 * 60 },
+        refillTime: function(qty) { return 10 * 60 },
         randomQuantity: function() { return (6 + Math.floor(Math.random() * 8)) }
     },
     "catering": {
@@ -213,10 +217,17 @@ exports.services = {
             "CARGO1"
         ],
         "rate": 30,
-        "afterOnBlocks": 10,
-        "beforeOffBlocks": 10,
+        "afterOnBlocks": 10,            // cargo service can only start 10 minutes after onblok
+        "beforeOffBlocks": 10,          // cargo service must be completed 10 minutes before offblok
         serviceTime: function(qty) { return qty * 90 }, // seconds
         refillTime: function(qty) { return qty * 90 },
         randomQuantity: function() { return (4 + Math.floor(Math.random() * 4)) }
     }
+}
+
+exports.simulation = {
+    "paxratio": 0.2,                    // ratio between passenger and cargo flights, 0=cargo only, 1=pax only.
+    "jitter": 10,                       // global GPS precision in meter
+    "time-between-flights": [5,25],     // minimum and maximum time between fights. Exact time rounded to 5 minutes.
+    "turnaround-time": [70,120]         // minimum and maximum turnaround time
 }
