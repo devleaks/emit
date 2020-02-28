@@ -26,7 +26,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.csv")
     .requiredOption('-c, --count <count>', 'Count of zigzags')
     .option('-s, --start-date <date>', 'Start date of event reporting, default to now', now5.toISOString())
-    .option('-t, --type <type>', 'Type of flights {PAX|CARGO}')
+    .option('-t, --type <type>', 'Type of flights [PAX|CARGO]')
     .parse(process.argv)
 
 debug.init(program.debug, [""])
@@ -37,14 +37,13 @@ function rndInt(n) {
 }
 
 function nextFlight(n) {
-    return 75 + 5 * rndInt(n)
+    const p = config.simulation["time-between-flights"]
+    return p[0] + 5 * rndInt(Math.round(Math.abs(p[1]-p[0]) / 5))
 }
 
 function turnAround(type = false) {
-    const base = type == 'CARGO' ? 90 : 75
-    const extra = type == 'CARGO' ? 90 : 60
-    const rndextra = 5 * rndInt(Math.round(extra / 5))
-    return base + rndextra
+    const p = config.simulation["turnaround-time"]
+    return p[0] + 5 * rndInt(Math.round(Math.abs(p[1]-p[0]) / 5))
 }
 
 function randomFlightboard(cnt, startdate, type = false) {
@@ -52,10 +51,10 @@ function randomFlightboard(cnt, startdate, type = false) {
     var time = startdate ? moment(startdate) : moment()
 
     for (var i = 0; i < cnt; i++) {
-        var parking = airportData.randomParking()
+        var ltype = type ? type : (Math.random() > 0.5 ? 'PAX':'CARGO')
+        var parking = airportData.randomParking(airportData.randomApron(ltype))
         var aircraft = aircraftData.randomAircraftICAO()
         var airport = airports.randomAirport()
-        var ltype = type ? type : (Math.random() > 0.5 ? 'PAX':'CARGO')
         time.add(nextFlight(2), 'm')
         flightname = aircraftData.randomFlightname(ltype, false)
         // arrival
