@@ -61,17 +61,20 @@ function takeOff(flightschedule, arrival) {
  */
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
+    flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
+ 
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
+    fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
-    flight.filename = 'FLIGHT-' + flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
-    // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30})
+    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
         payload: program.payload
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
+
     debug.print(flight.filename)
 }
 
@@ -79,17 +82,21 @@ function doDeparture(flight, runway) {
  */
 function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
-    flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
+    flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
-    flight.filename = 'FLIGHT-' + flight.flight // [flight.flight, flight.isodatetime].join("-").replace(/[:.+]/g, "-")
-    // fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
+    fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true  })
+    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
+        event: 3,  // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runwa, "last" = park on time
         payload: program.payload
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
+
     debug.print(flight.filename)
 }
 
@@ -154,6 +161,7 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
+    fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
     })
