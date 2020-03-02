@@ -42,8 +42,10 @@ then
     cat $tempfile
     head -1 $OFILE
     tail -1 $OFILE
-    awk -F , '{print $2}' $OFILE |grep catering |sort -u
     awk -F , '{print $2}' $OFILE |grep fuel |sort -u
+    awk -F , '{print $2}' $OFILE |grep catering |sort -u
+    awk -F , '{print $2}' $OFILE |grep sewage |sort -u
+    awk -F , '{print $2}' $OFILE |grep cargo |sort -u
 fi
 
 if [ $CLEAN = "YES" ]

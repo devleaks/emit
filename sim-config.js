@@ -157,7 +157,9 @@ exports.services = {
             }
         ],
         "base": [
-            "BAGGAGE1"
+            "BAGGAGE1",
+            "BAGGAGE2",
+            "BAGGAGE3"
         ],
         "rate": 30,
         "rate-quiet": true,
@@ -176,7 +178,8 @@ exports.services = {
             "slow": 20
         }],
         "base": [
-            "CATERING1"
+            "CATERING1",
+            "CATERING2"
         ],
         "afterOnBlocks": 5,
         "beforeOffBlocks": 10,
@@ -185,6 +188,26 @@ exports.services = {
         serviceTime: function(qty) { return qty * 20 * 60 }, // seconds
         refillTime: function(qty) { return qty * 12 * 60 },
         randomQuantity: function() { return (1 + Math.floor(Math.random() * 2)) }
+    },
+    "sewage": {
+        "color": "#00aaaa",
+        "trucks": [{
+            "name": "sewage1",
+            "color": "#00aaaa",
+            "capacity": 10,
+            "speed": 30,
+            "slow": 10
+        }],
+        "base": [
+            "SEWAGE"
+        ],
+        "afterOnBlocks": 15,
+        "beforeOffBlocks": 15,
+        "rate": 30,
+        "speed": 30,
+        serviceTime: function(qty) { return 15 * 60 }, // seconds
+        refillTime: function(qty) { return 20 * 60 },
+        randomQuantity: function() { return 1 }
     },
     "towing": {
         "trucks": [{
@@ -201,7 +224,7 @@ exports.services = {
         "rate-quiet": true,
         "afterOnBlocks": 0,
         "beforeOffBlocks": 2,
-        serviceTime: function(qty) { return 420 }, // seconds
+        serviceTime: function(qty) { return 7 * 60 }, // seconds
         refillTime: function(qty) { return 0 },
         randomQuantity: function() { return 1 }
     },
@@ -209,19 +232,24 @@ exports.services = {
         "trucks": [{
             "name": "cargo1",
             "color": "#00aa00",
-            "capacity": 8,
+            "capacity": 1,
             "speed": 20,
-            "slow": 10
+            "slow": 5
         }],
         "base": [
-            "CARGO1"
+            "CARGO3",
+            "CARGO4",
+            "CARGO5",
+            "CARGO6"
         ],
-        "rate": 30,
+        "freit-quantity": [8, 12],
+        "freit-service-time": 5,        // minutes
+        "rate": 30,                     // seconds
         "afterOnBlocks": 10,            // cargo service can only start 10 minutes after onblok
         "beforeOffBlocks": 10,          // cargo service must be completed 10 minutes before offblok
-        serviceTime: function(qty) { return qty * 90 }, // seconds
-        refillTime: function(qty) { return qty * 90 },
-        randomQuantity: function() { return (4 + Math.floor(Math.random() * 4)) }
+        serviceTime: function(qty) { return 4 * 60 }, // seconds
+        refillTime: function(qty) { return 2 * 20 },
+        randomQuantity: function() { return 1 }
     }
 }
 

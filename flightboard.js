@@ -62,11 +62,11 @@ function takeOff(flightschedule, arrival) {
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
     flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
- 
+
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
     fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30})
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
@@ -87,12 +87,12 @@ function doArrival(flight, runway) {
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
-    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true  })
+    flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
     fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
-        event: 3,  // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runwa, "last" = park on time
+        event: 3, // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runwa, "last" = park on time
         payload: program.payload
     })
     fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
@@ -145,6 +145,55 @@ function addCatering(arrival, departure) {
     debug.print(svc)
 }
 
+function addSewage(arrival, departure) {
+    const serviceName = "sewage"
+    const serviceData = airport.config.services[serviceName]
+
+    var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["afterOnBlocks"], "m")
+
+    var dtime = moment(departure.isodatetime, moment.ISO_8601)
+    atime.add(serviceData["beforeOffBlocks"], "m")
+
+    var svc = {
+        "service": serviceName,
+        "parking": arrival.parking,
+        "qty": serviceData.randomQuantity(),
+        "datetime": atime.toISOString(),
+        "datetime-max": dtime.toISOString(),
+        "priority": 3
+    }
+    SERVICES.push(svc)
+    debug.print(svc)
+}
+
+function addFreit(arrival, departure) {
+    const serviceName = "cargo"
+    const serviceData = airport.config.services[serviceName]
+
+    const p = serviceData["freit-quantity"] // params
+    const qty = Math.floor(p[0] + Math.random() * Math.abs(p[1] - p[0]))
+
+    const stime = serviceData["freit-service-time"]
+    var atime = moment(arrival.isodatetime, moment.ISO_8601).add(serviceData["afterOnBlocks"], "m")
+    var dtime = moment(arrival.isodatetime, moment.ISO_8601).add(serviceData["beforeOffBlocks"], "m")
+
+    for (var i = 0; i < qty; i++) {
+        var svc = {
+            "service": serviceName,
+            "parking": arrival.parking,
+            "qty": serviceData.randomQuantity(), // 1
+            "datetime": atime.toISOString(),
+            "datetime-max": dtime.toISOString(),
+            "priority": 3
+        }
+        SERVICES.push(svc)
+        atime.add(stime, "m") // time between 2 freit trolley
+    }
+
+    debug.print(svc)
+}
+
 /*  Generate turnaround services for plane
  */
 function doTurnaround(arrival, departure) {
@@ -154,7 +203,12 @@ function doTurnaround(arrival, departure) {
     arrival.serviceEvents = {} // to store emitted events of service
 
     addRefuel(arrival, departure)
-    addCatering(arrival, departure)
+    if (arrival.flight.substr(0, 1) == "C") { // is a cargo flight
+        addFreit(arrival, departure)
+    } else {
+        addSewage(arrival, departure)
+        addCatering(arrival, departure)
+    }
 
     debug.print("turnaround", moment.duration(duration).humanize())
 }
@@ -206,8 +260,8 @@ function doFlightboard(flightboard) {
     })
     sfb = flightboard.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
     // 1. Generate flights
-    const runway = "22L"
     sfb.forEach(function(flight, idx) {
+        var runway = airportData.randomRunway(270)
         if (flight.move == "departure") {
             doDeparture(flight, runway)
         } else { // arrival
