@@ -45,6 +45,8 @@ exports.services = {
             speed: 30,
             slow: 5
         }],
+        "freit-quantity": [8, 12],
+        "freit-service-time": 5,        // minutes
         rate: 30, // seconds
         afterOnBlocks: 10, // cargo service can only start 10 minutes after onblok
         beforeOffBlocks: 10, // cargo service must be completed 10 minutes before offblok
@@ -52,4 +54,10 @@ exports.services = {
         refillTime: function(qty) { return 25 * 60 },
         randomQuantity: function() { return 1 }
     }
+}
+
+exports.simulation = {
+    "jitter": 10,                       // global GPS precision in meter
+    "time-between-transports": [2,25],  // minimum and maximum time between fights. Exact time rounded to 5 minutes.
+    "loading-time": [35,75]          // minimum and maximum turnaround time
 }

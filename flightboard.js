@@ -27,7 +27,7 @@ var aircraft = aircraftData.init(config.aircrafts)
 var SERVICES = []
 
 program
-    .version('1.2.0')
+    .version('1.0.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
     .option('-p, --payload', 'Add payload column with all properties')
@@ -248,6 +248,7 @@ function doServices() {
         }
     }
 }
+
 
 /*  M A I N
  */

@@ -12,8 +12,9 @@ program
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
     .option('-k, --kafka', 'send to kafka')
-    .option('-r, --rate <delay>', 'Let that amount of time between events', 1)
-    .option('-s, --speed <factor>', 'Increases speed by that foactor')
+    .option('-p, --payload', 'csv has payload column')
+    .option('-r, --rate <delay>', 'Let that amount of time between events, 1 second, default', 1)
+    .option('-s, --speed <factor>', 'Increases time by that factor')
     .option('-o, --output <file>', 'Save to file, default to out.csv', "out.csv")
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
@@ -25,7 +26,10 @@ debug.print(program.opts())
 /* INPUT
  */
 const csvstring = fs.readFileSync(program.file, 'utf8')
-var records = parse(csvstring, { columns: true })
+const cols = "queue,name,timestamp,lat,lon,speed,heading" + (program.payload ? ",payload" : "")
+
+var records = parse(csvstring, { columns: cols.split(",") })
+debug.print(records[0])
 records = records.sort((a, b) => (a.datetime > b.datetime) ? 1 : -1)
 
 
