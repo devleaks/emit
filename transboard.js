@@ -65,10 +65,10 @@ function doDeparture(transport) {
     transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
-    fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
+    //fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
 
     transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
-    fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
+    //fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
         queue: "truck",
@@ -86,10 +86,10 @@ function doArrival(transport) {
     transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
-    fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
+    //fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
 
     transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
-    fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
+    //fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
         queue: "truck",
@@ -161,14 +161,14 @@ function doServices() {
                 if (truck._points && truck._points.length > 0)
                     truck._features = truck._features.concat(truck._points)
                 truck.geojson = geojson.FeatureCollection(truck._features)
-                fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
+                // fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
 
                 // we emit it
                 truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
                     speed: truck.getProp("speed"),
                     rate: truck.getProp("rate")
                 })
-                fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
+                // fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
                 truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",

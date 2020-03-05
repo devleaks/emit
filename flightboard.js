@@ -64,10 +64,10 @@ function doDeparture(flight, runway) {
     flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
-    fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
-    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    //fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
@@ -85,10 +85,10 @@ function doArrival(flight, runway) {
     flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
-    fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
-    fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    //fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
