@@ -55,9 +55,9 @@ var truck = program.arriving ?
 
 if (truck) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(truck.getFeatures(true))), { mode: 0o644 })
-    console.log(program.output + ' written')
-    console.log('Truck '+truck_name+(program.arriving ? ' arrives from ' : ' leaves for ')+program.destination+" for "+handler+" (parking "+parking+")")
+    debug.print(program.output + ' written')
+    debug.print('Truck '+truck_name+(program.arriving ? ' arrives from ' : ' leaves for ')+program.destination+" for "+handler+" (parking "+parking+")")
 } else {
-    console.log(program.opts())
-    console.log('no file written')
+    debug.print(program.opts())
+    debug.print('no file written')
 }

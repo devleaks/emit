@@ -49,5 +49,5 @@ function pc(f) {
 }
 
 const jsonstring = fs.readFileSync(program.file, 'utf8')
-console.log("event", "elapsed", "name")
+debug.print("event", "elapsed", "name")
 var pc = pc(JSON.parse(jsonstring))

@@ -51,7 +51,7 @@ var res = (program.event == '*') ?
  */
 if (res) {
     fs.writeFileSync(program.output, res, { mode: 0o644 })
-    console.log(program.output + ' written')
+    debug.print(program.output + ' written')
 } else {
-    console.log('nothing saved')
+    debug.print('nothing saved')
 }

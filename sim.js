@@ -46,9 +46,9 @@ var airplane = program.landing ?
 if (airplane) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
     var fn = (program.landing ? "L-" : "T-") + program.aircraft + "-" + program.runway + "-" + program.airway + "-" + program.parking
-    console.log("wind: " + wind + "; " + program.name + (program.landing ? " landed " : " takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
-    console.log(program.output + ' written')
+    debug.print("wind: " + wind + "; " + program.name + (program.landing ? " landed " : " takeoff ") + program.aircraft + " on " + program.runway + " via " + program.airway + (program.landing ? " to " : " from ") + program.parking)
+    debug.print(program.output + ' written')
 } else {
-    console.log(program.opts())
-    console.log('no file written')
+    debug.print(program.opts())
+    debug.print('no file written')
 }

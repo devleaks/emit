@@ -68,9 +68,8 @@ function getMetar() {
         // Following just pretty-prints the object
         var METAR = data["response"]["data"][0]["METAR"][0]
         fs.writeFileSync(program.O, JSON.stringify(METAR, null, 2), { mode: 0o644 })
-        //console.log(JSON.stringify(data, null, 2));
     })
-    console.log("METAR updated", fname)
+    debug.print("METAR updated", fname)
 }
 
 
@@ -81,7 +80,7 @@ try {
     if (fdate.isBefore(moment()) || program.refresh)
         getMetar()
     else
-        console.log("METAR up-to-date")
+        debug.print("METAR up-to-date")
 } catch (e) {
     getMetar()
 }

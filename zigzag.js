@@ -26,4 +26,4 @@ const count = parseInt(program.count)
 const length = parseInt(program.length) // km
 
 fs.writeFileSync(program.O, JSON.stringify(zigzag.zigzag([4.3483286,50.8445793],length,count,program)), { mode: 0o644 })
-console.log(program.O + ' written')
+debug.print(program.O + ' written')
