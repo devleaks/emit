@@ -38,7 +38,7 @@ function pc(f) {
     } else if (f.type == "Feature") {
         if (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("emit")) {
             if (f.properties.hasOwnProperty("sync")) {
-                debug.print(cnt++, f.properties.hasOwnProperty("elapsed") ? f.properties.elapsed : f.properties.scheduled, f.properties.sync)
+                debug.print(cnt++, f.properties.hasOwnProperty("elapsed") ? f.properties.elapsed : f.properties.scheduled, f.properties.sync, f.properties.note)
             }
             if(f.properties.hasOwnProperty("category") && f.properties.category == "f") {
                 last = f                

@@ -171,7 +171,7 @@ function mkturn(l1, l0, l2, radius) {
             pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing1 - 90, bearing2 - 90)
         } else {
             pie2 = turf.lineArc(center.geometry.coordinates, radius, bearing2 - 270, bearing1 - 270)
-            pie2.geometry.coordinates = pie2.geometry.coordinates.reverse()
+            pie2.geometry.coordinates.reverse()
         }
         features.push(pie2)
 

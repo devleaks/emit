@@ -19,7 +19,7 @@ var trucks = trucksData.init(config)
 
 const isArriving = Math.random() > 0.5
 const truck_name = 'T' + Math.floor(Math.random() * 10000)
-const handler = roadsData.randomHandler(config.services)
+const handler = roadsData.randomHandler()
 
 program
     .version('1.0.0')
@@ -36,7 +36,19 @@ program
 debug.init(program.debug, ["", "leave"])
 debug.print(program.opts())
 
-var parking = program.warehouse ? roadsData.randomParking(config.services, program.warehouse) : roadsData.randomParking(handler)
+
+var t1 = roadsData.parkingAvailable("S22:0", "2020-03-05T07:54:24.484+01:00","2020-03-05T09:54:24.484+01:00")
+debug.print("parking 1", t1)
+
+roadsData.park("S22:0", "2020-03-05T09:54:25.484+01:00","2020-03-05T10:54:24.484+01:00")
+
+var t2 = roadsData.parkingAvailable("S22:0", "2020-03-05T07:54:24.484+01:00","2020-03-05T09:54:24.484+01:00")
+debug.print("parking 2", t2)
+
+var t3 = roadsData.findParking("2020-03-05T07:54:24.484+01:00","2020-03-05T09:54:26.484+01:00", "handler1")
+debug.print("parking 3", t3)
+
+var parking = program.warehouse ? roadsData.randomParking(program.warehouse) : roadsData.randomParking(handler)
 var truck = program.arriving ?
     simulator.arrive(roads, truck_name, program.truck, parking, program.destination) :
     simulator.leave(roads, truck_name, program.truck, parking, program.destination)

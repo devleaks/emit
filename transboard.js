@@ -36,7 +36,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["","doDeparture","doArrival"])
+debug.init(program.debug, [""])
 debug.print(program.opts())
 
 
@@ -47,9 +47,9 @@ function takeOff(transportschedule, arrival) {
     var idx = 0
     while (!departure && idx < transportschedule.length) {
         var transport = transportschedule[idx]
-        console.log(transport.move, transport.zuludatetime, transport.truck, transport.parking, arrival.zuludatetime, arrival.truck, arrival.parking)
         if ( transport.move == "departure" 
              && transport.parking == arrival.parking
+             && transport.truck == arrival.truck
              && transport.zuludatetime > arrival.zuludatetime) {
             departure = transport
         }
@@ -61,13 +61,13 @@ function takeOff(transportschedule, arrival) {
 
 /*  Generate full departure (write down CSV)
  */
-function doDeparture(transport, runway) {
+function doDeparture(transport) {
     transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
 
-    transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 30 })
+    transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
     fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
@@ -82,17 +82,18 @@ function doDeparture(transport, runway) {
 
 /*  Generate full arrival (write down CSV)
  */
-function doArrival(transport, runway) {
+function doArrival(transport) {
     transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
 
-    transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 30 })
+    transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
     fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
     const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
         queue: "truck",
+        event: "last", // 0=Enters Belgium, 1=Exits highway, 2=At parking
         payload: program.payload
     })
     fs.writeFileSync(transport.filename + '.csv', csv, { mode: 0o644 })
@@ -143,7 +144,9 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-    return
+
+    return // do nothing for now
+
     fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
@@ -197,7 +200,6 @@ function doTransportboard(transportboard) {
             doArrival(transport)
             // does it leave later?
             var departure = takeOff(transportboard, transport)
-            console.log("<",departure)
             if (departure) {
                 doTurnaround(transport, departure)
             } // departure will be generated later

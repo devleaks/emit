@@ -5,7 +5,7 @@ exports.roads = {
         "deutschland-aachen": "eblg/json-tr/Deutschland-Aachen.geojson",
         "deutschland-stvith": "eblg/json-tr/Deutschland-StVith.geojson",
         "holland-breda": "eblg/json-tr/Holland-Breda.geojson",
-        "holland-maastrich": "eblg/json-tr/Holland-Maastricht.geojson",
+        "holland-maastricht": "eblg/json-tr/Holland-Maastricht.geojson",
         "luxembourg-luxembourg": "eblg/json-tr/Luxembourg-Luxembourg.geojson",
         "france-lille": "eblg/json-tr/France-Lille.geojson",
         "france-paris": "eblg/json-tr/France-Paris.geojson"
@@ -47,7 +47,7 @@ exports.services = {
         }],
         "freit-quantity": [8, 12],
         "freit-service-time": 5,        // minutes
-        rate: 30, // seconds
+        rate: 120, // seconds
         afterOnBlocks: 10, // cargo service can only start 10 minutes after onblok
         beforeOffBlocks: 10, // cargo service must be completed 10 minutes before offblok
         serviceTime: function(qty) { return 20 * 60 }, // seconds
