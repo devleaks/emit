@@ -53,6 +53,12 @@ if (program.file) {
             case 'catering':
                 services.push({ "service": "catering", "parking": p, "qty": Math.floor(Math.random() * 2), "datetime": null, "datetime-max": null, "priority": 3 })
                 break
+            case 'sewage':
+                services.push({ "service": "sewage", "parking": p, "qty": 1, "datetime": null, "datetime-max": null, "priority": 2 })
+                break
+            case 'cargo': // this only works if we load sim-config-transport
+                services.push({ "service": "cargo", "parking": p, "qty": 4 + Math.floor(Math.random() * 10), "datetime": null, "datetime-max": null, "priority": 2 })
+                break
             default:
                 debug.warning("unknown or unconfigured service " + serv + ".")
                 print = false

@@ -10,6 +10,7 @@
     "color-convert": "^2.0.1",
     "commander": "^4.1.1",
     "csv-parse": "^4.8.8",
+    "esprima": "^4.0.1",
     "fs": "^0.0.1-security",
     "geojson-path-finder": "^1.5.2",
     "geojson-polygon-center": "^0.0.0",

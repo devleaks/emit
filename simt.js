@@ -1,3 +1,5 @@
+"use strict"
+
 const fs = require('fs')
 
 var program = require('commander')
@@ -36,7 +38,7 @@ program
 debug.init(program.debug, ["", "leave"])
 debug.print(program.opts())
 
-
+/*
 var t1 = roadsData.parkingAvailable("S22:0", "2020-03-05T07:54:24.484+01:00","2020-03-05T09:54:24.484+01:00")
 debug.print("parking 1", t1)
 
@@ -47,7 +49,7 @@ debug.print("parking 2", t2)
 
 var t3 = roadsData.findParking("2020-03-05T07:54:24.484+01:00","2020-03-05T09:54:26.484+01:00", "handler1")
 debug.print("parking 3", t3)
-
+*/
 var parking = program.warehouse ? roadsData.randomParking(program.warehouse) : roadsData.randomParking(handler)
 var truck = program.arriving ?
     simulator.arrive(roads, truck_name, program.truck, parking, program.destination) :

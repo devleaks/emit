@@ -26,4 +26,4 @@ $ grep apron *parkin* | grep 6 | wc -l
        5
 
 
-Investigate emit bug with truck when 30T or 15T (speed differs and last event emited or not...)
+Investigate possibility to "reverse" trip.

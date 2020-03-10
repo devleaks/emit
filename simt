@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# sim.sh rel. 1.0.0
+#
+
+COUNT=0
+CLEAN="NO"
+POSITIONAL=()
+
+OFILE=out.csv
+
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+    case $key in
+        -c|--count)
+        COUNT="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --clean)
+        CLEAN="YES"
+        shift # past argument
+        ;;
+        *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+    esac
+done
+
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+tempfile=fb$$.csv
+if [ $COUNT -gt 0 ]
+then   
+    node mktb.js -c $COUNT -o $tempfile
+    node transboard.js -f $tempfile
+    cat TRANSPORT-*.csv | sort -t , -k 3 -o $OFILE
+    ls -l $OFILE
+    wc -l $OFILE
+    cat $tempfile
+    head -1 $OFILE
+    tail -1 $OFILE
+fi
+
+if [ $CLEAN = "YES" ]
+  then rm -f $tempfile TRANSPORT-*.{csv,json}
+fi

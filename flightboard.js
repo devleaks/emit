@@ -215,7 +215,8 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-    fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
+    if(program.debug)
+        fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
     })

@@ -130,8 +130,8 @@ exports.services = {
             }
         ],
         "base": [
-            "FUEL1",
-            "FUEL2"
+            "FUEL0",
+            "FUEL1"
         ],
         "rate": 10,
         "afterOnBlocks": 20,
@@ -237,6 +237,8 @@ exports.services = {
             "slow": 5
         }],
         "base": [
+            "CARGO1",
+            "CARGO2",
             "CARGO3",
             "CARGO4",
             "CARGO5",

@@ -24,6 +24,8 @@ const tocsv = require('./lib/tocsv-lib.js')
 
 debug.init(true, [""])
 
+const FILEPREFIX = "TRANSPORT-"
+
 
 var SERVICES = []
 
@@ -62,7 +64,7 @@ function takeOff(transportschedule, arrival) {
 /*  Generate full departure (write down CSV)
  */
 function doDeparture(transport) {
-    transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     //fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
@@ -83,7 +85,7 @@ function doDeparture(transport) {
 /*  Generate full arrival (write down CSV)
  */
 function doArrival(transport) {
-    transport.filename = 'transport-' + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     //fs.writeFileSync(transport.filename + '_.json', JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
