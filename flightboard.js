@@ -24,6 +24,8 @@ const config = require('./sim-config')
 var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)
 
+const FILEPREFIX = "FLIGHT-"
+
 var SERVICES = []
 
 program
@@ -61,7 +63,7 @@ function takeOff(flightschedule, arrival) {
  */
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
-    flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
+    flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
     //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
@@ -82,7 +84,7 @@ function doDeparture(flight, runway) {
  */
 function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
-    flight.filename = 'FLIGHT-' + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
+    flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
@@ -216,7 +218,7 @@ function doTurnaround(arrival, departure) {
 //
 function doServices() {
     if(program.debug)
-        fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
+        fs.writeFileSync(FILEPREFIX + '.json', JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
     })
@@ -224,7 +226,7 @@ function doServices() {
         if (trucks.hasOwnProperty(svc)) {
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = 'SERVICE-' + truck.getProp("service") + '-' + truck.getName()
+                const fn = FILEPREFIX + truck.getProp("service") + '-' + truck.getName()
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)
