@@ -87,6 +87,7 @@ function doArrival(flight, runway) {
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
+    if(! flight.geojson) console.log("parking:"+flight.parking, flight.plane, runway, star)
     //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
@@ -205,7 +206,7 @@ function doTurnaround(arrival, departure) {
     arrival.serviceEvents = {} // to store emitted events of service
 
     addRefuel(arrival, departure)
-    if (arrival.flight.substr(0, 1) == "C") { // is a cargo flight
+    if (arrival.flight.substr(0, 1) == "C" || arrival.flight.substr(0, 3) == "ASL") { // is a cargo flight
         addFreit(arrival, departure)
     } else {
         addSewage(arrival, departure)
