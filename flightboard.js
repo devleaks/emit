@@ -14,6 +14,8 @@ const service = require('./lib/service-lib.js')
 const emit = require('./lib/emit-lib.js')
 const tocsv = require('./lib/tocsv-lib.js')
 
+const backoffice = require('./lib/backoffice.js')
+
 const airportData = require('./lib/airport.js')
 const aircraftData = require('./lib/aircraft')
 
@@ -26,8 +28,6 @@ var aircraft = aircraftData.init(config.aircrafts)
 
 const FILEPREFIX = "FLIGHT-"
 
-var SERVICES = []
-
 program
     .version('1.0.0')
     .description('generates flights from flight board (departure and arrival)')
@@ -37,7 +37,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, [])
+debug.init(program.debug, ["tocsv"])
 debug.print(program.opts())
 
 /*  Utility function: Does this arrival flight leave later on?
@@ -59,23 +59,76 @@ function takeOff(flightschedule, arrival) {
     return departure
 }
 
+
+
+
+
 /*  Generate full departure (write down CSV)
  */
 function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
+    var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+    backoffice.announce("aodb", "flightboard", announce.toISOString(), {
+        info: "scheduled",
+        move: "departure",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: moment(flight.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
+        time: flight.time,
+        parking: flight.parking
+    })
+
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
-    //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    if(program.debug)
+        fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
-    //fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    if(program.debug)
+        fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
-    const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
+    const tocsvret = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
         payload: program.payload
     })
-    fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
+    fs.writeFileSync(flight.filename + '.csv', tocsvret.csv, { mode: 0o644 })
+
+    // departure is event 0. We add a little randomness around it, and a little randomness at the time it is annouceed 20-60 min in advance)
+    var annoucets = moment(tocsvret.syncevents[0])
+    annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
+
+    var dept = moment(tocsvret.syncevents[0])
+    var deptguess = moment(tocsvret.syncevents[0])
+    var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
+    deptguess.add(randomdelay, "seconds")
+    backoffice.announce("aodb", "flightboard", annoucets.toISOString(), {
+        info: "planned",
+        move: "departure",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: deptguess.format("DD/MM"),
+        time: deptguess.format("HH:mm"),
+        parking: flight.parking
+    })
+
+    backoffice.announce("aodb", "flightboard", tocsvret.syncevents[0], {
+        info: "actual",
+        move: "departure",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: dept.format("DD/MM"),
+        time: dept.format("HH:mm"),
+        parking: flight.parking
+    })
+
+    backoffice.announce("aodb", "parking", tocsvret.syncevents[0], {
+        info: "parking",
+        move: "available",
+        flight: flight.flight,
+        airport: flight.airport,
+        parking: flight.parking
+    })
 
     debug.print(flight.filename)
 }
@@ -86,19 +139,67 @@ function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
+    var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+    backoffice.announce("aodb", "flightboard", announce.toISOString(), {
+        info: "scheduled",
+        move: "arrival",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: moment(flight.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
+        time: flight.time,
+        parking: flight.parking
+    })
+
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
-    if(! flight.geojson) console.log("parking:"+flight.parking, flight.plane, runway, star)
+    if (!flight.geojson) console.log("parking:" + flight.parking, flight.plane, runway, star)
     //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
     //fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
-    const csv = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
+    const tocsvret = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
         event: 3, // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runwa, "last" = park on time
         payload: program.payload
     })
-    fs.writeFileSync(flight.filename + '.csv', csv, { mode: 0o644 })
+    fs.writeFileSync(flight.filename + '.csv', tocsvret.csv, { mode: 0o644 })
+
+    // arrival's touch down is event 3. We add a little randomness around it, and a little randomness at the time it is annouceed
+    var annoucets = moment(tocsvret.syncevents[0])
+    annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
+
+    var arrv = moment(tocsvret.syncevents[3])
+    var arrguess = moment(tocsvret.syncevents[3])
+    var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
+    arrguess.add(randomdelay, "seconds")
+    backoffice.announce("aodb", "flightboard", annoucets.toISOString(), {
+        info: "planned",
+        move: "departure",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: arrguess.format('DD/MM'),
+        time: arrguess.format('HH:mm'),
+        parking: flight.parking
+    })
+
+    var arrv = moment(tocsvret.syncevents[3])
+    backoffice.announce("aodb", "flightboard", tocsvret.syncevents[4], {
+        info: "actual",
+        move: "departure",
+        flight: flight.flight,
+        airport: flight.airport,
+        date: arrv.format('DD/MM'),
+        time: arrv.format('HH:mm'),
+        parking: flight.parking
+    })
+
+    backoffice.announce("aodb", "parking", tocsvret.syncevents[4], {
+        info: "parking",
+        move: "busy",
+        flight: flight.flight,
+        airport: flight.airport,
+        parking: flight.parking
+    })
 
     debug.print(flight.filename)
 }
@@ -121,7 +222,7 @@ function addRefuel(arrival, departure) {
         "datetime-max": dtime.toISOString(),
         "priority": 3
     }
-    SERVICES.push(svc)
+    service.add(svc)
     debug.print(svc)
 }
 
@@ -144,7 +245,7 @@ function addCatering(arrival, departure) {
         "datetime-max": dtime.toISOString(),
         "priority": 3
     }
-    SERVICES.push(svc)
+    service.add(svc)
     debug.print(svc)
 }
 
@@ -166,7 +267,7 @@ function addSewage(arrival, departure) {
         "datetime-max": dtime.toISOString(),
         "priority": 3
     }
-    SERVICES.push(svc)
+    service.add(svc)
     debug.print(svc)
 }
 
@@ -190,7 +291,7 @@ function addFreit(arrival, departure) {
             "datetime-max": dtime.toISOString(),
             "priority": 3
         }
-        SERVICES.push(svc)
+        service.add(svc)
         atime.add(stime, "m") // time between 2 freit trolley
     }
 
@@ -206,7 +307,7 @@ function doTurnaround(arrival, departure) {
     arrival.serviceEvents = {} // to store emitted events of service
 
     addRefuel(arrival, departure)
-    if (arrival.flight.substr(0, 1) == "C" || arrival.flight.substr(0, 3) == "ASL") { // is a cargo flight
+    if (arrival.flight.substr(0, 1) == "C" || arrival.flight.substr(0, 3) == "ASL") { // is a cargo flight
         addFreit(arrival, departure)
     } else {
         addSewage(arrival, departure)
@@ -218,9 +319,10 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-    if(program.debug)
-        fs.writeFileSync(FILEPREFIX + '.json', JSON.stringify(SERVICES), { mode: 0o644 })
-    var trucks = service.doServices(SERVICES, airport, {
+    var services = service.todo()
+    if (program.debug)
+        fs.writeFileSync(FILEPREFIX + '.json', JSON.stringify(services), { mode: 0o644 })
+    var trucks = service.doServices(services, airport, {
         park: true
     })
     for (var svc in trucks) {
@@ -281,6 +383,8 @@ function doFlightboard(flightboard) {
     })
     // now plan and generate services
     doServices()
+
+    backoffice.save(FILEPREFIX + 'flightboard.csv')
 }
 
 var features = []

@@ -72,11 +72,11 @@ function doDeparture(transport) {
     transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
     //fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
-    const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
+    const tocsvret = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
         queue: "truck",
         payload: program.payload
     })
-    fs.writeFileSync(transport.filename + '.csv', csv, { mode: 0o644 })
+    fs.writeFileSync(transport.filename + '.csv', tocsvret.csv, { mode: 0o644 })
 
     debug.print(transport.filename)
 }
@@ -93,12 +93,12 @@ function doArrival(transport) {
     transport.events = emit.emitCollection(geojson.FeatureCollection(transport.geojson.getFeatures(true)), { speed: 30, rate: 120 })
     //fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
 
-    const csv = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
+    const tocsvret = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
         queue: "truck",
         event: "last", // 0=Enters Belgium, 1=Exits highway, 2=At parking
         payload: program.payload
     })
-    fs.writeFileSync(transport.filename + '.csv', csv, { mode: 0o644 })
+    fs.writeFileSync(transport.filename + '.csv', tocsvret.csv, { mode: 0o644 })
 
     debug.print(transport.filename)
 }
