@@ -258,7 +258,7 @@ exports.services = {
 exports.simulation = {
     "aodb-preannounce": 6 * 60 * 60,    // how long before a flight scheduled time is announced.
     "aodb-planned-uncertainly": 10 * 60,  // When planned is announed, add random uncertainly.
-    "aodb-planned-timeframe": [40, 20],
+    "aodb-planned-timeframe": [40, 20], // "planned time" is announced between 20 and 60 minutes before the event.
     "paxratio": 0.2,                    // ratio between passenger and cargo flights, 0=cargo only, 1=pax only.
     "jitter": 10,                       // global GPS precision in meter
     "time-between-flights": [5,25],     // minimum and maximum time between fights. Exact time rounded to 5 minutes.
