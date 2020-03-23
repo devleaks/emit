@@ -115,3 +115,5 @@ SERVICE-*
 FLIGHT-*
 tests/
 sample/
+
+wallet.js
