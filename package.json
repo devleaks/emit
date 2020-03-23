@@ -29,6 +29,7 @@
     "sqlite3": "^4.1.1",
     "turf-line-slice-at-intersection": "^1.0.1",
     "vt-geojson": "^2.1.1",
+    "ws": "^7.2.3",
     "xml2js": "^0.4.23"
   },
   "resolutions": {
