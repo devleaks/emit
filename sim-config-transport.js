@@ -31,11 +31,12 @@ exports.trucks = {
 
 exports.services = {
     "handlers": {
-        "handler1": ["N11", "N12"],
-        "handler2": ["N21", "N22", "N23"],
-        "handler3": ["S11", "S12"],
-        "handler4": ["S21", "S22"],
-        "handler5": ["S31", "S32"]
+        "handler1": ["S11", "S12"],
+        "handler2": ["S21", "S22"],
+        "handler3": ["S31", "S32"],
+        "handler4": ["S41", "S42"],
+        "handler5": ["N51", "N52"],
+        "handler6": ["N61", "N62", "N63"]
     },
     "freit": {
         "trucks": [{

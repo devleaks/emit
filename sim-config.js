@@ -264,3 +264,8 @@ exports.simulation = {
     "time-between-flights": [5,25],     // minimum and maximum time between fights. Exact time rounded to 5 minutes.
     "turnaround-time": [70,120]         // minimum and maximum turnaround time
 }
+
+exports.websocket = {
+    host: 'localhost',
+    port: 8051
+}
