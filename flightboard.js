@@ -70,7 +70,7 @@ function doDeparture(flight, runway) {
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
-    backoffice.announce("aodb", "flightboard", announce.toISOString(), {
+    backoffice.announce("aodb", "flightboard", announce.toISOString(true), {
         info: "scheduled",
         move: "departure",
         flight: flight.flight,
@@ -102,7 +102,7 @@ function doDeparture(flight, runway) {
     var deptguess = moment(tocsvret.syncevents[0])
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     deptguess.add(randomdelay, "seconds")
-    backoffice.announce("aodb", "flightboard", annoucets.toISOString(), {
+    backoffice.announce("aodb", "flightboard", annoucets.toISOString(true), {
         info: "planned",
         move: "departure",
         flight: flight.flight,
@@ -140,7 +140,7 @@ function doArrival(flight, runway) {
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
-    backoffice.announce("aodb", "flightboard", announce.toISOString(), {
+    backoffice.announce("aodb", "flightboard", announce.toISOString(true), {
         info: "scheduled",
         move: "arrival",
         flight: flight.flight,
@@ -168,13 +168,13 @@ function doArrival(flight, runway) {
     var annoucets = moment(tocsvret.syncevents[0])
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
 
-    var arrv = moment(tocsvret.syncevents[3])
-    var arrguess = moment(tocsvret.syncevents[3])
+    var arrv = moment(tocsvret.syncevents[3], moment.ISO_8601)
+    var arrguess = moment(tocsvret.syncevents[3], moment.ISO_8601)
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     arrguess.add(randomdelay, "seconds")
-    backoffice.announce("aodb", "flightboard", annoucets.toISOString(), {
+    backoffice.announce("aodb", "flightboard", annoucets.toISOString(true), {
         info: "planned",
-        move: "departure",
+        move: "arrival",
         flight: flight.flight,
         airport: flight.airport,
         date: arrguess.format('DD/MM'),
@@ -185,7 +185,7 @@ function doArrival(flight, runway) {
     var arrv = moment(tocsvret.syncevents[3])
     backoffice.announce("aodb", "flightboard", tocsvret.syncevents[4], {
         info: "actual",
-        move: "departure",
+        move: "arrival",
         flight: flight.flight,
         airport: flight.airport,
         date: arrv.format('DD/MM'),
