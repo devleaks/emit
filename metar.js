@@ -89,5 +89,6 @@ try {
 // Historical metar here:
 // https://www.ogimet.com/display_metars2.php?lang=en&lugar=EBLG&tipo=SA&ord=REV&nil=SI&fmt=txt&ano=2020&mes=03&day=24&hora=09&anof=2020&mesf=03&dayf=25&horaf=09&minf=59&send=send
 
-
+// Link to windity: https://www.windy.com/EBLG?49.063,7.674,7
+// Zoom 15 is perfect
 
