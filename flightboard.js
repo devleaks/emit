@@ -29,7 +29,7 @@ var aircraft = aircraftData.init(config.aircrafts)
 const FILEPREFIX = "FLIGHT-"
 
 program
-    .version('1.0.0')
+    .version('1.1.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
     .option('-p, --payload', 'Add payload column with all properties')
@@ -164,6 +164,7 @@ function doArrival(flight, runway) {
     })
     fs.writeFileSync(flight.filename + '.csv', tocsvret.csv, { mode: 0o644 })
 
+
     // arrival's touch down is event 3. We add a little randomness around it, and a little randomness at the time it is annouceed
     var annoucets = moment(tocsvret.syncevents[0])
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
@@ -193,7 +194,9 @@ function doArrival(flight, runway) {
         parking: flight.parking
     })
 
-    backoffice.announce("aodb", "parking", tocsvret.syncevents[4], {
+    var arrpt = tocsvret.syncevents[Object.keys(tocsvret.syncevents).length-1]  // last event
+    var arrp = moment(arrpt, moment.ISO_8601)
+    backoffice.announce("aodb", "parking", arrp.toISOString(true), {
         info: "parking",
         move: "busy",
         flight: flight.flight,
@@ -335,14 +338,14 @@ function doServices() {
                 if (truck._points && truck._points.length > 0)
                     truck._features = truck._features.concat(truck._points)
                 truck.geojson = geojson.FeatureCollection(truck._features)
-                fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
+                //fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
 
                 // we emit it
                 truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
                     speed: truck.getProp("speed"),
                     rate: truck.getProp("rate")
                 })
-                fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
+                //fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
                 truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",
@@ -365,7 +368,10 @@ function doFlightboard(flightboard) {
         flight.isodatetime = day + "T" + flight.time + ":00.000" + moment().format("Z") // flight time: 08:15, 22:55
         flight.zuludatetime = moment(flight.isodatetime, moment.ISO_8601).toISOString()
     })
-    sfb = flightboard.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
+    sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
+
+    backoffice.announce("aodb", "metar", airport.METAR.raw_timestamp[0], {metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0]})
+
     // 1. Generate flights
     sfb.forEach(function(flight, idx) {
         var runway = airportData.randomRunway(270)

@@ -37,7 +37,7 @@ tempfile=${temprefix}$$.csv
 if [ $COUNT -gt 0 ]
 then   
     node mkfb.js -c $COUNT -o $tempfile
-    node flightboard.js -f $tempfile
+    node flightboard.js -f $tempfile -p
     cat ${temprefix}-*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE

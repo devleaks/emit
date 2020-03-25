@@ -22,10 +22,10 @@ program
     .version('1.1.0')
     .description('generates tranport board')
     .option('-d, --debug', 'output extra debugging')
-    .option('-o, --output <file>', 'Save to file, default to out.csv', "out.csv")
-    .requiredOption('-c, --count <count>', 'Count of zigzags')
+    .option('-o, --output <file>', 'save to file, default to out.csv', "out.csv")
+    .requiredOption('-c, --count <count>', 'count of transports (arrival then departure')
     .option('-w, --warehouse <warehouse>', 'name of handler warehouse')
-    .option('-s, --start-date <date>', 'Start date of event reporting, default to now', now5.toISOString())
+    .option('-s, --start-date <date>', 'start date of event reporting, default to now', now5.toISOString())
     .parse(process.argv)
 
 debug.init(program.debug, [""])

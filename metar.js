@@ -67,6 +67,7 @@ function getMetar() {
         // Do whatever you want with the data here
         // Following just pretty-prints the object
         var METAR = data["response"]["data"][0]["METAR"][0]
+        METAR.raw_timestamp = [moment().toISOString()]
         fs.writeFileSync(program.O, JSON.stringify(METAR, null, 2), { mode: 0o644 })
     })
     debug.print("METAR updated", fname)
@@ -84,3 +85,9 @@ try {
 } catch (e) {
     getMetar()
 }
+
+// Historical metar here:
+// https://www.ogimet.com/display_metars2.php?lang=en&lugar=EBLG&tipo=SA&ord=REV&nil=SI&fmt=txt&ano=2020&mes=03&day=24&hora=09&anof=2020&mesf=03&dayf=25&horaf=09&minf=59&send=send
+
+
+

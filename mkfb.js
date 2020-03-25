@@ -21,12 +21,12 @@ const now5 = moment(now).add(5 - (now.minute() % 5), "minutes").add(- now.second
 
 program
     .version('1.1.0')
-    .description('generates flightboard')
+    .description('generates random flightboard')
     .option('-d, --debug', 'output extra debugging')
     .option('-o, --output <file>', 'Save to file, default to out.csv', "out.csv")
-    .requiredOption('-c, --count <count>', 'Count of zigzags')
-    .option('-s, --start-date <date>', 'Start date of event reporting, default to now', now5.toISOString())
-    .option('-t, --type <type>', 'Type of flights [PAX|CARGO]')
+    .requiredOption('-c, --count <count>', 'count of arrival/departure pairs')
+    .option('-s, --start-date <date>', 'start date of event reporting, default to now', now5.toISOString())
+    .option('-t, --type <type>', 'type of flights [PAX|CARGO]')
     .parse(process.argv)
 
 debug.init(program.debug, [""])

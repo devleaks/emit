@@ -265,6 +265,13 @@ exports.simulation = {
     "turnaround-time": [70,120]         // minimum and maximum turnaround time
 }
 
+// Miscellaneous (standardized) CSV prruduced for Kafka. Payload is often a JSON-formatted strinfified string.
+exports.CSV = {
+    "DEVICE": "queue,name,timestamp,lat,lon,alt,speed,heading,payload",
+    "MESSAGE": "queue,type,timestamp,payload",
+    "SENSOR": "queue,name,timestamp,payload"
+}
+
 exports.websocket = {
     host: 'localhost',
     port: 8051
