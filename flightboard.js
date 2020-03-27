@@ -70,7 +70,7 @@ function doDeparture(flight, runway) {
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
-    backoffice.announce("aodb", "flightboard", announce.toISOString(true), {
+    backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
         move: "departure",
         flight: flight.flight,
@@ -102,7 +102,7 @@ function doDeparture(flight, runway) {
     var deptguess = moment(tocsvret.syncevents[0])
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     deptguess.add(randomdelay, "seconds")
-    backoffice.announce("aodb", "flightboard", annoucets.toISOString(true), {
+    backoffice.announce("flightboard", flight.flight, annoucets.toISOString(true), {
         info: "planned",
         move: "departure",
         flight: flight.flight,
@@ -112,7 +112,7 @@ function doDeparture(flight, runway) {
         parking: flight.parking
     })
 
-    backoffice.announce("aodb", "flightboard", tocsvret.syncevents[0], {
+    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[0], {
         info: "actual",
         move: "departure",
         flight: flight.flight,
@@ -122,7 +122,7 @@ function doDeparture(flight, runway) {
         parking: flight.parking
     })
 
-    backoffice.announce("aodb", "parking", tocsvret.syncevents[0], {
+    backoffice.announce("parking", flight.parking.toString(), tocsvret.syncevents[0], {
         info: "parking",
         move: "available",
         flight: flight.flight,
@@ -140,7 +140,7 @@ function doArrival(flight, runway) {
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
-    backoffice.announce("aodb", "flightboard", announce.toISOString(true), {
+    backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
         move: "arrival",
         flight: flight.flight,
@@ -173,7 +173,7 @@ function doArrival(flight, runway) {
     var arrguess = moment(tocsvret.syncevents[3], moment.ISO_8601)
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     arrguess.add(randomdelay, "seconds")
-    backoffice.announce("aodb", "flightboard", annoucets.toISOString(true), {
+    backoffice.announce("flightboard", flight.flight, annoucets.toISOString(true), {
         info: "planned",
         move: "arrival",
         flight: flight.flight,
@@ -184,7 +184,7 @@ function doArrival(flight, runway) {
     })
 
     var arrv = moment(tocsvret.syncevents[3])
-    backoffice.announce("aodb", "flightboard", tocsvret.syncevents[4], {
+    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[4], {
         info: "actual",
         move: "arrival",
         flight: flight.flight,
@@ -196,7 +196,7 @@ function doArrival(flight, runway) {
 
     var arrpt = tocsvret.syncevents[Object.keys(tocsvret.syncevents).length-1]  // last event
     var arrp = moment(arrpt, moment.ISO_8601)
-    backoffice.announce("aodb", "parking", arrp.toISOString(true), {
+    backoffice.announce("parking", flight.parking.toString(), arrp.toISOString(true), {
         info: "parking",
         move: "busy",
         flight: flight.flight,
@@ -332,7 +332,7 @@ function doServices() {
         if (trucks.hasOwnProperty(svc)) {
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = FILEPREFIX + truck.getProp("service") + '-' + truck.getName()
+                const fn = FILEPREFIX + truck.getProp("service") + '-' + truck.getName().replace(/:/, "") // unix does not like :
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)
@@ -370,7 +370,7 @@ function doFlightboard(flightboard) {
     })
     sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
 
-    backoffice.announce("aodb", "metar", airport.METAR.raw_timestamp[0], {metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0]})
+    backoffice.announce("metar", "eblg", airport.METAR.raw_timestamp[0], {metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0]})
 
     // 1. Generate flights
     sfb.forEach(function(flight, idx) {
