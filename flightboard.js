@@ -152,10 +152,12 @@ function doArrival(flight, runway) {
 
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
     if (!flight.geojson) console.log("parking:" + flight.parking, flight.plane, runway, star)
-    //fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
+    if(program.debug)
+        fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
-    //fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
+    if(program.debug)
+        fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
     const tocsvret = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
         queue: "aircraft",
@@ -324,7 +326,7 @@ function doTurnaround(arrival, departure) {
 function doServices() {
     var services = service.todo()
     if (program.debug)
-        fs.writeFileSync(FILEPREFIX + '.json', JSON.stringify(services), { mode: 0o644 })
+        fs.writeFileSync(FILEPREFIX + 'services.json', JSON.stringify(services, null, 2), { mode: 0o644 })
     var trucks = service.doServices(services, airport, {
         park: true
     })
@@ -338,14 +340,17 @@ function doServices() {
                 if (truck._points && truck._points.length > 0)
                     truck._features = truck._features.concat(truck._points)
                 truck.geojson = geojson.FeatureCollection(truck._features)
-                //fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
+                if(program.debug)
+                    fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
 
                 // we emit it
                 truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
                     speed: truck.getProp("speed"),
-                    rate: truck.getProp("rate")
+                    rate: truck.getProp("rate"),
+                    jitter: 20
                 })
-                //fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
+                if(program.debug)
+                    fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
                 truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",
