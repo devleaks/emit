@@ -7,6 +7,7 @@ var program = require('commander')
 const debug = require('./lib/debug')
 
 const geojson = require('./lib/geojson-util')
+const random = require('./lib/random')
 
 const simulator = require('./lib/movement-lib.js')
 const service = require('./lib/service-lib.js')
@@ -59,7 +60,9 @@ function takeOff(flightschedule, arrival) {
     return departure
 }
 
-
+function addDelay(t, f) {
+    return (f.hasOwnProperty("delay") && f.delay > 0) ? moment(t).add(f.delay, "minutes") : t
+}
 
 
 
@@ -69,6 +72,7 @@ function doDeparture(flight, runway) {
     const sid = airportData.randomSID(runway)
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
+    // annouce flight at its scheduled time.
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
     backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
@@ -80,15 +84,43 @@ function doDeparture(flight, runway) {
         parking: flight.parking
     })
 
+    // fly it
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
-    if(program.debug)
+    if (program.debug)
         fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30 })
-    if(program.debug)
+    if (program.debug)
         fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
-    const tocsvret = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
+    // add an actual ramdom delay to the flight
+    var extradelay = random.randomValue(config.simulation["departure-delays"])
+    // first if arrival was late, we postpone departure also (not if flight arrived early)
+    flight.actualdeptime = moment(flight.isodatetime, moment.ISO_8601)
+    if (flight.hasOwnProperty("delay")) {
+        if (flight.delay > 0) {
+            debug.print("Departure has delay because of late arrival", flight.delay, extradelay)
+            flight.actualdeptime.add(flight.delay, "minutes")
+        }
+        /*
+            departure.arrflightsched = arrival.isodatetime
+            departure.arrflightactual = arrival.actualarrtime
+        */
+        // if previous flight was delayed, as soon as it landed, we can annouce the delay of this flight
+        var landannouncets = moment(flight.arrflightactual)
+        backoffice.announce("flightboard", flight.flight, landannouncets.toISOString(true), {
+            info: "planned",
+            move: "departure",
+            flight: flight.flight,
+            airport: flight.airport,
+            date: flight.actualdeptime.format("DD/MM"),
+            time: flight.actualdeptime.format("HH:mm"),
+            parking: flight.parking
+        })
+    }
+    flight.actualdeptime.add(extradelay, "minutes") // add a little extra torture to departure
+
+    const tocsvret = tocsv.tocsv(flight.events, moment(flight.actualdeptime), {
         queue: "aircraft",
         payload: program.payload
     })
@@ -99,6 +131,7 @@ function doDeparture(flight, runway) {
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
 
     var dept = moment(tocsvret.syncevents[0])
+    debug.print("departure", flight.flight, flight.isodatetime, flight.actualdeptime.toISOString(true), dept.toISOString(true))
     var deptguess = moment(tocsvret.syncevents[0])
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     deptguess.add(randomdelay, "seconds")
@@ -150,16 +183,22 @@ function doArrival(flight, runway) {
         parking: flight.parking
     })
 
+    // fly it
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
-    if (!flight.geojson) console.log("parking:" + flight.parking, flight.plane, runway, star)
-    if(program.debug)
+    if (!flight.geojson) debug.print("parking:" + flight.parking, flight.plane, runway, star)
+    if (program.debug)
         fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
     flight.events = emit.emitCollection(geojson.FeatureCollection(flight.geojson.getFeatures(true)), { speed: 30, rate: 30, lastPoint: true })
-    if(program.debug)
+    if (program.debug)
         fs.writeFileSync(flight.filename + '.json', JSON.stringify(flight.events), { mode: 0o644 })
 
-    const tocsvret = tocsv.tocsv(flight.events, moment(flight.isodatetime, moment.ISO_8601), {
+    // add an actual ramdom delay to the flight
+    flight.delay = random.randomValue(config.simulation["arrival-delays"])
+    flight.actualarrtime = moment(flight.isodatetime, moment.ISO_8601)
+    flight.actualarrtime.add(flight.delay, "minutes")
+
+    const tocsvret = tocsv.tocsv(flight.events, moment(flight.actualarrtime), { // send a copy of time because it will vbe modified in tocsv
         queue: "aircraft",
         event: 3, // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runwa, "last" = park on time
         payload: program.payload
@@ -186,6 +225,7 @@ function doArrival(flight, runway) {
     })
 
     var arrv = moment(tocsvret.syncevents[3])
+    debug.print("arrival", flight.flight, flight.isodatetime, flight.delay, flight.actualarrtime.toISOString(true), arrv.toISOString(true))
     backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[4], {
         info: "actual",
         move: "arrival",
@@ -196,7 +236,7 @@ function doArrival(flight, runway) {
         parking: flight.parking
     })
 
-    var arrpt = tocsvret.syncevents[Object.keys(tocsvret.syncevents).length-1]  // last event
+    var arrpt = tocsvret.syncevents[Object.keys(tocsvret.syncevents).length - 1] // last event
     var arrp = moment(arrpt, moment.ISO_8601)
     backoffice.announce("parking", flight.parking.toString(), arrp.toISOString(true), {
         info: "parking",
@@ -214,10 +254,12 @@ function addRefuel(arrival, departure) {
     const serviceData = airport.config.services[serviceName]
 
     var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime = addDelay(atime, arrival)
     atime.add(serviceData["afterOnBlocks"], "m")
 
     var dtime = moment(departure.isodatetime, moment.ISO_8601)
-    atime.add(serviceData["beforeOffBlocks"], "m")
+    dtime = addDelay(dtime, departure)
+    dtime.subtract(serviceData["beforeOffBlocks"], "m")
 
     var svc = {
         "service": serviceName,
@@ -237,10 +279,12 @@ function addCatering(arrival, departure) {
     const serviceData = airport.config.services[serviceName]
 
     var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime = addDelay(atime, arrival)
     atime.add(serviceData["afterOnBlocks"], "m")
 
     var dtime = moment(departure.isodatetime, moment.ISO_8601)
-    atime.add(serviceData["beforeOffBlocks"], "m")
+    dtime = addDelay(dtime, departure)
+    dtime.subtract(serviceData["beforeOffBlocks"], "m")
 
     var svc = {
         "service": serviceName,
@@ -259,10 +303,12 @@ function addSewage(arrival, departure) {
     const serviceData = airport.config.services[serviceName]
 
     var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime = addDelay(atime, arrival)
     atime.add(serviceData["afterOnBlocks"], "m")
 
     var dtime = moment(departure.isodatetime, moment.ISO_8601)
-    atime.add(serviceData["beforeOffBlocks"], "m")
+    dtime = addDelay(dtime, departure)
+    dtime.subtract(serviceData["beforeOffBlocks"], "m")
 
     var svc = {
         "service": serviceName,
@@ -284,8 +330,16 @@ function addFreit(arrival, departure) {
     const qty = Math.floor(p[0] + Math.random() * Math.abs(p[1] - p[0]))
 
     const stime = serviceData["freit-service-time"]
-    var atime = moment(arrival.isodatetime, moment.ISO_8601).add(serviceData["afterOnBlocks"], "m")
-    var dtime = moment(arrival.isodatetime, moment.ISO_8601).add(serviceData["beforeOffBlocks"], "m")
+
+    var atime = moment(arrival.isodatetime, moment.ISO_8601)
+    atime = addDelay(atime, arrival)
+    atime.add(serviceData["afterOnBlocks"], "m")
+
+    var dtime = moment(departure.isodatetime, moment.ISO_8601)
+    dtime = addDelay(dtime, departure)
+    dtime.subtract(serviceData["beforeOffBlocks"], "m")
+
+
 
     for (var i = 0; i < qty; i++) {
         var svc = {
@@ -340,7 +394,7 @@ function doServices() {
                 if (truck._points && truck._points.length > 0)
                     truck._features = truck._features.concat(truck._points)
                 truck.geojson = geojson.FeatureCollection(truck._features)
-                if(program.debug)
+                if (program.debug)
                     fs.writeFileSync(fn + '_.json', JSON.stringify(truck.geojson), { mode: 0o644 })
 
                 // we emit it
@@ -349,7 +403,7 @@ function doServices() {
                     rate: truck.getProp("rate"),
                     jitter: 20
                 })
-                if(program.debug)
+                if (program.debug)
                     fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
                 truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
@@ -375,7 +429,7 @@ function doFlightboard(flightboard) {
     })
     sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
 
-    backoffice.announce("metar", "eblg", airport.METAR.raw_timestamp[0], {metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0]})
+    backoffice.announce("metar", "eblg", airport.METAR.raw_timestamp[0], { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0] })
 
     // 1. Generate flights
     sfb.forEach(function(flight, idx) {
@@ -388,6 +442,15 @@ function doFlightboard(flightboard) {
             // does it leave later?
             var departure = takeOff(sfb, flight)
             if (departure) {
+                // we pass info from previous flight
+                departure.arrflightsched = flight.isodatetime
+                departure.arrflightactual = flight.actualarrtime
+                // we transport the delay of the arrival to the departure:
+                if (flight.hasOwnProperty("delay")) {
+                    if (flight.delay > 0) {
+                        departure.delay = flight.delay
+                    }
+                }
                 doTurnaround(flight, departure)
             } // departure will be generated later
         }

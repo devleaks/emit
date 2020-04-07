@@ -59,15 +59,15 @@ function randomFlightboard(cnt, startdate, type = false) {
         flightname = aircraftData.randomFlightname(ltype, false)
         // arrival
         debug.print('arrival', flightname, airport, time.format('HH:mm'), aircraft, parking)
-        txt += 'arrival,' + flightname + ',' + airport + ',,' + time.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
+        txt += 'arrival,' + flightname + ',' + airport + ',' + time.format('YYYY-MM-DD') + ',' + time.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
         // turnaround
         var time2 = moment(time)
         time2.add(turnAround(), 'm')
         // departure
         airport = airports.randomAirport()
-        flightname = aircraftData.randomFlightname(ltype, true)
+        flightname = aircraftData.randomFlightname(ltype, true, flightname)
         debug.print('departure', flightname, airport, time2.format('HH:mm'), aircraft, parking)
-        txt += 'departure,' + flightname + ',' + airport + ',,' + time2.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
+        txt += 'departure,' + flightname + ',' + airport + ',' + time2.format('YYYY-MM-DD') + ',' + time2.format('HH:mm') + ',' + aircraft + ',' + parking + ',\n'
     }
     return txt
 }
