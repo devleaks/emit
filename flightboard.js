@@ -461,8 +461,6 @@ function doFlightboard(flightboard) {
     backoffice.save(FILEPREFIX + 'flightboard.csv')
 }
 
-var features = []
-
 if (program.flightboard) {
     const csvstring = fs.readFileSync(program.flightboard, 'utf8')
     const records = parse(csvstring, { columns: true })
@@ -471,6 +469,3 @@ if (program.flightboard) {
       debug.print(s)
     })*/
 }
-
-fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(features)), { mode: 0o644 })
-debug.print(program.output + ' written')
