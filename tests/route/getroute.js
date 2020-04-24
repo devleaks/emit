@@ -2,11 +2,11 @@ const fs = require('fs')
 var PathFinder = require('geojson-path-finder')
 var geojsonTool = require('geojson-tools')
 const turf = require('@turf/turf')
-const geojson = require('./../../geojson-util')
+const geojson = require('./../../lib/geojson-util')
 
 //    geojson = require('./eblg-taxi.json');
 
-var jsonfile = fs.readFileSync('./../../eblg/json/eblg-serviceroads.geojson', 'utf8')
+var jsonfile = fs.readFileSync('./../../eblg/json/eblg-taxiways.geojson', 'utf8')
 var network = JSON.parse(jsonfile)
 
 network.features.forEach(function(f) {
@@ -50,13 +50,13 @@ var pathfinder = new PathFinder(network, {
     precision: 0.0005
 });
 
-const p_from = {
+const p_from = { // exit of 22R
     "type": "Feature",
     "geometry": {
         "type": "Point",
         "coordinates": [
-            5.463096499443054,
-            50.6452051638321
+          5.429949760437012,
+          50.63114388301683
         ]
     },
     "properties": {
@@ -88,7 +88,11 @@ const p_to = {
 }
 */
 
+var coords = []
+coords.push(p_from.geometry.coordinates)
+
 var c_from = findClosest(p_from, network)
+coords.push(c_from.geometry.coordinates)
 c_from.properties |= {}
 c_from.properties["marker-color"] = "#dd4444"
 c_from.properties["marker-size"] = "medium"
@@ -121,8 +125,14 @@ if (path) {
             coordinates: path.path
         }
     })
+    path.path.forEach(function(p) {
+        coords.push(p)
+    })
+    coords.push(c_to.geometry.coordinates)
+    coords.push(p_to.geometry.coordinates)
 } else {
     console.log('Cannot find path');
 }
-fs.writeFileSync('out.json', JSON.stringify(trajet), { mode: 0o644 })
+// fs.writeFileSync('out.json', JSON.stringify(trajet), { mode: 0o644 })
+fs.writeFileSync('out.json', JSON.stringify(geojson.Feature(geojson.LineString(coords, {}))), { mode: 0o644 })
 console.log('out.json written')

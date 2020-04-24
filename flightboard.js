@@ -38,7 +38,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["tocsv"])
+debug.init(program.debug, ["doArrival","doDeparture"])
 debug.print(program.opts())
 
 /*  Utility function: Does this arrival flight leave later on?
@@ -185,7 +185,8 @@ function doArrival(flight, runway) {
 
     // fly it
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star)
-    if (!flight.geojson) debug.print("parking:" + flight.parking, flight.plane, runway, star)
+    if (!flight.geojson)
+        debug.print("parking:" + flight.parking, flight.plane, runway, star)
     if (program.debug)
         fs.writeFileSync(flight.filename + '_.json', JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 

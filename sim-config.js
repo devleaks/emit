@@ -5,7 +5,7 @@ exports.airport = {
     ],
     "file": "eblg/json/eblg-area.geojson",
     "airfield": "eblg/json/eblg-estate.geojson",
-    "parkings": "eblg/json/eblg-parkings.geojson",
+    "parkings": "eblg/json/eblg-parking-centroids.geojson",
     "taxiways": "eblg/json/eblg-taxiways.geojson",
     "service": "eblg/json/eblg-serviceroads.geojson",
     "pois": "eblg/json/eblg-pois.geojson",
@@ -45,8 +45,8 @@ exports.airport = {
     "departure-delay": [-15, 30],
     "arrival-delay": [-20, 30],
     "aprons": {
-        "PAX": [2],
-        "CARGO": [3, 4, 5, 6]
+        "PAX": [1],
+        "CARGO": [2, 3, 5, 6]
     }
 }
 
@@ -236,11 +236,9 @@ exports.services = {
             "speed": 20,
             "slow": 5
         }],
-        "base": [
-            "CARGO1",
+        "base": [                       // must match aiport.aprons.cargo
             "CARGO2",
             "CARGO3",
-            "CARGO4",
             "CARGO5",
             "CARGO6"
         ],
