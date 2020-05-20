@@ -34,7 +34,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 tempfile=fb$$.csv
 if [ $COUNT -gt 0 ]
 then   
-    node mktb.js -c $COUNT -o $tempfile
+    node mktb.js -w handler3 -c $COUNT -o $tempfile
     node transboard.js -f $tempfile
     cat TRANSPORT-*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE

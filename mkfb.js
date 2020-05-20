@@ -38,7 +38,15 @@ function rndInt(n) {
 
 function nextFlight(n) {
     const p = config.simulation["time-between-flights"]
-    return p[0] + 5 * rndInt(Math.round(Math.abs(p[1]-p[0]) / 5))
+    const m = config.simulation["min-flight-distance"]
+    if (!m) {
+        m = 5
+    }
+    let t = p[0] + m * rndInt(Math.round(Math.abs(p[1]-p[0]) / m))
+    if (t < m) {
+        t = m
+    }
+    return t
 }
 
 function turnAround(type = false) {
@@ -51,7 +59,7 @@ function randomFlightboard(cnt, startdate, type = false) {
     var time = startdate ? moment(startdate) : moment()
 
     for (var i = 0; i < cnt; i++) {
-        var ltype = type ? type : (Math.random() > 0.5 ? 'PAX':'CARGO')
+        var ltype = type ? type : (Math.random() > config.simulation["paxratio"] ? 'CARGO' : 'PAX')
         var parking = airportData.randomParking(airportData.randomApron(ltype))
         var aircraft = aircraftData.randomAircraftICAO()
         var airport = airports.randomAirport()

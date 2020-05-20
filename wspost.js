@@ -10,14 +10,14 @@ program
     .version('1.3.0')
     .description('Convert data from FeatureCollection of Point to CSV')
     .option('-d, --debug', 'output extra debugging')
-    .option('-k, --ws', 'send to Websocket')
     .option('-p, --payload', 'csv has payload column')
     .option('-r, --rate <delay>', 'Let that amount of time between events, 1 second, default', 1)
     .option('-s, --speed <factor>', 'Increases time by that factor')
+    .option('-w, --wait <time>', 'Wait delay seconds before starting to emit', 5)
     .requiredOption('-f, --file <file>', 'GeoJSON file to process')
     .parse(process.argv)
 
-debug.init(program.debug, ["_post"])
+debug.init(program.debug, ["", "_post"])
 debug.print(program.opts())
 
 
