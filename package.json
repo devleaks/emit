@@ -1,0 +1,32 @@
+{
+  "name": "emit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@mapbox/geojson-merge": "^1.1.1",
+    "@turf/turf": "^5.1.6",
+    "aewx-metar-parser": "^0.10.1",
+    "color-convert": "^2.0.1",
+    "commander": "^5.1.0",
+    "csv-parse": "^4.10.1",
+    "esprima": "^4.0.1",
+    "fs": "^0.0.1-security",
+    "geojson-path-finder": "^1.5.2",
+    "geojson-polygon-center": "^0.0.0",
+    "geojson-summary": "^0.5.0",
+    "geojson-tools": "^0.2.2",
+    "git-describe": "^4.0.4",
+    "gitlog": "^4.0.0",
+    "js-yaml": "^3.14.0",
+    "jsonpath": "^1.0.2",
+    "kafka-node": "^5.0.0",
+    "leaflet-routing-machine": "^3.2.12",
+    "moment": "^2.26.0",
+    "probability-distributions": "^0.9.1",
+    "request": "^2.88.2",
+    "turf-line-slice-at-intersection": "^1.0.1",
+    "ws": "^7.3.0",
+    "xml2js": "^0.4.23"
+  }
+}
