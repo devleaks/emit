@@ -117,3 +117,6 @@ tests/
 sample/
 
 wallet.js
+
+
+*.csv
