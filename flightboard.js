@@ -48,7 +48,7 @@ var firstFlightDeparture = false
 
 /*  Utility function: Does this arrival flight leave later on?
  */
-function takeOff(flightschedule, arrival) {
+function findDepartureForArrival(flightschedule, arrival) {
     var departure = false
     var idx = 0
     while (!departure && idx < flightschedule.length) {
@@ -64,9 +64,10 @@ function takeOff(flightschedule, arrival) {
     return departure
 }
 
-function arrival(flightschedule, departure) {
+function findArrivalForDeparture(flightschedule, departure) {
     var arrvl = false
     var idx = 0
+    console.log("arrival: Checking for", departure)
     while (!arrvl && idx < flightschedule.length) {
         var flight = flightschedule[idx]
         if (((flight.plane && flight.plane == departure.plane) ||
@@ -77,6 +78,7 @@ function arrival(flightschedule, departure) {
         }
         idx++
     }
+    console.log("arrival: Found", arrvl)
     return arrvl
 }
 
@@ -487,13 +489,13 @@ function doFlightboard(flightboard) {
     sfb.forEach(function(flight, idx) {
         var runway = airportData.randomRunway(270)
         if (flight.move == "departure") {
-            var arrvl = arrival(flight)
+            var arrvl = findArrivalForDeparture(sfb, flight)
             doDeparture(flight, runway, arrvl)
         } else { // arrival
             // generate arrival
             doArrival(flight, runway)
             // does it leave later?
-            var departure = takeOff(sfb, flight)
+            var departure = findDepartureForArrival(sfb, flight)
             if (departure) {
                 // we pass info from previous flight
                 departure.arrflightsched = flight.isodatetime
