@@ -478,7 +478,7 @@ function doFlightboard(flightboard) {
     })
     sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
 
-    backoffice.announce("metar", "eblg", airport.METAR.raw_timestamp[0], { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0] })
+    backoffice.announce("metar", "eblg", moment(airport.METAR.raw_timestamp[0]).toISOString(true), { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0] })
 
     if (sfb[0].move == "departure") {
         firstFlightDeparture = true
