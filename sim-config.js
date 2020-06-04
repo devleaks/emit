@@ -266,6 +266,13 @@ exports.simulation = {
     "turnaround-time": [70,120]         // minimum and maximum turnaround time
 }
 
+exports.originalSituation = {
+    numPax: [5, 10],                    // between 5 and 10 departures, parkings busy
+    departurePax: [60, 15, 30],         // wait 60 minutes, then one every 15-30 minutes
+    numCargo: [10, 20],
+    departureCargo: [150, 20, 30]
+}
+
 // Miscellaneous (standardized) CSV prruduced for Kafka. Payload is often a JSON-formatted strinfified string.
 exports.CSV = {
     "DEVICE": "queue,name,timestamp,lat,lon,alt,speed,heading,payload",

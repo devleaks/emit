@@ -30,16 +30,21 @@ var aircraft = aircraftData.init(config.aircrafts)
 const FILEPREFIX = "FLIGHT-"
 
 program
-    .version('1.1.0')
+    .version('1.2.0')
     .description('generates flights from flight board (departure and arrival)')
     .option('-d, --debug', 'output extra debugging')
     .option('-p, --payload', 'Add payload column with all properties')
+    .option('-s, --starting-situation', 'Flightboard has departure only, original situation must be set up', false)
     .requiredOption('-f, --flightboard <file>', 'CSV flightboard')
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doArrival","doDeparture"])
+debug.init(program.debug, ["doArrival", "doDeparture"])
 debug.print(program.opts())
+
+
+var situationSetupTime = false
+var firstFlightDeparture = false
 
 /*  Utility function: Does this arrival flight leave later on?
  */
@@ -48,16 +53,31 @@ function takeOff(flightschedule, arrival) {
     var idx = 0
     while (!departure && idx < flightschedule.length) {
         var flight = flightschedule[idx]
-        if (((flight.plane &&
-                    flight.plane == arrival.plane) ||
-                (flight.parking &&
-                    flight.parking == arrival.parking)) &&
-            flight.zuludatetime > arrival.zuludatetime) {
+        if (((flight.plane && flight.plane == arrival.plane) ||
+                (flight.parking && flight.parking == arrival.parking)) &&
+            flight.zuludatetime > arrival.zuludatetime
+        ) {
             departure = flight
         }
         idx++
     }
     return departure
+}
+
+function arrival(flightschedule, departure) {
+    var arrvl = false
+    var idx = 0
+    while (!arrvl && idx < flightschedule.length) {
+        var flight = flightschedule[idx]
+        if (((flight.plane && flight.plane == departure.plane) ||
+                (flight.parking && flight.parking == departure.parking)) &&
+            flight.zuludatetime < departure.zuludatetime
+        ) {
+            arrvl = flight
+        }
+        idx++
+    }
+    return arrvl
 }
 
 function addDelay(t, f) {
@@ -68,12 +88,29 @@ function addDelay(t, f) {
 
 /*  Generate full departure (write down CSV)
  */
-function doDeparture(flight, runway) {
+function doDeparture(flight, runway, arrival) {
     const sid = airportData.randomSID(runway)
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     // annouce flight at its scheduled time.
-    var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+    var announce;
+    if (program.startingSituation) {
+        if (!situationSetupTime) { // first flight, assuming they are ordered by flight time.
+            // we setup the scene "planned announce" time in advance. We take the largest possible value given randomness and uncertainty.
+            const delay1 = config.simulation["aodb-planned-timeframe"] // mins
+            const delay2 = config.simulation["aodb-planned-uncertainly"] // secs
+            var maxtime = delay1[0] + Math.abs(delay1[1] - delay1[0]) + Math.ceil(delay2 / 60) // mins
+            situationSetupTime = moment(flight.isodatetime, moment.ISO_8601).subtract(maxtime, "minutes")
+            debug.print("Situation setup time", situationSetupTime.toISOString(true))
+        }
+        announce = moment(situationSetupTime)
+    } else {
+        if (firstFlightDeparture && !situationSetupTime) {
+            console.log("doDeparture: First flight is departure, don't forget to set --starting-situation flag if applicable.")
+            console.log("doDeparture: If program fails, restart with --starting-situation flag. Program does not take responsibility for this.")
+        }
+        announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+    }
     backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
         move: "departure",
@@ -83,6 +120,15 @@ function doDeparture(flight, runway) {
         time: flight.time,
         parking: flight.parking
     })
+    if (!arrival) { // we block packing as well  since no arrival flight blocked it. Time is when situatin is setup
+        backoffice.announce("parking", flight.parking.toString(), situationSetupTime.toISOString(true), {
+            info: "parking",
+            move: "busy",
+            flight: flight.flight,
+            airport: flight.airport,
+            parking: flight.parking
+        })
+    }
 
     // fly it
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid)
@@ -118,7 +164,7 @@ function doDeparture(flight, runway) {
             parking: flight.parking
         })
     }
-    flight.actualdeptime.add(extradelay, "minutes") // add a little extra torture to departure
+    flight.actualdeptime.add(extradelay, "minutes") // add a little, unplanned, extra torture to departure
 
     const tocsvret = tocsv.tocsv(flight.events, moment(flight.actualdeptime), {
         queue: "aircraft",
@@ -432,11 +478,17 @@ function doFlightboard(flightboard) {
 
     backoffice.announce("metar", "eblg", airport.METAR.raw_timestamp[0], { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0] })
 
+    if (sfb[0].move == "departure") {
+        firstFlightDeparture = true
+        console.log("doFlightboard: First flight is departure, don't forget to set --starting-situation flag if applicable.")
+    }
+
     // 1. Generate flights
     sfb.forEach(function(flight, idx) {
         var runway = airportData.randomRunway(270)
         if (flight.move == "departure") {
-            doDeparture(flight, runway)
+            var arrvl = arrival(flight)
+            doDeparture(flight, runway, arrvl)
         } else { // arrival
             // generate arrival
             doArrival(flight, runway)
