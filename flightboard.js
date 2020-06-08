@@ -45,6 +45,7 @@ debug.print(program.opts())
 
 var situationSetupTime = false
 var firstFlightDeparture = false
+var parkedAircraft = ''
 
 /*  Utility function: Does this arrival flight leave later on?
  */
@@ -130,6 +131,13 @@ function doDeparture(flight, runway, arrival) {
             airport: flight.airport,
             parking: flight.parking
         })
+        // add plane on parking
+        var parking = airportData.parkingFeature(flight.parking)
+        if (parking) {
+            parkedAircraft += "aircraft,"+flight.plane+","+situationSetupTime.toISOString(true)+","+parking.geometry.coordinates[1]+","+parking.geometry.coordinates[0]+",,0,null,''" + "\n"
+        } else {
+            console.warn("doDeparture: parking not found", flight.parking)
+        }
     }
 
     // fly it
@@ -449,17 +457,18 @@ function doServices() {
                 // we emit it
                 truck.events = emit.emitCollection(geojson.FeatureCollection(truck._features), {
                     speed: truck.getProp("speed"),
-                    rate: truck.getProp("rate"),
-                    jitter: 20
+                    rate: truck.getProp("rate")/*,
+                    jitter: 20*/
                 })
                 if (program.debug)
                     fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
-                truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
+                const tocsvret = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",
                     event: "*",
                     payload: program.payload
                 })
+                truck._csv = tocsvret.csv
                 fs.writeFileSync(fn + '.csv', truck._csv, { mode: 0o644 })
             })
         }
@@ -514,6 +523,9 @@ function doFlightboard(flightboard) {
     doServices()
 
     backoffice.save(FILEPREFIX + 'flightboard.csv')
+
+    if (parkedAircraft != '')
+        fs.writeFileSync(FILEPREFIX + 'parked.csv', parkedAircraft, { mode: 0o644 })
 }
 
 if (program.flightboard) {

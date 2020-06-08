@@ -31,6 +31,10 @@ Investigate possibility to "reverse" trip.
 
 Add startdate to mkfb et mktb.
 
-Add "queue" to planes taking off
+Add "queue" to planes taking off / landing
+
+Add "queue" for parking
 
 Add "queue" to trucks in front of parking if all parking full.
+
+The difficulty is to know the time of parking/runway request and book it then...

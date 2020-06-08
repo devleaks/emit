@@ -31,7 +31,7 @@ done
 
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-temprefix=FLIGHT
+temprefix="FLIGHT-"
 
 tempfile=${temprefix}$$.csv
 if [ $COUNT -gt 0 ]
@@ -39,7 +39,7 @@ then
     node metar -d
     node mkfb.js -c $COUNT -o $tempfile
     node flightboard.js -f $tempfile -p -d
-    cat ${temprefix}-*.csv | sort -t , -k 3 -o $OFILE
+    cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE
     cat $tempfile

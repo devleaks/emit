@@ -172,11 +172,12 @@ function doServices() {
                 })
                 // fs.writeFileSync(fn + '.json', JSON.stringify(truck.events), { mode: 0o644 })
 
-                truck._csv = tocsv.tocsv_sync_all(truck.events, moment(), {
+                const tocsvret = tocsv.tocsv_sync_all(truck.events, moment(), {
                     queue: "service",
                     event: "*",
                     payload: program.payload
                 })
+                truck._csv = tocsvret.csv
                 fs.writeFileSync(fn + '.csv', truck._csv, { mode: 0o644 })
             })
         }

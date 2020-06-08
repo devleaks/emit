@@ -42,15 +42,14 @@ if (!startdate.isValid()) {
 /* MAIN
  */
 var res = (program.event == '*') ?
-            tocsv.tocsv_sync_all(JSON.parse(jsonstring), startdate, program)
-            :
-            tocsv.tocsv(JSON.parse(jsonstring), startdate, program)
+    tocsv.tocsv_sync_all(JSON.parse(jsonstring), startdate, program) :
+    tocsv.tocsv(JSON.parse(jsonstring), startdate, program)
 
 
 /* OUTPUT
  */
 if (res) {
-    fs.writeFileSync(program.output, res, { mode: 0o644 })
+    fs.writeFileSync(program.output, res.csv, { mode: 0o644 })
     debug.print(program.output + ' written')
 } else {
     debug.print('nothing saved')
