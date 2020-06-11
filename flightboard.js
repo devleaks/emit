@@ -68,7 +68,6 @@ function findDepartureForArrival(flightschedule, arrival) {
 function findArrivalForDeparture(flightschedule, departure) {
     var arrvl = false
     var idx = 0
-    console.log("arrival: Checking for", departure)
     while (!arrvl && idx < flightschedule.length) {
         var flight = flightschedule[idx]
         if (((flight.plane && flight.plane == departure.plane) ||
@@ -79,7 +78,6 @@ function findArrivalForDeparture(flightschedule, departure) {
         }
         idx++
     }
-    console.log("arrival: Found", arrvl)
     return arrvl
 }
 
@@ -187,7 +185,6 @@ function doDeparture(flight, runway, arrival) {
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
 
     var dept = moment(tocsvret.syncevents[0])
-    debug.print("departure", flight.flight, flight.isodatetime, flight.actualdeptime.toISOString(true), dept.toISOString(true))
     var deptguess = moment(tocsvret.syncevents[0])
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     deptguess.add(randomdelay, "seconds")
@@ -218,8 +215,6 @@ function doDeparture(flight, runway, arrival) {
         airport: flight.airport,
         parking: flight.parking
     })
-
-    debug.print(flight.filename)
 }
 
 /*  Generate full arrival (write down CSV)
@@ -282,7 +277,6 @@ function doArrival(flight, runway) {
     })
 
     var arrv = moment(tocsvret.syncevents[3])
-    debug.print("arrival", flight.flight, flight.isodatetime, flight.delay, flight.actualarrtime.toISOString(true), arrv.toISOString(true))
     backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[4], {
         info: "actual",
         move: "arrival",
@@ -302,8 +296,6 @@ function doArrival(flight, runway) {
         airport: flight.airport,
         parking: flight.parking
     })
-
-    debug.print(flight.filename)
 }
 
 function addRefuel(arrival, departure) {
