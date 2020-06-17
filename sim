@@ -32,8 +32,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 temprefix="FLIGHT-"
-
-tempfile=${temprefix}$$.csv
+tempfile="FLIGHT"$$.csv
 if [ $COUNT -gt 0 ]
 then 
     node metar -d
@@ -52,5 +51,5 @@ then
 fi
 
 if [ $CLEAN = "YES" ]
-  then rm -f ${temprefix}*.{csv,json}
+  then rm -f ${temprefix}*.{csv,json} FLIGHT[0-9]*.csv
 fi

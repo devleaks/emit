@@ -31,19 +31,21 @@ done
 
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-tempfile=fb$$.csv
+temprefix="TRANSPORT-"
+tempfile="TRANSPORT"$$.csv
 if [ $COUNT -gt 0 ]
 then   
     node mktb.js -w handler3 -c $COUNT -o $tempfile
     node transboard.js -f $tempfile
-    cat TRANSPORT-*.csv | sort -t , -k 3 -o $OFILE
+    cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE
     cat $tempfile
     head -1 $OFILE
     tail -1 $OFILE
+    awk -F , '{print $2}' $OFILE |grep cargo |sort -u
 fi
 
 if [ $CLEAN = "YES" ]
-  then rm -f $tempfile TRANSPORT-*.{csv,json}
+  then rm -f  ${temprefix}*.{csv,json} TRANSPORT[0-9]*.csv
 fi

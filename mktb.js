@@ -46,7 +46,7 @@ function turnAround() {
 }
 
 function randomTruckboard(cnt, startdate, type = false) {
-    var txt = 'move,handler,parking,truck,destination,date,time\n'
+    var txt = config.CSV["TRUCK"] + '\n'
     var time = startdate ? moment(startdate) : moment()
 
     for (var i = 0; i < cnt; i++) {

@@ -7,6 +7,7 @@ var program = require('commander')
 const debug = require('./lib/debug')
 
 const geojson = require('./lib/geojson-util')
+const random = require('./lib/random')
 
 const config = require('./sim-config-transport')
 const roadsData = require('./lib/roads.js')
@@ -66,17 +67,18 @@ function takeOff(transportschedule, arrival) {
 /*  Generate full departure (write down CSV)
  */
 function doDeparture(transport) {
-/*    backoffice.announce("transportboard", flight.flight, announce.toISOString(true), {
+    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+
+    var announce = moment(transport.isodatetime, moment.ISO_8601).subtract(config.simulation["warehouse-preannounce"], "minutes")
+    backoffice.announce("transport", transport.truck, announce.toISOString(true), {
         info: "scheduled",
         move: "departure",
-        flight: flight.flight,
-        airport: flight.airport,
-        date: moment(flight.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
-        time: flight.time,
-        parking: flight.parking
+        name: transport.truck,
+        destination: transport.destination,
+        date: moment(transport.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
+        time: transport.time,
+        parking: transport.parking
     })
-*/
-    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     if (program.debug) {
@@ -88,11 +90,73 @@ function doDeparture(transport) {
         fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
     }
 
-    const tocsvret = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
+    // add an actual ramdom delay to the transport
+    var extradelay = random.randomValue(config.simulation["departure-delays"])
+    // first if arrival was late, we postpone departure also (not if transport arrived early)
+    transport.actualdeptime = moment(transport.isodatetime, moment.ISO_8601)
+    if (transport.hasOwnProperty("delay")) {
+        if (transport.delay > 0) {
+            debug.print("Departure has delay because of late arrival", transport.delay, extradelay)
+            transport.actualdeptime.add(transport.delay, "minutes")
+        }
+        /*
+            departure.arrtransportsched = arrival.isodatetime
+            departure.arrtransportactual = arrival.actualarrtime
+        */
+        // if previous transport was delayed, as soon as it landed, we can annouce the delay of this transport
+        var landannouncets = moment(transport.arrtransportactual)
+        backoffice.announce("transport", transport.truck, landannouncets.toISOString(true), {
+            info: "planned",
+            move: "departure",
+            name: transport.truck,
+            destination: transport.destination,
+            date: transport.actualdeptime.format("DD/MM"),
+            time: transport.actualdeptime.format("HH:mm"),
+            parking: transport.parking
+        })
+    }
+    transport.actualdeptime.add(extradelay, "minutes") // add a little, unplanned, extra torture to departure
+
+    const tocsvret = tocsv.tocsv(transport.events, moment(transport.actualdeptime), {
         queue: "truck",
         payload: program.payload
     })
     fs.writeFileSync(transport.filename + '.csv', tocsvret.csv, { mode: 0o644 })
+
+    var annoucets = moment(transport.isodatetime, moment.ISO_8601)
+    annoucets.subtract(geojson.randomValue(config.simulation["warehouse-planned-timeframe"]), "minutes")
+
+    var arrv = moment(transport.actualdeptime)
+    var arrguess = moment(transport.actualdeptime)
+    var randomdelay = geojson.randomValue(config.simulation["warehouse-planned-uncertainly"], true)
+    arrguess.add(randomdelay, "seconds")
+    backoffice.announce("transport", transport.truck, annoucets.toISOString(true), {
+        info: "planned",
+        move: "departure",
+        name: transport.truck,
+        destination: transport.destination,
+        date: arrguess.format('DD/MM'),
+        time: arrguess.format('HH:mm'),
+        parking: transport.parking
+    })
+
+    backoffice.announce("transport", transport.truck, arrv.toISOString(true), {
+        info: "actual",
+        move: "departure",
+        name: transport.truck,
+        destination: transport.destination,
+        date: arrv.format('DD/MM'),
+        time: arrv.format('HH:mm'),
+        parking: transport.parking
+    })
+
+    backoffice.announce("parking", transport.parking.toString(), arrv.toISOString(true), {
+        info: "parking",
+        move: "available",
+        name: transport.truck,
+        destination: transport.destination,
+        parking: transport.parking
+    })
 
     debug.print(transport.filename)
 }
@@ -102,6 +166,17 @@ function doDeparture(transport) {
  */
 function doArrival(transport) {
     transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+
+    var announce = moment(transport.isodatetime, moment.ISO_8601).subtract(config.simulation["warehouse-preannounce"], "minutes")
+    backoffice.announce("transport", transport.truck, announce.toISOString(true), {
+        info: "scheduled",
+        move: "arrival",
+        name: transport.truck,
+        destination: transport.destination,
+        date: moment(transport.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
+        time: transport.time,
+        parking: transport.parking
+    })
 
     transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
     if (program.debug) {
@@ -113,12 +188,78 @@ function doArrival(transport) {
         fs.writeFileSync(transport.filename + '.json', JSON.stringify(transport.events), { mode: 0o644 })
     }
 
-    const tocsvret = tocsv.tocsv(transport.events, moment(transport.isodatetime, moment.ISO_8601), {
+    // We will build a loop that will report an updated ETA every "more or less" eta-report minutes.
+
+    // add an actual ramdom delay to the arrival time
+    transport.delay = random.randomValue(config.simulation["arrival-delays"])
+    transport.actualarrtime = moment(transport.isodatetime, moment.ISO_8601)
+    transport.actualarrtime.add(transport.delay, "minutes")
+
+    var etareporttime = moment(transport.actualarrtime)
+    etareporttime.subtract(config.simulation["eta-preannounce"], "minutes")
+
+    //console.log("delay / scheduled / actual", transport.delay, transport.isodatetime, transport.actualarrtime.toISOString(true))
+
+    // we start with scheduled ETA
+    var etareportvalue = moment(transport.isodatetime, moment.ISO_8601)
+
+    while (etareporttime.isBefore(transport.actualarrtime)) {
+
+        // fluctuate ETA time but tries to "converge" to actualarrtime
+        var etavariation = Math.abs(random.randomValue(config.simulation["eta-variation"]))
+        if (etavariation > 0) {
+            if (etareportvalue.isBefore(transport.actualarrtime)) {
+                etareportvalue.add(etavariation, "minutes")
+                // console.log("planned ADD", etavariation, etareportvalue.toISOString(true), transport.actualarrtime.toISOString(true))
+            } else {
+                etareportvalue.subtract(etavariation, "minutes")
+                // console.log("planned SUB", etavariation, etareportvalue.toISOString(true), transport.actualarrtime.toISOString(true))
+            }
+        }
+        backoffice.announce("transport", transport.truck, etareporttime.toISOString(true), {
+            info: "planned",
+            move: "arrival",
+            name: transport.truck,
+            destination: transport.destination,
+            date: etareportvalue.format('DD/MM'),
+            time: etareportvalue.format('HH:mm'),
+            parking: transport.parking
+        })
+        // console.log("planned", etareporttime.toISOString(true), etareportvalue.toISOString(true))
+
+        // next ETA report time:
+        etareporttime.add(random.randomValue(config.simulation["eta-report"]), "minutes")
+    }
+
+    const tocsvret = tocsv.tocsv(transport.events, moment(transport.actualarrtime), {
         queue: "truck",
         event: "last", // 0=Enters Belgium, 1=Exits highway, 2=At parking
         payload: program.payload
     })
     fs.writeFileSync(transport.filename + '.csv', tocsvret.csv, { mode: 0o644 })
+
+
+    /*  Planned is announced in ETA loop above
+    */
+    var arrv = moment(transport.actualarrtime)
+    backoffice.announce("transport", transport.truck, arrv.toISOString(true), {
+        info: "actual",
+        move: "arrival",
+        name: transport.truck,
+        destination: transport.destination,
+        date: arrv.format('DD/MM'),
+        time: arrv.format('HH:mm'),
+        parking: transport.parking
+    })
+    // console.log("actual", arrv.toISOString(), arrv.toISOString())
+
+    backoffice.announce("parking", transport.parking.toString(), arrv.toISOString(true), {
+        info: "parking",
+        move: "busy",
+        name: transport.truck,
+        destination: transport.destination,
+        parking: transport.parking
+    })
 
     debug.print(transport.filename)
 }
@@ -166,10 +307,7 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-
-    return // do nothing for now
-
-    fs.writeFileSync('SERVICES.json', JSON.stringify(SERVICES), { mode: 0o644 })
+    fs.writeFileSync(FILEPREFIX + 'services.json', JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
     })
@@ -177,7 +315,7 @@ function doServices() {
         if (trucks.hasOwnProperty(svc)) {
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = 'SERVICE-' + truck.getProp("service") + '-' + truck.getName()
+                const fn = FILEPREFIX + truck.getProp("service") + '-' + truck.getName()
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)

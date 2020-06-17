@@ -58,7 +58,20 @@ exports.services = {
 }
 
 exports.simulation = {
-    "jitter": 10,                       // global GPS precision in meter
     "time-between-transports": [2,25],  // minimum and maximum time between fights. Exact time rounded to 5 minutes.
-    "loading-time": [35,75]          // minimum and maximum turnaround time
+    "loading-time": [35,75],          // minimum and maximum turnaround time
+    "warehouse-preannounce": 4 * 60,    // how long before a transport scheduled time is announced.
+    "warehouse-planned-timeframe": [40, 20], // "planned time" is announced between 40 and 60 minutes before the event.
+    "warehouse-planned-uncertainly": 10 * 60,  // When planned is announed, add random uncertainly.
+    "arrival-delays": [-20, 50],        // random delay to flight, in minutes
+    "departure-delays": [-10, 30],      // random (additional) delay to flight, in minutes
+    "eta-preannounce": 180,              // starts reporting ETA 180 minutes before arrival
+    "eta-report": [7, 15],      // reports ETA every between 7 and 15 minutes.
+    "eta-variation": [0, 7],      // At each report, ETA is adjusted by that amount minutes
+    "jitter": 10                       // global GPS precision in meter
+}
+
+exports.CSV = {
+    "TRUCK": "move,handler,parking,truck,destination,date,time"
+
 }
