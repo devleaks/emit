@@ -110,7 +110,7 @@ function doDeparture(flight, runway, arrival) {
             console.log("doDeparture: First flight is departure, don't forget to set --starting-situation flag if applicable.")
             console.log("doDeparture: If program fails, restart with --starting-situation flag. Program does not take responsibility for this.")
         }
-        announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+        announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "minutes")
     }
     backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
@@ -223,7 +223,7 @@ function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
     flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
-    var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "seconds")
+    var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "minutes")
     backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
         info: "scheduled",
         move: "arrival",

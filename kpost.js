@@ -2,6 +2,8 @@ const fs = require('fs')
 var program = require('commander')
 const parse = require('csv-parse/lib/sync')
 
+const config = require('./sim-config')
+
 const debug = require('./lib/debug')
 const kpost = require('./lib/kafka-post-lib.js')
 
@@ -26,7 +28,8 @@ debug.print(program.opts())
 /* INPUT
  */
 const csvstring = fs.readFileSync(program.file, 'utf8')
-const cols = "queue,name,timestamp,lat,lon,speed,heading" + (program.payload ? ",payload" : "")
+
+const cols = config.CSV.DEVICE + (program.payload ? ",payload" : "")
 
 var records = parse(csvstring, { columns: cols.split(",") })
 debug.print("record 0", records[0])

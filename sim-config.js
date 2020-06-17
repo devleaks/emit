@@ -3,6 +3,7 @@ exports.airport = {
         ["04L", "22R"],
         ["04R", "22L"]
     ],
+    "runway-usage": [0.5, 0.5],
     "file": "eblg/json/eblg-area.geojson",
     "airfield": "eblg/json/eblg-estate.geojson",
     "parkings": "eblg/json/eblg-parking-centroids.geojson",
@@ -42,8 +43,6 @@ exports.airport = {
     },
     "taxi-hold": [60, 300],
     "takeoff-hold": [10, 60],
-    "departure-delay": [-15, 30],
-    "arrival-delay": [-20, 30],
     "aprons": {
         "PAX": [1],
         "CARGO": [2, 3, 5, 6]
@@ -254,7 +253,7 @@ exports.services = {
 }
 
 exports.simulation = {
-    "aodb-preannounce": 6 * 60 * 60,    // how long before a flight scheduled time is announced.
+    "aodb-preannounce": 6 * 60,    // how long before a flight scheduled time is announced.
     "aodb-planned-uncertainly": 10 * 60,  // When planned is announed, add random uncertainly.
     "aodb-planned-timeframe": [40, 20], // "planned time" is announced between 20 and 60 minutes before the event.
     "arrival-delays": [-20, 50],        // random delay to flight, in minutes

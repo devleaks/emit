@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Geointelligent Simulator</title>
+    <link rel="stylesheet" href="node_modules/purecss/build/pure-min.css" />
+    <style type="text/css">
+    td {
+        padding: 20px;
+        border: 1px solid #db2004
+    }
+
+    th {
+        background-color: #db2004;
+        padding: 20px;
+    }
+
+    td:first-child {
+        font-weight: bolder;
+    }
+
+    .sep {
+        background-color: #db2004;
+        font-weight: bolder;
+    }
+    </style>
+</head>
+
+<body>
+    <form class="pure-form">
+        <table>
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Explanation</th>
+                    <th>Value</th>
+                    <th>Simulation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Vehicle</td>
+                    <td>You flight or you drive.</td>
+                    <td></td>
+                    <td><input type="radio" name="vehicle" id="aircraft" value="aircraft" checked="checked"><label for="aircraft">Aircraft</label>
+                        <input type="radio" name="vehicle" id="truck" value="truck"><label for="truck">Truck</label></td>
+                </tr>
+                <tr>
+                    <td>Runway Usage</td>
+                    <td>Determine which runway pair get used most. Left first, right last. Must supply as many values as number of alligned runways.</td>
+                    <td>[0.75, 0.25]: Left gets used more than right.</td>
+                    <td><input type="text" value="[0.5, 0.5]"></td>
+                </tr>
+                <tr>
+                    <td>Taxi Hold</td>
+                    <td>How long a plane hold a taxi position before entering the runway</td>
+                    <td>[60, 300]: Between 60 and 360 seconds.</td>
+                    <td><input type="text" value="[60, 300]"></td>
+                </tr>
+                <tr>
+                    <td>Take-off Hold</td>
+                    <td>How long a plane hold takeoff position on the runway before actually taking off</td>
+                    <td>[10, 60]: Between 10 and 70 seconds.</td>
+                    <td><input type="text" value="[10, 60]"></td>
+                </tr>
+                <tr>
+                    <td>Arrival delay</td>
+                    <td>How long ahead / late a plane arrives accoring to its scheduled time.</td>
+                    <td>[-20, 50]: Between 20 minutes in advance and 30 minutes late.</td>
+                    <td><input type="text" value="[-20, 50]"></td>
+                </tr>
+                <tr>
+                    <td>Departure (additionnal) delay</td>
+                    <td>How long ahead / late a plane leaves accoring to its scheduled time.</td>
+                    <td>[-10, 30]: Between 15 minutes in advance and 30 minutes late. If the planed arrived late, its delay is ADDED to this extra delay.</td>
+                    <td><input type="text" value="[-10, 30]"></td>
+                </tr>
+                <tr>
+                    <td>AODB preannouce</td>
+                    <td>How long ahead a scheduled flight is announced.</td>
+                    <td>360 minutes.</td>
+                    <td><input type="text" value="360"></td>
+                </tr>
+                <tr>
+                    <td>AODB planned flight time announcement.</td>
+                    <td>Time when Planned flight arrival/departure time is announced.</td>
+                    <td>[40, 20]: Planned arrival/departure time is announced between 40±20 minutes before actual arrival/departure time.</td>
+                    <td><input type="text" value="[40, 20]"></td>
+                </tr>
+                <tr>
+                    <td>AODB planned flight time announcement.</td>
+                    <td>Time ADDED to the above planned flight time announcement. This randomness represent "delays" added by external computers to provide the information.</td>
+                    <td>600: Up to 600 seconds are added to above time.</td>
+                    <td><input type="text" value="600"></td>
+                </tr>
+                <tr>
+                    <td>Passenger / Cargo Flight Ratio</td>
+                    <td>Ratio</td>
+                    <td>0.2: 20 percents of flights are PASSENGER (PAX) flights. The other 1 - 0.2 = 0.8 = 80% flights are CARGO flights.</td>
+                    <td><input type="text" value="0.2"></td>
+                </tr>
+                <tr>
+                    <td>Jitter</td>
+                    <td>Omnidirectional "noise" added to GPS coordinates, in meter.</td>
+                    <td>10: Meters. GPS coordinates are sent with that amount of uncertainty added to them, in all, random direction.</td>
+                    <td><input type="text" value="10"></td>
+                </tr>
+                <tr>
+                    <td>Time between flights</td>
+                    <td>Time, in minutes, between flights.</td>
+                    <td>[0,15]: There are always between 0 and 15 minutes between flights.</td>
+                    <td><input type="text" value="[0,15]"></td>
+                </tr>
+                <tr>
+                    <td>Minimum time between flights</td>
+                    <td>If random selected time is lower than this, this is the time between 2 flights, never less.</td>
+                    <td>2.5: There are always at least 2.5 minutes between flights.</td>
+                    <td><input type="text" value="2.5"></td>
+                </tr>
+                <tr>
+                    <td>Turnaround time</td>
+                    <td>Time of turnaround for planes that arrive and then leave.</td>
+                    <td>[70,120]: Turnaround takes between 70 and 120 minutes to complete.</td>
+                    <td><input type="text" value="[70,120]"></td>
+                </tr>
+                <tr>
+                    <td class="sep"></td>
+                    <td class="sep">Parameter for TRUCKS</td>
+                    <td class="sep"></td>
+                    <td class="sep"></td>
+                </tr>
+                <tr>
+                    <td>Loading time</td>
+                    <td>Time of unload and load a truck.</td>
+                    <td>[35,75]: Unloading and re-loading a truck takes between 35 and 75 minutes to complete.</td>
+                    <td><input type="text" value="[35,75]"></td>
+                </tr>
+                <tr>
+                    <td>Time between trucks arriving at dock.</td>
+                    <td>Time, in minutes, between arrival of trucks at dock.</td>
+                    <td>[2,25]: There are always between 2 and 25 minutes between two trucks arriving at a dock.</td>
+                    <td><input type="text" value="[2,25]"></td>
+                </tr>
+            </tbody>
+        </table>
+        <button class="btn">Generate</button>
+    </form>
+</body>
+
+<!--
+
+-->
+
+<template>
+    <tr>
+        <td>Variable</td>
+        <td>Explanation</td>
+        <td>Value</td>
+        <td><input type="text" value="Simulation"></td>
+    </tr>
+</template>
+
+</html>
