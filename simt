@@ -36,7 +36,7 @@ tempfile="TRANSPORT"$$.csv
 if [ $COUNT -gt 0 ]
 then   
     node mktb.js -w handler3 -c $COUNT -o $tempfile
-    node transboard.js -f $tempfile
+    node transboard.js -f $tempfile -d
     cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE

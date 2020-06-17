@@ -41,7 +41,7 @@ program
     .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, [""])
+debug.init(program.debug, ["doArrival", "doDeparture"])
 debug.print(program.opts())
 
 
@@ -96,7 +96,7 @@ function doDeparture(transport) {
     transport.actualdeptime = moment(transport.isodatetime, moment.ISO_8601)
     if (transport.hasOwnProperty("delay")) {
         if (transport.delay > 0) {
-            debug.print("Departure has delay because of late arrival", transport.delay, extradelay)
+            debug.print("Departure has delay because of late arrival", transport.truck, transport.delay, extradelay)
             transport.actualdeptime.add(transport.delay, "minutes")
         }
         /*
@@ -192,6 +192,7 @@ function doArrival(transport) {
 
     // add an actual ramdom delay to the arrival time
     transport.delay = random.randomValue(config.simulation["arrival-delays"])
+    debug.print(transport.truck, "has delay", transport.delay)
     transport.actualarrtime = moment(transport.isodatetime, moment.ISO_8601)
     transport.actualarrtime.add(transport.delay, "minutes")
 
@@ -366,6 +367,12 @@ function doTransportboard(transportboard) {
             // does it leave later?
             var departure = takeOff(transportboard, transport)
             if (departure) {
+                // we transport the delay of the arrival to the departure:
+                if (transport.hasOwnProperty("delay")) {
+                    if (transport.delay > 0) {
+                        departure.delay = transport.delay
+                    }
+                }
                 doTurnaround(transport, departure)
             } // departure will be generated later
         }
