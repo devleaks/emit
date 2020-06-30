@@ -1,1 +1,0 @@
-  jq '[ .features[] | {id: .properties.ID_Parking,apron: .properties.ID_Apron_z}] ' datasets/eblg/json/apron_parking.json

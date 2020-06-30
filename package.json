@@ -17,7 +17,7 @@
     "js-yaml": "^3.14.0",
     "kafka-node": "^5.0.0",
     "leaflet-routing-machine": "^3.2.12",
-    "moment": "^2.26.0",
+    "moment": "^2.27.0",
     "purecss": "^2.0.3",
     "request": "^2.88.2",
     "ws": "^7.3.0",

@@ -104,19 +104,13 @@ dist
 .tern-port
 
 # Custom
+_OLD
 out.json
 zigzag.json
-tests/.DS_Store
 .DS_Store
 eblg
-tests/npm-interactive-cli-module-demo/
 out.csv
 SERVICE-*
 FLIGHT-*
-tests/
-sample/
-
-wallet.js
-
-
+src/data
 *.csv
