@@ -1,5 +1,5 @@
-import parse from 'csv-parse/lib/sync.js';
-import * as debug from './debug.js';
+import parse from "csv-parse/lib/sync.js";
+import * as debug from "./debug.js";
 
 /* Templates of what is expected by gip-mapjs
 {
@@ -21,7 +21,7 @@ import * as debug from './debug.js';
             "opacity": 0.8,
             "fillColor": "rgb(0,255,0)",
             "fillOpacity": 0.4,
-            "markerSymbol": 'plane',
+            "markerSymbol": "plane",
             "markerRotationOffset": -45
         },
         "_templates": {
@@ -80,7 +80,7 @@ export const getDateTime = function(csv) {
     if (r1.hasOwnProperty("timestamp")) {
         return r1.timestamp
     }
-    return ''
+    return ""
 };
 
 export const convert = function(csv) {
@@ -90,13 +90,13 @@ export const convert = function(csv) {
     switch (objcsv.queue) {
         case "aircraft":
             /* { payload
-                  queue: 'aircraft',
-                  name: '568E28',
-                  timestamp: '2020-03-23T15:34:08.870+01:00',
-                  lat: '50.57171306441866',
-                  lon: '5.658800761665411',
-                  speed: '333.36',
-                  heading: '67.1'
+                  queue: "aircraft",
+                  name: "568E28",
+                  timestamp: "2020-03-23T15:34:08.870+01:00",
+                  lat: "50.57171306441866",
+                  lon: "5.658800761665411",
+                  speed: "333.36",
+                  heading: "67.1"
             } */
             var cols = "lat,lon,alt,speed,heading,payload"
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
@@ -117,7 +117,7 @@ export const convert = function(csv) {
                         "opacity": 0.8,
                         "fillColor": "rgb(0,0,0)",
                         "fillOpacity": 0.4,
-                        "markerSymbol": 'plane',
+                        "markerSymbol": "plane",
                         "markerRotationOffset": 0
                     },
                 },
@@ -145,13 +145,13 @@ export const convert = function(csv) {
 
         case "truck":
             /* {
-                  queue: 'truck',
-                  name: 'T1234',
-                  timestamp: '2020-03-23T15:34:08.870+01:00',
-                  lat: '50.57171306441866',
-                  lon: '5.658800761665411',
-                  speed: '333.36',
-                  heading: '67.1'
+                  queue: "truck",
+                  name: "T1234",
+                  timestamp: "2020-03-23T15:34:08.870+01:00",
+                  lat: "50.57171306441866",
+                  lon: "5.658800761665411",
+                  speed: "333.36",
+                  heading: "67.1"
             } */
             var cols = "lat,lon,alt,speed,heading,payload"
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
@@ -171,7 +171,7 @@ export const convert = function(csv) {
                         "opacity": 0.8,
                         "fillColor": "rgb(0,0,0)",
                         "fillOpacity": 0.4,
-                        "markerSymbol": 'truck'
+                        "markerSymbol": "truck"
                     },
                 },
                 "geometry": {
@@ -205,7 +205,7 @@ export const convert = function(csv) {
             var payload = records[0]
 
             var data = false
-            if (payload.payload != '') {
+            if (payload.payload != "") {
                 var p = JSON.parse(payload.payload)
                 if (objcsv.name.substr(0, 4) == "fuel" && p.hasOwnProperty("capacity") && p.hasOwnProperty("load")) {
                     data = {
@@ -219,7 +219,7 @@ export const convert = function(csv) {
             }
 
             var icon, color
-            const sarr = objcsv.name.split(':')
+            const sarr = objcsv.name.split(":")
             switch (sarr[0]) {
                 case "fuel":
                     icon = "gas-pump"
@@ -325,8 +325,8 @@ export const convert = function(csv) {
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
-                    source: 'aodb',
-                    type: 'flightboard',
+                    source: "aodb",
+                    type: "flightboard",
                     subject: move + " " + payload.flight + (payload.move == "departure" ? " to " : " from ") + payload.airport,
                     body: msgtype + " " + payload.time,
                     created_at: objcsv.timestamp,
@@ -368,8 +368,8 @@ export const convert = function(csv) {
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
-                    source: 'aodb',
-                    type: 'flightboard',
+                    source: "aodb",
+                    type: "flightboard",
                     subject: move + " " + payload.truck + (payload.move == "departure" ? " to " : " from ") + payload.destination,
                     body: msgtype + " " + payload.time,
                     created_at: objcsv.timestamp,
@@ -403,8 +403,8 @@ export const convert = function(csv) {
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
-                    source: 'aodb',
-                    type: 'flightboard',
+                    source: "aodb",
+                    type: "flightboard",
                     subject: "Parking " + payload.parking + " " + payload.move,
                     body: (payload.move == "available" ? "Departure " : "Arrrival ") + " " + payload.flight + (payload.move == "available" ? " to " : " from ") + payload.airport,
                     created_at: objcsv.timestamp,
@@ -440,9 +440,9 @@ export const convert = function(csv) {
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
-                    source: 'aodb',
-                    type: 'metar',
-                    subject: 'METAR EBLG ' + payload.time,
+                    source: "aodb",
+                    type: "metar",
+                    subject: "METAR EBLG " + payload.time,
                     body: payload.metar,
                     created_at: objcsv.timestamp,
                     priority: 2,
