@@ -20,7 +20,7 @@ import * as config from "./data/sim-config.js";
 var airport = airportData.init(config)
 var aircraft = aircraftData.init(config.aircrafts)
 
-const FILEPREFIX = "FLIGHT-"
+let FILEPREFIX = "FLIGHT-"
 
 program
     .version("1.2.0")
@@ -29,10 +29,11 @@ program
     .option("-p, --payload", "Add payload column with all properties")
     .option("-s, --starting-situation", "Flightboard has departure only, original situation must be set up", false)
     .requiredOption("-f, --flightboard <file>", "CSV flightboard")
+    .option("-t, --file-prefix <path>", "Prefix (including directories) for file generation", FILEPREFIX)
     .option("-o, --output <file>", "Save to file, default to out.json", "out.json")
     .parse(process.argv)
 
-debug.init(program.debug, ["doArrival", "doDeparture"])
+debug.init(program.debug, [])
 debug.print(program.opts())
 
 
@@ -84,7 +85,7 @@ function addDelay(t, f) {
  */
 function doDeparture(flight, runway, arrival) {
     const sid = airportData.randomSID(runway)
-    flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
+    flight.filename = program.filePrefix + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     // annouce flight at its scheduled time.
     var announce;
@@ -214,7 +215,7 @@ function doDeparture(flight, runway, arrival) {
  */
 function doArrival(flight, runway) {
     const star = airportData.randomSTAR(runway)
-    flight.filename = FILEPREFIX + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
+    flight.filename = program.filePrefix + [flight.flight, flight.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(flight.isodatetime, moment.ISO_8601).subtract(config.simulation["aodb-preannounce"], "minutes")
     backoffice.announce("flightboard", flight.flight, announce.toISOString(true), {
@@ -422,7 +423,7 @@ function doTurnaround(arrival, departure) {
 function doServices() {
     var services = service.todo()
     if (program.debug)
-        fs.writeFileSync(FILEPREFIX + "services.json", JSON.stringify(services, null, 2), { mode: 0o644 })
+        fs.writeFileSync(program.filePrefix + "services.json", JSON.stringify(services, null, 2), { mode: 0o644 })
     var trucks = service.doServices(services, airport, {
         park: true
     })
@@ -430,7 +431,7 @@ function doServices() {
         if (trucks.hasOwnProperty(svc)) {
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = FILEPREFIX + truck.getProp("service") + "-" + truck.getName().replace(/:/, "") // unix does not like :
+                const fn = program.filePrefix + truck.getProp("service") + "-" + truck.getName().replace(/:/, "") // unix does not like :
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)
@@ -507,10 +508,10 @@ function doFlightboard(flightboard) {
     // now plan and generate services
     doServices()
 
-    backoffice.save(FILEPREFIX + "flightboard.csv")
+    backoffice.save(program.filePrefix + "flightboard.csv")
 
     if (parkedAircraft != "")
-        fs.writeFileSync(FILEPREFIX + "parked.csv", parkedAircraft, { mode: 0o644 })
+        fs.writeFileSync(program.filePrefix + "parked.csv", parkedAircraft, { mode: 0o644 })
 }
 
 if (program.flightboard) {

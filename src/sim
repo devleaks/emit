@@ -31,13 +31,19 @@ done
 
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-temprefix="FLIGHT-"
-tempfile="FLIGHT"$$.csv
+TEMPDIR=tmp
+if [ ! -d "${TEMPDIR}" ]; then
+  mkdir ${TEMPDIR}
+fi
+
+temprefix=${TEMPDIR}"/FLIGHT-"
+tempfile=${temprefix}$$.csv
+
 if [ $COUNT -gt 0 ]
 then 
     node metar -d
-    node mkfb.js -c $COUNT -o $tempfile
-    node flightboard.js -f $tempfile -p -d
+    node mkfb.js -c $COUNT -o ${tempfile}
+    node flightboard.js -f $tempfile -p -d -t ${temprefix}
     cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE
@@ -51,5 +57,7 @@ then
 fi
 
 if [ $CLEAN = "YES" ]
-  then rm -f ${temprefix}*.{csv,json} FLIGHT[0-9]*.csv
+then
+    rm -f ${temprefix}*.{csv,json} $tempfile
+    rmdir ${TEMPDIR}
 fi
