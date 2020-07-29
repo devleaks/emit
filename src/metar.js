@@ -20,20 +20,16 @@ program
     .version("1.0.0")
     .description("Fetches latest METAR data for supplied airport (ICAO code)")
     .option("-d, --debug", "output extra debugging")
-    .option("-o <file>, --output <file>", "Save to file", fname)
-    .option("-a <airport>, --airport <airport>", "Fetches data for supplied airport ICAO code", "EBLG")
+    .option("-o, --output <file>", "Save to file", fname)
+    .option("-a, --airport <airport>", "Fetches data for supplied airport ICAO code", "EBLG")
     .option("-r, --refresh", "Force METAR update")
     .parse(process.argv)
 
 debug.init(program.debug, [""])
 debug.print(program.opts())
 
-
-var furl = url + program.A
-debug.print(furl)
-
 function xmlToJson(url, callback) {
-    var req = https.get(furl, function(res) {
+    var req = https.get(url, function(res) {
         var xml = "";
 
         res.on("data", function(chunk) {
@@ -58,7 +54,9 @@ function xmlToJson(url, callback) {
 
 
 function getMetar() {
-    xmlToJson(url, function(err, data) {
+    const furl = url + program.airport
+
+    xmlToJson(furl, function(err, data) {
         if (err) {
             // Handle this however you like
             return console.err(err);
@@ -68,7 +66,7 @@ function getMetar() {
         // Following just pretty-prints the object
         var METAR = data["response"]["data"][0]["METAR"][0]
         METAR.raw_timestamp = [moment().toISOString()]
-        fs.writeFileSync(program.O, JSON.stringify(METAR, null, 2), { mode: 0o644 })
+        fs.writeFileSync(program.output, JSON.stringify(METAR, null, 2), { mode: 0o644 })
     })
     debug.print("METAR updated", fname)
 }
@@ -78,7 +76,7 @@ function getMetar() {
 try {
     const stats = fs.statSync(fname)
     var fdate = moment(stats.mtime).add(too_late, "m")
-    if (fdate.isBefore(moment()) || program.refresh)
+    if (fdate.isBefore(moment()) || program.refresh)
         getMetar()
     else
         debug.print("METAR up-to-date")
@@ -91,4 +89,3 @@ try {
 
 // Link to windity: https://www.windy.com/EBLG?49.063,7.674,7
 // Zoom 15 is perfect
-
