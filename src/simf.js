@@ -36,8 +36,8 @@ debug.print(program.opts())
 
 
 var airplane = program.landing ?
-    simulator.land(airport, program.name, program.aircraft, program.parking, program.runway, program.airway) :
-    simulator.takeoff(airport, program.name, program.aircraft, program.parking, program.runway, program.airway)
+    simulator.land(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM999") :
+    simulator.takeoff(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM001")
 
 if (airplane) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })

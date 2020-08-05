@@ -1,3 +1,7 @@
 {
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "nodemon": "nodemon --config nodemon.json wspost.js -- -f solari.csv -d"
+  },
+  "devDependencies": {}
 }

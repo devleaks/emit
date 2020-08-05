@@ -75,8 +75,14 @@ function computeRunway(runways, wind, rwys) {
     return wind_ret // (wind_int > wmin && wind_int < wmax) ? runway_alt_txt : runway_heading_txt
 }
 
+/*  Returns wind direction using metar if available and requested. If not, returns random wind direction.
+ */
+export const getWindDirection = function(use_metar = true) {
+    return use_metar && _airport.hasOwnProperty("METAR") ? _airport.METAR["wind_dir_degrees"][0] : Math.round(Math.random() * 360)
+}
+
 export const randomRunway = function(wind) {
-    let runway = _airport.runways.length > 1 ? random(_airport.runways) : _airport.runways[0]
+    let runway = _airport.runways.length > 1 ? randomWeight(_airport.runways, _airport["runway-usage"]) : _airport.runways[0]
     return computeRunway(runway, wind, _airport.runways.length)
 };
 

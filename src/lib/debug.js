@@ -8,11 +8,14 @@ export const init = function (d, f, m = "()") {
   _MAIN = m
 };
 
+const SPECIAL_CALLERS = ["file:","Timeo"]
+
 export const print = function(...args) {
 //    console.log(util.inspect(options._syncers, {showHidden: false, depth: null, colors: true}))
     if (_DEBUG) {
         let caller = (new Error()).stack.split("\n")[2].trim().split(" ")[1] // print.caller ? print.caller : {"name": _MAIN}
-        if(caller.substr(0, 5) == "file:") { // calls from "top level"
+        // console.log("caller", caller)
+        if(SPECIAL_CALLERS.indexOf(caller.substr(0,5)) >= 0) { // calls from "top level"
           caller = ""
         }
         if (_FUNCNAME.indexOf(caller) >= 0)

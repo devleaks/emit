@@ -15,7 +15,7 @@ var _aircrafts = aircraftData.init(config.aircrafts)
 /*
  * T A K E - O F F
  */
-export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name) {
+export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name, flight_name) {
     var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point"s name
@@ -45,6 +45,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
         syncCount++,
         airplane.getProp("color"), {
             "device": airplane.name,
+
             "action": "pushback",
             "posname": parking.properties.name
         })
@@ -82,6 +83,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "hold",
                 "posname": p_name,
                 "postime": hold_time
@@ -115,6 +117,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "hold",
                 "posname": p_name,
                 "postime": hold_time
@@ -138,6 +141,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "takeoff",
                 "posname": p_name
             })
@@ -157,6 +161,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "flight",
                 "posname": p_name
             })
@@ -197,6 +202,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
         syncCount++,
         airplane.getProp("color"), {
             "device": airplane.name,
+            "flight": flight_name,
             "action": "away",
             "posname": p_name
         })
@@ -207,7 +213,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
 /*
  * L A N D I N G
  */
-export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name) {
+export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name, flight_name) {
     var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point"s name
@@ -235,6 +241,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
                     syncCount++,
                     airplane.getProp("color"), {
                         "device": airplane.name,
+                        "flight": flight_name,
                         "action": "enter",
                         "posname": p_name
                     })
@@ -258,6 +265,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "star",
                 "posname": p_name
             })
@@ -280,6 +288,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "final",
                 "posname": p_name
             })
@@ -300,6 +309,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "touchdown",
                 "posname": p_name
             })
@@ -320,6 +330,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
             syncCount++,
             airplane.getProp("color"), {
                 "device": airplane.name,
+                "flight": flight_name,
                 "action": "exitrunway",
                 "posname": p_name
             })
@@ -354,6 +365,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
         syncCount++,
         airplane.getProp("color"), {
             "device": airplane.name,
+            "flight": flight_name,
             "action": "park",
             "posname": parking_name
         })

@@ -1,0 +1,26 @@
+{
+    "parser": "babel-eslint",
+    "parserOptions":
+    {
+        "ecmaFeatures":
+        {
+            "modules": true
+        }
+    },
+    "env":
+    {
+        "browser": true
+    },
+    "rules":
+    {
+        "quotes": ["warn", "double"],
+        "no-unused-vars": [
+            "error",
+            {
+                "vars": "all",
+                "args": "after-used",
+                "ignoreRestSiblings": false
+            }
+        ]
+    }
+}

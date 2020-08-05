@@ -362,7 +362,7 @@ export const convert = function(csv) {
             var move = upperFirst(payload.move)
             var msgtype = payload.info == "planned" ? "ETA" : upperFirst(payload.info)
             var msgcolor = payload.info == "planned" ? "success" :
-                                                        payload.info == "scheduled" ? "info" : "accent"
+                payload.info == "scheduled" ? "info" : "accent"
 
             var ret1 = {
                 type: "wire",
@@ -449,6 +449,33 @@ export const convert = function(csv) {
                     icon: "fa-cloud",
                     "icon-color": "info"
                 }
+            }
+
+            break
+
+
+        case "aodb":
+            /* Generic AODB message.
+             * The emitter's name is the AODB message type.
+             * We just "reformat" the payload message.
+             */
+            // var payload = JSON.parse(objcsv.payload)
+            // need to "try to parse" payload to avoid stringifying twice.
+            var payload
+            if (typeof objcsv.payload == "string" || objcsv.payload instanceof String) {
+                try {
+                    payload = JSON.parse(objcsv.payload)
+                } catch (e) { // not JSON
+                    payload = objcsv.payload
+                }
+            } else {
+                payload = data
+            }
+
+            ret = {
+                type: objcsv.name,
+                timestamp: objcsv.timestamp,
+                payload: payload
             }
 
             break

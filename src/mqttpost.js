@@ -1,13 +1,13 @@
 import fs from "fs";
 import program from "commander";
 import * as debug from "./lib/debug.js";
-import * as sender from "./lib/ws-post-lib.js";
+import * as sender from "./lib/mqtt-post-lib.js";
 
 /* COMMAND LINE PARAMETERS
  */
 program
-    .version("1.3.0")
-    .description("Pushes messages to websocket")
+    .version("1.0.0")
+    .description("Pushes data to MQTT queues")
     .option("-d, --debug", "output extra debugging")
     .option("-r, --rate <delay>", "Let that amount of time between events, 1 second, default", 1)
     .option("-s, --speed <factor>", "Increases time by that factor")

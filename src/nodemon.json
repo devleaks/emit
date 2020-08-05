@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "delay": "5000",
+  "ext": "js,css",
+  "watch": ["/Users/pierre/Developer/Internet/js/gip/givjs/src",
+    "/Users/pierre/Developer/Internet/js/gip/node-red/flows_New-iMac.local.json"]
+}

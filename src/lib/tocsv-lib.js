@@ -37,7 +37,7 @@ export const tocsv = function(fc, startdate, options) {
                 events.push(f)
                 last_event = f
             }
-            if(f.properties.hasOwnProperty("sync")) {
+            if (f.properties.hasOwnProperty("sync")) {
                 all_sync_events[f.properties.sync] = f
             }
             if (!sync_event && f.properties && f.properties.hasOwnProperty("emit") && f.properties.hasOwnProperty("sync") && f.properties.sync == options.event) {
@@ -56,7 +56,7 @@ export const tocsv = function(fc, startdate, options) {
     if (sync_event) {
         timeshift = -sync_event.properties.elapsed
     } else if (options.event && !sync_event) {
-        console.log("could not find sync event '"+options.event+"', starting from begining")
+        console.log("could not find sync event '" + options.event + "', starting from begining")
     }
 
     // add/remove random delay (seconds)
@@ -87,9 +87,9 @@ export const tocsv = function(fc, startdate, options) {
 // tries to 
 export const tocsv_sync_all = function(fc, startdate, options) {
     var events = []
-    var trips  = {}
+    var trips = {}
 
-    fc.features.forEach(function(f, idx) {  // search for sync events
+    fc.features.forEach(function(f, idx) { // search for sync events
         if (f.type == "Feature" && f.geometry.type == "Point" && f.properties && f.properties.hasOwnProperty("emit")) {
             events.push(f)
             if (f.properties.hasOwnProperty("sync") && f.properties.hasOwnProperty("device")) {
@@ -110,22 +110,26 @@ export const tocsv_sync_all = function(fc, startdate, options) {
     events.sort((a, b) => (a.properties.sequence > b.properties.sequence) ? 1 : -1)
     for (var device in trips) {
         debug.print(device)
-        if (trips.hasOwnProperty(device)) {
-            const devicetrip = trips[device]
-            for (var sync in devicetrip) {
-                if (devicetrip.hasOwnProperty(sync)) { // check should be unnecessary...
-                    const event = trips[device][sync]
-                    debug.print("doing", device, sync, event.properties.sequence, event.properties.elapsed)
-                    const startdate = moment(event.properties.scheduled).add(- event.properties.elapsed, "seconds")
-                    events.forEach(function (f, idx) {
-                       if(f.properties.sequence > last_seq && f.properties.sequence <= event.properties.sequence) {
-                            strbuf += mkcsv(f, startdate, options) + "\n"
-                            debug.print("added", f.properties.sequence, f.properties.elapsed)
-                        }
-                    })
-                    last_seq = event.properties.sequence
+        const devicetrip = trips[device]
+        for (var sync in devicetrip) {
+            const event = trips[device][sync]
+            debug.print("doing", device, sync, event.properties.sequence, event.properties.elapsed)
+            const startdate = moment(event.properties.scheduled).add(-event.properties.elapsed, "seconds")
+            events.forEach(function(f, idx) {
+                // modified 05-AUG-2020 to make sure we generate more csv lines after the service, when the service truck
+                // moves back to the service road and leaves the airplane's parking. (we add a "point" for that after the service
+                // in service-lib.js.)
+                // BEFORE: f.properties.sequence <= event.properties.sequence
+                // NOW: f.properties.vertex <= (event.properties.vertex + 2): There are 2 vertices after the service,
+                // one to move back to the service road, one to "wait" on the service road (set to 120sec, so that the truck emits
+                // outside of the parking area for a "buffer out" of the parking space.)
+                // Note: After that truck may "jump" from that place to its next service road if wait is less than 120 secs.
+                if (f.properties.sequence > last_seq && f.properties.vertex <= (event.properties.vertex + 2)) {
+                    strbuf += mkcsv(f, startdate, options) + "\n"
+                    debug.print("added", f.properties.sequence, f.properties.elapsed)
                 }
-            }
+            })
+            last_seq = event.properties.sequence
         }
     }
     return { csv: strbuf, syncevents: trips }
