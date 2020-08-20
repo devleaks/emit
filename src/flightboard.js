@@ -477,7 +477,7 @@ function doFlightboard(flightboard) {
     const wind = airportData.getWindDirection()
     console.log("Wind direction",wind)
     if (airport.hasOwnProperty("METAR")) {
-        backoffice.announce("metar", "eblg", moment(airport.METAR.raw_timestamp[0]).toISOString(true), { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0] })
+        backoffice.announce("metar", airport.METAR.station_id[0], moment(airport.METAR.raw_timestamp[0]).toISOString(true), { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0], airport: airport.METAR.station_id[0] })
     }
 
     if (sfb[0].move == "departure") {

@@ -106,6 +106,7 @@ export const convert = function(csv) {
                 "properties": {
                     "name": objcsv.name,
                     "type": "AIRCRAFT",
+                    "class": "aircrafts",
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "AIRCRAFTS",
@@ -161,6 +162,7 @@ export const convert = function(csv) {
                 "properties": {
                     "name": objcsv.name,
                     "type": "TRUCK",
+                    "class": "trucks",
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "TRUCKS",
@@ -248,7 +250,8 @@ export const convert = function(csv) {
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
-                    "type": "SERVICE",
+                    "type": "SERVICE", // sarr[0]
+                    "class": "gse",
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "SERVICES",
@@ -442,7 +445,7 @@ export const convert = function(csv) {
                 payload: {
                     source: "aodb",
                     type: "metar",
-                    subject: "METAR EBLG " + payload.time,
+                    subject: "METAR " + payload.airport + " " + payload.time,
                     body: payload.metar,
                     created_at: objcsv.timestamp,
                     priority: 2,

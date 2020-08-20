@@ -105,6 +105,7 @@ dist
 
 # Custom
 _OLD
+_OLD.zip
 out.json
 zigzag.json
 .DS_Store
