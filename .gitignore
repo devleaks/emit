@@ -111,7 +111,6 @@ zigzag.json
 .DS_Store
 eblg
 out.csv
-SERVICE-*
 FLIGHT-*
 src/data
 *.csv
