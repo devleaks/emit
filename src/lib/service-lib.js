@@ -1,4 +1,4 @@
-import fs from 'fs";
+import fs from "fs";
 import turf from "@turf/turf";
 import * as parse from "csv-parse/lib/sync.js";
 import moment from "moment";
