@@ -12,7 +12,7 @@ program
     .version("1.3.0")
     .description("Convert data from FeatureCollection of Point to CSV")
     .option("-d, --debug", "output extra debugging")
-    .option("-n, --name <name>", "device name")
+    .option("-n, --device <name>", "device name")
     .option("-q, --queue <name>", "Kafka queue name", "queue")
     .option("-1, --first", "Add header line")
     .option("-p, --payload", "Add payload column with all properties")

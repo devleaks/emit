@@ -23,7 +23,7 @@ program
     .description("generates GeoJSON features for one aircraft takeoff or landing")
     .option("-d, --debug", "output extra debugging")
     .option("-o, --output <file>", "Save to file, default to out.json", "out.json")
-    .option("-n, --name <name>", "aircraft name", aircraftData.randomAircraftICAO())
+    .option("-n, --numero <name>", "aircraft name", aircraftData.randomAircraftICAO())
     .option("-m, --aircraft <model>", "aircraft model", aircraftData.randomAircraftModel())
     .option("-r, --runway <runway>", "name of runway", runway)
     .option("-s, --airway <name>", "SID or STAR name", isLanding ? airportData.randomSTAR(runway) : airportData.randomSID(runway))
