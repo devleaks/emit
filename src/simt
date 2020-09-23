@@ -31,12 +31,18 @@ done
 
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-temprefix="TRANSPORT-"
-tempfile="TRANSPORT"$$.csv
+TEMPDIR=tmp
+if [ ! -d "${TEMPDIR}" ]; then
+  mkdir ${TEMPDIR}
+fi
+
+temprefix=${TEMPDIR}"/TRANSPORT-"
+tempfile=${TEMPDIR}"/TRANSPORTBOARD-"$$.csv
+
 if [ $COUNT -gt 0 ]
 then   
-    node mktb.js -w handler3 -c $COUNT -o $tempfile
-    node transboard.js -f $tempfile -d
+    node mktb.js  -1 -w handler3 -c $COUNT -o $tempfile
+    node transboard.js -f $tempfile -t ${temprefix} -d
     cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
     wc -l $OFILE
@@ -47,5 +53,7 @@ then
 fi
 
 if [ $CLEAN = "YES" ]
-  then rm -f  ${temprefix}*.{csv,json} TRANSPORT[0-9]*.csv
+  then
+    rm -f ${temprefix}*.{csv,json} $tempfile
+    rmdir ${TEMPDIR}
 fi

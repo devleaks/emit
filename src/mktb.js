@@ -1,10 +1,10 @@
-import fs from 'fs';
-import moment from 'moment';
-import program from 'commander';
-import * as debug from './lib/debug.js';
-import * as config from './data/sim-config-transport.js';
-import * as roadsData from './lib/roads.js';
-import * as trucksData from './lib/truck.js';
+import fs from "fs";
+import moment from "moment";
+import program from "commander";
+import * as debug from "./lib/debug.js";
+import * as config from "./data/sim-config-transport.js";
+import * as roadsData from "./lib/roads.js";
+import * as trucksData from "./lib/truck.js";
 
 let roads = roadsData.init(config)
 let trucks = trucksData.init(config)
@@ -15,13 +15,14 @@ const now = moment();
 const now5 = moment(now).add(5 - (now.minute() % 5), "minutes").add(-now.second(), "seconds").add(-now.millisecond(), "milliseconds")
 
 program
-    .version('1.1.0')
-    .description('generates tranport board')
-    .option('-d, --debug', 'output extra debugging')
-    .option('-o, --output <file>', 'save to file, default to out.csv', "out.csv")
-    .requiredOption('-c, --count <count>', 'count of transports (arrival then departure')
-    .option('-w, --warehouse <warehouse>', 'name of handler warehouse')
-    .option('-s, --start-date <date>', 'start date of event reporting, default to now', now5.toISOString())
+    .version("1.1.0")
+    .description("generates tranport board")
+    .option("-d, --debug", "output extra debugging")
+    .option("-o, --output <file>", "save to file, default to out.csv", "out.csv")
+    .option("-1, --first", "Add header line")
+    .requiredOption("-c, --count <count>", "count of transports (arrival then departure")
+    .option("-w, --warehouse <warehouse>", "name of handler warehouse")
+    .option("-s, --start-date <date>", "start date of event reporting, default to now", now5.toISOString())
     .parse(process.argv)
 
 debug.init(program.debug, [""])
@@ -41,21 +42,21 @@ function turnAround() {
     return p[0] + 5 * rndInt(Math.round(Math.abs(p[1] - p[0]) / 5))
 }
 
-function randomTruckboard(cnt, startdate, type = false) {
-    let txt = config.CSV["TRUCK"] + '\n'
-    let time = startdate ? moment(startdate) : moment()
+function randomTruckboard(options) {
+    let txt = options.first ? config.CSV["TRUCK"] + "\n" : ""
+    let time = options.startdate ? moment(options.startdate) : moment()
 
-    for (let i = 0; i < cnt; i++) {
+    for (let i = 0; i < options.count; i++) {
         const handler = program.warehouse ? program.warehouse : roadsData.randomHandler()
         let truck = trucksData.randomTruckname()
-        time.add(nextTransport(2), 'm')
+        time.add(nextTransport(2), "m")
 
         // arrival
         let src = roadsData.randomHighway()
 
         // turnaround
         let time2 = moment(time)
-        time2.add(turnAround(), 'm')
+        time2.add(turnAround(), "m")
         // departure
         let dest = roadsData.randomHighway()
 
@@ -63,12 +64,12 @@ function randomTruckboard(cnt, startdate, type = false) {
         if (parking) {
             roadsData.park(parking, time.toISOString(), time2.toISOString())
             // print arrival
-            debug.print('arrival', handler, truck, src, time.format('HH:mm'), parking)
-            txt += 'arrival,' + handler + ',' + parking + ',' + truck + ',' + dest + ',,' + time.format('HH:mm') + '\n'
+            debug.print("arrival", handler, truck, src, time.format("HH:mm"), parking)
+            txt += "arrival," + handler + "," + parking + "," + truck + "," + dest + ",," + time.format("HH:mm") + "\n"
             // truck = trucksData.randomTruckname() // leaves with same name otherwise too complicated
             // print departure
-            txt += 'departure,' + handler + ',' + parking + ',' + truck + ',' + dest + ',,' + time2.format('HH:mm') + '\n'
-            debug.print('departure', handler, truck, dest, time2.format('HH:mm'), parking)
+            txt += "departure," + handler + "," + parking + "," + truck + "," + dest + ",," + time2.format("HH:mm") + "\n"
+            debug.print("departure", handler, truck, dest, time2.format("HH:mm"), parking)
         } else {
             debug.error("no parking available for ", handler)
         }
@@ -77,6 +78,6 @@ function randomTruckboard(cnt, startdate, type = false) {
     return txt
 }
 
-let s = randomTruckboard(program.count, program.startDate, program.type)
+let s = randomTruckboard(program.opts())
 fs.writeFileSync(program.output, s, { mode: 0o644 })
-debug.print(program.output + ' written')
+debug.print(program.output + " written")

@@ -23,7 +23,6 @@ debug.init(true, [""])
 
 const FILEPREFIX = "TRANSPORT-"
 
-
 var SERVICES = []
 
 program
@@ -33,6 +32,7 @@ program
     .option("-p, --payload", "Add payload column with all properties")
     .requiredOption("-f, --transport-board <file>", "CSV transport board")
     .option("-o, --output <file>", "Save to file, default to out.json", "out.json")
+    .option("-t, --file-prefix <path>", "Prefix (including directories) for file generation", FILEPREFIX)
     .parse(process.argv)
 
 debug.init(program.debug, ["doArrival", "doDeparture"])
@@ -61,7 +61,7 @@ function takeOff(transportschedule, arrival) {
 /*  Generate full departure (write down CSV)
  */
 function doDeparture(transport) {
-    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+    transport.filename = program.filePrefix + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(transport.isodatetime, moment.ISO_8601).subtract(config.simulation["warehouse-preannounce"], "minutes")
     backoffice.announce("transport", transport.truck, announce.toISOString(true), {
@@ -159,7 +159,7 @@ function doDeparture(transport) {
 /*  Generate full arrival (write down CSV)
  */
 function doArrival(transport) {
-    transport.filename = FILEPREFIX + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
+    transport.filename = program.filePrefix + [transport.truck, transport.time].join("-").replace(/[:.+]/g, "-")
 
     var announce = moment(transport.isodatetime, moment.ISO_8601).subtract(config.simulation["warehouse-preannounce"], "minutes")
     backoffice.announce("transport", transport.truck, announce.toISOString(true), {
@@ -302,7 +302,7 @@ function doTurnaround(arrival, departure) {
 
 //
 function doServices() {
-    fs.writeFileSync(FILEPREFIX + "services.json", JSON.stringify(SERVICES), { mode: 0o644 })
+    fs.writeFileSync(program.filePrefix + "services.json", JSON.stringify(SERVICES), { mode: 0o644 })
     var trucks = service.doServices(SERVICES, airport, {
         park: true
     })
