@@ -19,6 +19,7 @@ program
     .description("generates random flightboard")
     .option("-d, --debug", "output extra debugging")
     .option("-o, --output <file>", "Save to file, default to out.csv", "out.csv")
+    .option("-1, --first", "Add header line")
     .requiredOption("-c, --count <count>", "count of arrival/departure pairs")
     .option("-s, --start-date <date>", "start date of event reporting, default to now", now5.toISOString())
     .option("-t, --type <type>", "type of flights [PAX|CARGO]")
@@ -49,12 +50,12 @@ function turnAround(type = false) {
     return p[0] + 5 * rndInt(Math.round(Math.abs(p[1]-p[0]) / 5))
 }
 
-function randomFlightboard(cnt, startdate, type = false) {
-    let txt = "move,flight,airport,date,time,plane,parking,comment\n"
-    let time = startdate ? moment(startdate) : moment()
+function randomFlightboard(options) {
+    let txt = options.first ? "move,flight,airport,date,time,plane,parking,comment\n" : ""
+    let time = options.startdate ? moment(options.startdate) : moment()
 
-    for (let i = 0; i < cnt; i++) {
-        let ltype = type ? type : (Math.random() > config.simulation["paxratio"] ? "CARGO" : "PAX")
+    for (let i = 0; i < options.count; i++) {
+        let ltype = options.type ? options.type : (Math.random() > config.simulation["paxratio"] ? "CARGO" : "PAX")
         let parking = airportData.randomParking(airportData.randomApron(ltype))
         let aircraft = aircraftData.randomAircraftICAO()
         let airport = airports.randomAirport()
@@ -75,6 +76,6 @@ function randomFlightboard(cnt, startdate, type = false) {
     return txt
 }
 
-let s = randomFlightboard(program.count, program.startDate, program.type)
+let s = randomFlightboard(program.opts())
 fs.writeFileSync(program.output, s, { mode: 0o644 })
 debug.print(program.output + " written")

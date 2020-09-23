@@ -37,12 +37,12 @@ if [ ! -d "${TEMPDIR}" ]; then
 fi
 
 temprefix=${TEMPDIR}"/FLIGHT-"
-tempfile=${temprefix}$$.csv
+tempfile=${TEMPDIR}"/FLIGHTBOARD-"$$.csv
 
 if [ $COUNT -gt 0 ]
 then 
     node metar -d
-    node mkfb.js -c $COUNT -o ${tempfile}
+    node mkfb.js -c $COUNT -1 -o ${tempfile}
     node flightboard.js -f $tempfile -p -d -t ${temprefix}
     cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
