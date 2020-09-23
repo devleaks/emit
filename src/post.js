@@ -2,9 +2,11 @@ import fs from "fs";
 import program from "commander";
 import * as debug from "./lib/debug.js";
 
-import * as wssender from "./lib/ws-post-lib.js";
-import * as mqttsender from "./lib/mqtt-post-lib.js";
-import * as kafkasender from "./lib/kafka-post-lib.js";
+import { post } from "./lib/post-lib.js";
+
+import { send as wssender, init as wsinit }  from "./lib/ws-post-lib.js";
+import { send as mqttsender, init as mqttinit } from "./lib/mqtt-post-lib.js";
+import { send as kafkasender, init as kafkainit } from "./lib/kafka-post-lib.js";
 
 /* COMMAND LINE PARAMETERS
  */
@@ -22,34 +24,42 @@ program
 debug.init(program.debug, ["", "_post"])
 debug.print(program.opts())
 
-let sender
+let transports = program.transport.split(",")
+let senders = []
+let inits = []
 
-switch (program.transport) {
-    case "ws":
-        sender = wssender
-        break
-    case "kafka":
-        sender = kafkasender
-        break
-    case "mqtt":
-        sender = mqttsender
-        break
-    default:
-        console.log("no transport named", program.transport)
-}
+transports.forEach(t => {
+    switch (t) {
+        case "ws":
+            senders.push(wssender)
+            inits.push(wsinit)
+            break
+        case "kafka":
+            senders.push(kafkasender)
+            inits.push(kafkainit)
+            break
+        case "mqtt":
+            senders.push(mqttsender)
+            inits.push(mqttinit)
+            break
+        default:
+            console.log("no transport named", program.transport)
+    }
+})
 
 
 /* INPUT
  */
-if (sender) {
+if (senders.length > 0) {
+    inits.forEach( (i) => i.call() )
+
     const file = fs.readFileSync(program.file, "utf8")
     const records = file.split("\n");
     debug.print("record 0", records[0])
 
     /* MAIN
      */
-    //sender.init()
-    var res = sender.post(records, program.opts())
+    post(senders, records, program.opts())
 } else {
     console.log("no sender transport")
 }
