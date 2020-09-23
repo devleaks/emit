@@ -25,13 +25,13 @@ function _post(senders, records, options) {
             // console.log(util.inspect(obj, false, null, true /* enable colors */))
         }
         if (records.length > 0) {
-            const n = records[0].split(",")
-            const p = r.split(",")
+            const n = simview.getDateTime(records[0])
+            const p = simview.getDateTime(r)
             var w = options.rate
             if (options.speed) {
                 const f = parseFloat(options.speed)
                 if (f > 0) {
-                    var duration = moment(n[2], moment.ISO_8601).diff(moment(p[2], moment.ISO_8601))
+                    var duration = moment(n, moment.ISO_8601).diff(moment(p, moment.ISO_8601))
                     w = moment.duration(duration).asSeconds() / f
                 }
             }
@@ -47,16 +47,80 @@ function _post(senders, records, options) {
 
 
 export const post = function(senders, records, options) {
-    const r = records.pop() // last line may be empty
-    if (r != "") {
-        records.push(r)
+    let r = records.pop() // last line may be empty
+    while (r == "" && records.length > 0) {
+        r = records.pop()
     }
+    records.push(r)
     const dt = simview.getDateTime(records[0])
     const siminfo = "siminfo,sync," + dt + "," + options.speed + "," + options.rate + "," + options.wait
     console.log(siminfo)
     records.unshift(siminfo)
-    const i = parseInt(options.wait)
-    console.log("starting in " + i + " seconds")
-    setTimeout(_post, i * 1000, senders, records, options)
-    // _post(records, options)
+    let when = 0
+
+    // need to skip messages?
+    if (options.now) {
+        const startTime = (options.now == "now") ? moment() : moment(options.now, moment.ISO_8601)
+        console.log("Sending event after ", startTime.toISOString())
+        let skipping = 0
+        let forcesent = 0
+        let nextTime = moment(dt, moment.ISO_8601)
+        let next = records[0]
+
+        debug.print("First record at ", nextTime.toISOString())
+
+        while (startTime.isAfter(nextTime) && records.length > 0) {
+            next = records.shift()
+            const nextTimeString = simview.getDateTime(next)
+            if (nextTimeString) {
+                nextTime = moment(nextTimeString, moment.ISO_8601)
+
+                if (options.forceSend) {
+                    // debug.print("Force send event at ", nextTimeString)
+                    const obj = simview.convert(r, options)
+                    if (obj) {
+                        if (Array.isArray(obj)) {
+                            obj.forEach(function(msg) {
+                                send(senders, JSON.stringify(msg))
+                            })
+                        } else {
+                            send(senders, JSON.stringify(obj))
+                        }
+                        // console.log(util.inspect(obj, false, null, true /* enable colors */))
+                    }
+                    forcesent++
+                }
+
+            } else {
+                debug.print("no date?", next, records.length)
+            }
+            skipping++
+        }
+
+        if (records.length > 0) {
+            debug.print((options.forceSend ? "Force sent " + forcesent : "Skipped " + skipping) + " messages. Next message at " + nextTime.toISOString())
+
+            records.unshift(next) // put last message back on queue
+            when = options.rate
+            if (options.speed) {
+                const f = parseFloat(options.speed)
+                if (f > 0) {
+                    var duration = nextTime.diff(startTime)
+                    when = moment.duration(duration).asSeconds() / f
+                }
+            }
+            debug.print("waiting " + (Math.round(when * 100) / 100) + " secs...", records.length + " left")
+            when = when * 1000 // ms
+        } else {
+            debug.print("Skipped " + skipping + " messages. No more message to send.")
+        }
+    } else {
+        const i = parseInt(options.wait)
+        when = i * 1000
+        debug.print("starting in " + i + " seconds")
+    }
+
+    if (records.length > 0) {
+        setTimeout(_post, when, senders, records, options)
+    }
 };
