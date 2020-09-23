@@ -11,7 +11,7 @@ import { send as kafkasender, init as kafkainit } from "./lib/kafka-post-lib.js"
 /* COMMAND LINE PARAMETERS
  */
 program
-    .version("1.3.0")
+    .version("2.0.0")
     .description("Pushes messages to websocket")
     .option("-d, --debug", "output extra debugging")
     .option("-r, --rate <delay>", "Let that amount of time between events, 1 second, default", 1)
