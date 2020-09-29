@@ -62,7 +62,6 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
     // Do we have to wait at some taxihold position?
     var lastone
     if (taxiholds) {
-        console.log("taxi holding...")
         const TH = "QH:" + runway_name + ":"
         while (taxiholds.length > 0) {
             // taxi holding position in queue
@@ -95,7 +94,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
                     "posname": p_name,
                     "postime": lastone.hold_time
                 })
-            console.log("holding at", p_name, taxiholds.length == 0 ? lastone.hold_time : totalhold)
+            debug.print("holding at", p_name, taxiholds.length == 0 ? lastone.hold_time : totalhold)
             p = p2
         }
     }
@@ -337,8 +336,6 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
     // Do we have to hold pattern?
     var lastone
     if (holdingpatterns) {
-        debug.print("holding patterns...")
-        console.log("hp", vehicle.to_kmh(aircraft.vapproach))
         p_name = "HP:" + runway_name    // there should be a holding pattern per STAR, not per runway
         p = geojson.findFeature(p_name, airport.airways, "name")
         if (p) {

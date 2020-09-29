@@ -173,7 +173,7 @@ function doDeparture(flight, runway, arrival) {
 
     if(lastDeparture != "") { // distance from lastDeparture must be at least 2.5m
         const mintime = config.queues.takeoff.mintime
-        const apart = Math.abs( lastDeparture.diff(flight.actualdeptime).asSeconds() )
+        const apart = Math.abs( moment.duration(lastDeparture.diff(flight.actualdeptime)).asSeconds() )
         if(apart < mintime) { // too close, need to delay departure to ensure they are at least mintime apart...
             debug.print("departure too close, delaying...", mintime, apart)
             flight.actualdeptime = lastDeparture.add(mintime - apart, "seconds")
@@ -265,7 +265,7 @@ function doArrival(flight, runway) {
     flight.actualarrtime = moment(flight.isodatetime, moment.ISO_8601)
     if(lastArrival != "") { // distance from lastArrival must be at least 2.5m
         const mintime = config.queues.landing.mintime
-        const apart = Math.abs( lastArrival.diff(flight.actualarrtime).asSeconds() )
+        const apart = Math.abs( moment.duration(lastArrival.diff(flight.actualarrtime)).asSeconds() )
         if(apart < mintime) { // too close, need to delay departure to ensure they are at least mintime apart...
             debug.print("arrival too close, delaying...", mintime, apart)
             flight.actualarrtime = lastArrival.add(mintime - apart, "seconds")
