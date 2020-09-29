@@ -1,21 +1,18 @@
-import fs from "fs";
-import turf from "@turf/turf";
-import PathFinder from "geojson-path-finder";
-import geojsonTool from "geojson-tools";
 import * as geojson from "./geojson-util.js";
 import * as aircraftData from "./aircraft.js";
 import * as vehicle from "./device.js";
 import * as debug from "./debug.js";
 import * as config from "../data/sim-config.js";
 
-debug.init(true, [""])
+debug.init(true, ["", "takeoff"])
 
+// eslint-disable-next-line no-unused-vars
 var _aircrafts = aircraftData.init(config.aircrafts)
 
 /*
  * T A K E - O F F
  */
-export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name, flight_name) {
+export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name, flight_name, taxiholds) {
     var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point"s name
@@ -39,13 +36,13 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
     airplane.addPointToTrack(parking, 0, 120) // waits 120 secs before pushback, gives a chance to be seen at parking
 
     airplane.addMarker(
+        "pushback",
         parking,
         0,
         null,
         syncCount++,
         airplane.getProp("color"), {
             "device": airplane.name,
-
             "action": "pushback",
             "posname": parking.properties.name
         })
@@ -60,8 +57,48 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
     }
 
     // route from pushback lane to taxiways
-    p1 = geojson.findClosest(p, airport.taxiways)
-    airplane.addPointToTrack(p1, 0, null) // 60 seconds to detach tow pushback
+    airplane.addPointToTrack(p, 0, null) // 60 seconds to detach tow pushback
+
+    // Do we have to wait at some taxihold position?
+    var lastone
+    if (taxiholds) {
+        console.log("taxi holding...")
+        const TH = "QH:" + runway_name + ":"
+        while (taxiholds.length > 0) {
+            // taxi holding position in queue
+            lastone = taxiholds.shift()
+            p_name = TH + taxiholds.length // after the pop
+            p1 = geojson.findFeature(p_name, airport.taxiways, "name")
+            if (p1) {
+                p2 = geojson.findClosest(p1, airport.taxiways)
+            } else {
+                console.log("could not find", p_name)
+            }
+
+            // we move to taxihold in queue
+            let r = geojson.route(p, p2, airport.taxiways)
+            airplane.addPathToTrack(r.coordinates, vehicle.to_kmh(aircraft.taxi_speed), null)
+            // move to taxi hold point
+            const totalhold = lastone.hold_time + lastone.takeoff_hold
+            airplane.addPointToTrack(p2.geometry.coordinates, vehicle.to_kmh(aircraft.taxi_speed), totalhold)
+            airplane.addMarker(
+                "taxihold::"+taxiholds.length,
+                p1,
+                vehicle.to_kmh(aircraft.taxi_speed),
+                lastone.hold_time,
+                syncCount++,
+                "purple",
+                {
+                    "device": airplane.name,
+                    "flight": flight_name,
+                    "action": "taxihold",
+                    "posname": p_name,
+                    "postime": lastone.hold_time
+                })
+            console.log("holding at", p_name, taxiholds.length == 0 ? lastone.hold_time : totalhold)
+            p = p2
+        }
+    }
 
     // route to taxi hold position
     p_name = "TH:" + runway_name
@@ -77,6 +114,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
         airplane.addPointToTrack(p1.geometry.coordinates, vehicle.to_kmh(aircraft.taxi_speed), hold_time)
 
         airplane.addMarker(
+            "taxihold",
             p1,
             vehicle.to_kmh(aircraft.taxi_speed),
             hold_time,
@@ -84,7 +122,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             airplane.getProp("color"), {
                 "device": airplane.name,
                 "flight": flight_name,
-                "action": "hold",
+                "action": "taxihold",
                 "posname": p_name,
                 "postime": hold_time
             })
@@ -105,12 +143,23 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
     if (p1) {
         var r = geojson.route(p, p2, airport.taxiways)
         airplane.addPathToTrack(r.coordinates, vehicle.to_kmh(aircraft.taxi_speed), null)
-        var hold = airport["takeoff-hold"]
-        var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
+
+
+        var hold_time = 0
+        if (lastone) {
+            hold_time = lastone.takeoff_hold
+            console.log("extra holding at", p_name, lastone.takeoff_hold)
+        } else {
+            var hold = airport["takeoff-hold"]
+            var hold_time = hold[0] + Math.round(Math.random() * Math.abs(hold[1] - hold[0])) // 0-120 sec hold before T.O.
+        }
+
+
         // move to take-off hold
         airplane.addPointToTrack(p1, vehicle.to_kmh(aircraft.taxi_speed), hold_time)
 
         airplane.addMarker(
+            "takeoffhold",
             p1,
             vehicle.to_kmh(aircraft.taxi_speed),
             hold_time,
@@ -118,7 +167,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
             airplane.getProp("color"), {
                 "device": airplane.name,
                 "flight": flight_name,
-                "action": "hold",
+                "action": "takeoffhold",
                 "posname": p_name,
                 "postime": hold_time
             })
@@ -135,11 +184,13 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
         airplane.addPointToTrack(p, vehicle.to_kmh(aircraft.v2), null)
 
         airplane.addMarker(
+            "takeoff",
             p,
             vehicle.to_kmh(aircraft.v2),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "takeoff",
@@ -155,11 +206,13 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
     p = geojson.findFeature(p_name, airport.airways, "name")
     if (p) {
         airplane.addMarker(
+            "flight",
             p,
             vehicle.to_kmh(aircraft.climbspeed1),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "flight",
@@ -196,11 +249,13 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
 
     // should add a point when leaving airspace?
     airplane.addMarker(
+        "away",
         last,
         null,
         null,
         syncCount++,
-        airplane.getProp("color"), {
+        airplane.getProp("color"),
+        {
             "device": airplane.name,
             "flight": flight_name,
             "action": "away",
@@ -213,7 +268,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
 /*
  * L A N D I N G
  */
-export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name, flight_name) {
+export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name, flight_name, holdingpatterns) {
     var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
     var p, p1, p2
     var p_name // point"s name
@@ -235,11 +290,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
                 first = false
                 airplane.addPointToTrack(c, vehicle.to_kmh(aircraft.vinitialdescend), null)
                 airplane.addMarker(
+                    "enter",
                     c,
                     vehicle.to_kmh(aircraft.vinitialdescend),
                     null,
                     syncCount++,
-                    airplane.getProp("color"), {
+                    airplane.getProp("color"),
+                    {
                         "device": airplane.name,
                         "flight": flight_name,
                         "action": "enter",
@@ -249,7 +306,7 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
                 airplane.addPointToTrack(c, null, null)
         })
     } else {
-        debug.error("cannot find START", p_name)
+        debug.error("cannot find STAR", p_name)
         return false
     }
 
@@ -259,11 +316,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
     if (p) {
         airplane.addPointToTrack(p, vehicle.to_kmh(aircraft.vapproach), null)
         airplane.addMarker(
+            "star",
             p,
             vehicle.to_kmh(aircraft.vapproach),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "star",
@@ -274,6 +333,40 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
         return false
     }
 
+
+    // Do we have to hold pattern?
+    var lastone
+    if (holdingpatterns) {
+        debug.print("holding patterns...")
+        console.log("hp", vehicle.to_kmh(aircraft.vapproach))
+        p_name = "HP:" + runway_name    // there should be a holding pattern per STAR, not per runway
+        p = geojson.findFeature(p_name, airport.airways, "name")
+        if (p) {
+            while (holdingpatterns.length > 0) {
+                lastone = holdingpatterns.shift()
+                const totalhold = lastone.hold_time
+                airplane.addPathToTrack(p.geometry.coordinates, vehicle.to_kmh(aircraft.vhold), null)
+                airplane.addMarker(
+                    "holdingpattern::"+holdingpatterns.length,
+                    p.geometry.coordinates[0], // marker on first point of holding pattern
+                    vehicle.to_kmh(aircraft.vhold),
+                    null,
+                    syncCount++,
+                    "purple", {
+                        "device": airplane.name,
+                        "flight": flight_name,
+                        "action": "holdingpattern",
+                        "posname": p_name
+                    })
+                debug.print("holding at", p_name, holdingpatterns.length == 0 ? lastone.hold_time : totalhold)
+            }
+        } else {
+            console.log("cannot find holding pattern", p_name)
+        }
+    }
+
+
+
     // final approach
     p_name = "FINAL:" + runway_name
     p = geojson.findFeature(p_name, airport.airways, "name")
@@ -282,11 +375,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
             airplane.addPointToTrack(c, null, null)
         })
         airplane.addMarker(
+            "final",
             p.geometry.coordinates[0],
             vehicle.to_kmh(aircraft.vapproach),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "final",
@@ -303,11 +398,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
     if (p) {
         airplane.addPointToTrack(p, vehicle.to_kmh(aircraft.vlanding), null)
         airplane.addMarker(
+            "touchdown",
             p,
             vehicle.to_kmh(aircraft.vlanding),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "touchdown",
@@ -324,11 +421,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
     if (p) {
         airplane.addPointToTrack(p, vehicle.to_kmh(aircraft.taxispeed), null)
         airplane.addMarker(
+            "exitrunway",
             p,
             vehicle.to_kmh(aircraft.taxispeed),
             null,
             syncCount++,
-            airplane.getProp("color"), {
+            airplane.getProp("color"),
+            {
                 "device": airplane.name,
                 "flight": flight_name,
                 "action": "exitrunway",
@@ -359,11 +458,13 @@ export const land = function(airport, aircraft_name, aircraft_model, parking_nam
     // last point is parking position (from taxiway to parking position)
     airplane.addPointToTrack(parking, 0, 120) // waits 120 secs before turning ADSB off (gives a chance to be seen at parking)
     airplane.addMarker(
+        "park",
         parking,
         0,
         null,
         syncCount++,
-        airplane.getProp("color"), {
+        airplane.getProp("color"),
+        {
             "device": airplane.name,
             "flight": flight_name,
             "action": "park",

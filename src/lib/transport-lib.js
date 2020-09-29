@@ -38,6 +38,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
     truck.addPointToTrack(parking, 0, 60) // waits 60 secs before leaving bay
 
     truck.addMarker(
+        "leave",
         parking,
         0,
         null,
@@ -70,6 +71,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
     // highway entry
     truck.addPointToTrack(he, truckModel["slow"], null)
     truck.addMarker(
+        "enterhighway",
         he,
         truckModel["slow"],
         null,
@@ -96,6 +98,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
 
     // should add a point when leaving airspace?
     truck.addMarker(
+        "exitcountry",
         last,
         truckModel.speed,
         null,
@@ -136,6 +139,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
                 first = false
                 truck.addPointToTrack(c, truck.speed, null)
                 truck.addMarker(
+                    "entercountry",
                     c,
                     truck.speed,
                     null,
@@ -162,6 +166,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
     if (p) {
         truck.addPointToTrack(p, vehicle.to_kmh(truckModel.vapproach), null)
         truck.addMarker(
+            "exithighway",
             p,
             truck.slow,
             null,
@@ -197,6 +202,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
     truck.addPointToTrack(parking, 0, 60) // waits 60 secs at bay before turning engine off
 
     truck.addMarker(
+        "park",
         parking,
         0,
         null,

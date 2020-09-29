@@ -1,5 +1,4 @@
 import moment from "moment";
-import turf from "@turf/turf";
 import * as geojson from "./geojson-util.js";
 import * as debug from "./debug.js";
 import * as config from "../data/sim-config.js";
@@ -40,7 +39,7 @@ export const tocsv = function(fc, startdate, options) {
             if (f.properties.hasOwnProperty("sync")) {
                 all_sync_events[f.properties.sync] = f
             }
-            if (!sync_event && f.properties && f.properties.hasOwnProperty("emit") && f.properties.hasOwnProperty("sync") && f.properties.sync == options.event) {
+            if (!sync_event && f.properties && f.properties.hasOwnProperty("emit") && f.properties.hasOwnProperty("sync") && f.properties["marker-name"] == options.event) {
                 sync_event = f
                 debug.print("located requested sync event", f)
             }
@@ -77,8 +76,8 @@ export const tocsv = function(fc, startdate, options) {
 
     var retsyncevents = {}
     all_sync_events.forEach(function(f, idx) {
-        retsyncevents[f.properties.sync] = moment(startdate).add(f.properties.elapsed, "seconds").toISOString(true)
-        debug.print("syncevent", f.properties.sync, retsyncevents[f.properties.sync])
+        retsyncevents[f.properties["marker-name"]] = moment(startdate).add(f.properties.elapsed, "seconds").toISOString(true)
+        debug.print("syncevent", f.properties["marker-name"], f.properties.sync, retsyncevents[f.properties.sync])
     })
 
     return { csv: strbuf, syncevents: retsyncevents }
@@ -94,7 +93,7 @@ export const tocsv_sync_all = function(fc, startdate, options) {
             events.push(f)
             if (f.properties.hasOwnProperty("sync") && f.properties.hasOwnProperty("device")) {
                 const device = f.properties.device
-                const sync = f.properties.sync
+                const sync = f.properties["marker-name"] // f.properties.sync
                 trips[device] = trips.hasOwnProperty(device) ? trips[device] : {}
                 trips[device][sync] = trips[device].hasOwnProperty(sync) ? trips[device][sync] : []
                 trips[device][sync] = f

@@ -17,7 +17,7 @@ program
     .option("-1, --first", "Add header line")
     .option("-p, --payload", "Add payload column with all properties")
     .option("-s, --start-date <date>", "Start date of event reporting, default to now", moment().toISOString())
-    .option("-e, --event <event>", "Sync event number to sync date on", 0)
+    .option("-e, --event <event>", "Sync event number to sync date on", "first")
     .option("-r, --random <delay>", "Add or substract random delay to start-date in minutes", 0)
     .option("-o, --output <file>", "Save to file, default to out.csv", "out.csv")
     .requiredOption("-f, --file <file>", "GeoJSON file to process")

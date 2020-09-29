@@ -57,11 +57,13 @@ function refill(service, truck, airport) {
     truck.addPointToTrack(refillStation, 0, truck.refillTime(truck.getProp("capacity") - truck.getProp("load"))) // move truck from serviceroad to refill station + refill
 
     truck.addMarker(
+        "refill",
         refillStation,
         0,
         truck.refillTime(truck.getProp("capacity") - truck.getProp("load")),
         null,
-        truck.getProp("color"), {
+        truck.getProp("color"),
+        {
             "device": truck.getName(),
             "capacity": truck.getProp("capacity"),
             "load": truck.getProp("load"),
@@ -111,11 +113,13 @@ function serve(service, truck, airport) {
 
     // ADD STOP TO EXPLAIN SERVICE OPERATION
     truck.addMarker(
+        "serve",
         parking,
         0,
         truck.serviceTime(service.qty),
         truck.getProp("syncCount"),
-        truck.getProp("color"), {
+        truck.getProp("color"),
+        {
             "device": truck.getName(),
             "service": truck.getProp("service"),
             "capacity": truck.getProp("capacity"),

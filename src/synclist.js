@@ -34,12 +34,10 @@ function pc(f) {
         f.features.forEach(function(f1, idx) {
             pc(f1)
         })
-        debug.print(cnt++, last, "last")
-        debug.print(cnt++, finish, "finished")
     } else if (f.type == "Feature") {
         if (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("emit")) {
             if (f.properties.hasOwnProperty("sync")) {
-                debug.print(cnt++, f.properties.hasOwnProperty("elapsed") ? f.properties.elapsed : f.properties.scheduled, f.properties.sync, f.properties.note)
+                debug.print(f.properties["marker-name"], f.properties.hasOwnProperty("elapsed") ? f.properties.elapsed : f.properties.scheduled, f.properties.note)
             }
             if(f.properties.hasOwnProperty("category") && f.properties.category == "f") {
                 last = f                

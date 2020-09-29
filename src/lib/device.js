@@ -45,9 +45,10 @@ export const Device = function(name, props) {
 
     // marker Point are features with a property "note"
 
-    this.addMarker = function(point, speed, pause, sync = false, color = "#aaaaaa", props = {}) { // point = [lon, lat]
+    this.addMarker = function(name, point, speed, pause, sync = false, color = "#aaaaaa", props = {}) { // point = [lon, lat]
         var properties = geojson.mergeProperties({
             marker: true,
+            "marker-name": name,
             idx: this._track.length - 1, // this marker is associated with element idx of the linestring
             speed: speed,
             pause: pause,
