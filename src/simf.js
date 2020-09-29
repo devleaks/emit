@@ -1,8 +1,6 @@
 import fs from "fs";
 import * as simulator from "./lib/movement-lib.js";
 import program from "commander";
-import PathFinder from "geojson-path-finder";
-import geojsonTool from "geojson-tools";
 import * as geojson from "./lib/geojson-util.js";
 import * as debug from "./lib/debug.js";
 import * as config from "./data/sim-config.js";
@@ -12,10 +10,9 @@ import * as aircraftData from "./lib/aircraft.js";
 debug.init(true, [""])
 
 var airport = airportData.init(config)
-var aircraft = aircraftData.init(config.aircrafts)
 
 const wind = airport.METAR ? airport.METAR["wind_dir_degrees"][0] : Math.round(Math.random() * 360)
-const isLanding = (Math.random() > 0.5)
+const isLanding = false // (Math.random() > 0.5)
 const runway = airportData.randomRunway(wind)
 
 program
@@ -34,10 +31,25 @@ program
 debug.init(program.debug, [""])
 debug.print(program.opts())
 
+var ths = []/*
+    { hold_time: 150, takeoff_hold: 10 },
+    { hold_time: 150, takeoff_hold: 25 },
+    { hold_time: 150, takeoff_hold: 30 }
+]*/
+
+var hps = []/*
+    { hold_time: 240, takeoff_hold: 0 },
+    { hold_time: 240, takeoff_hold: 0 },
+    { hold_time: 240, takeoff_hold: 0 }
+]*/
+
+if(program.landing) {
+    program.airway = airportData.randomSTAR(runway)
+}
 
 var airplane = program.landing ?
-    simulator.land(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM999") :
-    simulator.takeoff(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM001")
+    simulator.land(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM999", hps) :
+    simulator.takeoff(airport, program.name, program.aircraft, program.parking, program.runway, program.airway, "PM001", ths)
 
 if (airplane) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(airplane.getFeatures(true))), { mode: 0o644 })
