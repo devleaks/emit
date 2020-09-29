@@ -247,11 +247,11 @@ function doArrival(flight, runway) {
     })
 
     // fly it
-    const hps = [
+    const hps = [/*
         { hold_time: 240 },
         { hold_time: 240 },
         { hold_time: 240 }
-    ]
+    */]
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star, flight.flight, hps)
     if (!flight.geojson)
         debug.print("parking:" + flight.parking, flight.plane, runway, star)
