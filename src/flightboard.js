@@ -40,6 +40,8 @@ debug.print(program.opts())
 var situationSetupTime = false
 var firstFlightDeparture = false
 var parkedAircraft = ""
+var lastDeparture = ""
+var lastArrival = ""
 
 /*  Utility function: Does this arrival flight leave later on?
  */
@@ -78,7 +80,6 @@ function findArrivalForDeparture(flightschedule, departure) {
 function addDelay(t, f) {
     return (f.hasOwnProperty("delay") && f.delay > 0) ? moment(t).add(f.delay, "minutes") : t
 }
-
 
 
 /*  Generate full departure (write down CSV)
@@ -133,7 +134,12 @@ function doDeparture(flight, runway, arrival) {
     }
 
     // fly it
-    flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid, flight.flight)
+    var tohs = [/*
+        { hold_time: 150, takeoff_hold: 10 },
+        { hold_time: 150, takeoff_hold: 25 },
+        { hold_time: 150, takeoff_hold: 30 }
+    */]
+    flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid, flight.flight, tohs)
     if (program.debug)
         fs.writeFileSync(flight.filename + "_.json", JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
@@ -164,22 +170,34 @@ function doDeparture(flight, runway, arrival) {
             parking: flight.parking
         })
     }
+
+    if(lastDeparture != "") { // distance from lastDeparture must be at least 2.5m
+        const mintime = config.queues.takeoff.mintime
+        const apart = Math.abs( lastDeparture.diff(flight.actualdeptime).asSeconds() )
+        if(apart < mintime) { // too close, need to delay departure to ensure they are at least mintime apart...
+            debug.print("departure too close, delaying...", mintime, apart)
+            flight.actualdeptime = lastDeparture.add(mintime - apart, "seconds")
+        }
+    }
     // add an actual ramdom delay to the flight
     var extradelay = random.randomValue(config.simulation["departure-delays"])
     flight.actualdeptime.add(extradelay, "minutes") // add a little, unplanned, extra torture to departure
+
+    lastDeparture = flight.actualdeptime
 
     const tocsvret = tocsv.tocsv(flight.events, moment(flight.actualdeptime), {
         queue: "aircraft",
         payload: program.payload
     })
+    debug.print("departure sync events", tocsvret.syncevents)
     fs.writeFileSync(flight.filename + ".csv", tocsvret.csv, { mode: 0o644 })
 
     // departure is event 0. We add a little randomness around it, and a little randomness at the time it is annouceed 20-60 min in advance)
-    var annoucets = moment(tocsvret.syncevents[0])
+    var annoucets = moment(tocsvret.syncevents["pushback"])
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
 
-    var dept = moment(tocsvret.syncevents[0])
-    var deptguess = moment(tocsvret.syncevents[0])
+    var dept = moment(tocsvret.syncevents["pushback"])
+    var deptguess = moment(tocsvret.syncevents["pushback"])
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     deptguess.add(randomdelay, "seconds")
     backoffice.announce("flightboard", flight.flight, annoucets.toISOString(true), {
@@ -192,7 +210,7 @@ function doDeparture(flight, runway, arrival) {
         parking: flight.parking
     })
 
-    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[0], {
+    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents["pushback"], {
         info: "actual",
         move: "departure",
         flight: flight.flight,
@@ -202,7 +220,7 @@ function doDeparture(flight, runway, arrival) {
         parking: flight.parking
     })
 
-    backoffice.announce("parking", flight.parking.toString(), tocsvret.syncevents[0], {
+    backoffice.announce("parking", flight.parking.toString(), tocsvret.syncevents["pushback"], {
         info: "parking",
         move: "available",
         flight: flight.flight,
@@ -229,7 +247,12 @@ function doArrival(flight, runway) {
     })
 
     // fly it
-    flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star, flight.flight)
+    const hps = [
+        { hold_time: 240 },
+        { hold_time: 240 },
+        { hold_time: 240 }
+    ]
+    flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star, flight.flight, hps)
     if (!flight.geojson)
         debug.print("parking:" + flight.parking, flight.plane, runway, star)
     if (program.debug)
@@ -239,25 +262,36 @@ function doArrival(flight, runway) {
     if (program.debug)
         fs.writeFileSync(flight.filename + ".json", JSON.stringify(flight.events), { mode: 0o644 })
 
+    flight.actualarrtime = moment(flight.isodatetime, moment.ISO_8601)
+    if(lastArrival != "") { // distance from lastArrival must be at least 2.5m
+        const mintime = config.queues.landing.mintime
+        const apart = Math.abs( lastArrival.diff(flight.actualarrtime).asSeconds() )
+        if(apart < mintime) { // too close, need to delay departure to ensure they are at least mintime apart...
+            debug.print("arrival too close, delaying...", mintime, apart)
+            flight.actualarrtime = lastArrival.add(mintime - apart, "seconds")
+        }
+    }
     // add an actual ramdom delay to the flight
     flight.delay = random.randomValue(config.simulation["arrival-delays"])
-    flight.actualarrtime = moment(flight.isodatetime, moment.ISO_8601)
     flight.actualarrtime.add(flight.delay, "minutes")
+
+    lastArrival = flight.actualarrtime
 
     const tocsvret = tocsv.tocsv(flight.events, moment(flight.actualarrtime), { // send a copy of time because it will vbe modified in tocsv
         queue: "aircraft",
-        event: 3, // 1=STAR, 2=APPROACH, 3=Touch down, 4=Exit runway, "last" = park on time
+        event: "touchdown", // "last" = park on time
         payload: program.payload
     })
     fs.writeFileSync(flight.filename + ".csv", tocsvret.csv, { mode: 0o644 })
 
+    debug.print("arrival sync events", tocsvret.syncevents)
 
     // arrival"s touch down is event 3. We add a little randomness around it, and a little randomness at the time it is annouceed
-    var annoucets = moment(tocsvret.syncevents[0])
+    var annoucets = moment(tocsvret.syncevents["enter"])
     annoucets.subtract(geojson.randomValue(config.simulation["aodb-planned-timeframe"]), "minutes")
 
-    var arrv = moment(tocsvret.syncevents[3], moment.ISO_8601)
-    var arrguess = moment(tocsvret.syncevents[3], moment.ISO_8601)
+    var arrv = moment(tocsvret.syncevents["touchdown"], moment.ISO_8601)
+    var arrguess = moment(tocsvret.syncevents["touchdown"], moment.ISO_8601)
     var randomdelay = geojson.randomValue(config.simulation["aodb-planned-uncertainly"], true)
     arrguess.add(randomdelay, "seconds")
     backoffice.announce("flightboard", flight.flight, annoucets.toISOString(true), {
@@ -270,8 +304,8 @@ function doArrival(flight, runway) {
         parking: flight.parking
     })
 
-    var arrv = moment(tocsvret.syncevents[3])
-    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents[4], {
+    var arrv = moment(tocsvret.syncevents["touchdown"])
+    backoffice.announce("flightboard", flight.flight, tocsvret.syncevents["exitrunway"], {
         info: "actual",
         move: "arrival",
         flight: flight.flight,
@@ -281,7 +315,7 @@ function doArrival(flight, runway) {
         parking: flight.parking
     })
 
-    var arrpt = tocsvret.syncevents[Object.keys(tocsvret.syncevents).length - 1] // last event
+    var arrpt = tocsvret.syncevents["park"] // last event
     var arrp = moment(arrpt, moment.ISO_8601)
     backoffice.announce("parking", flight.parking.toString(), arrp.toISOString(true), {
         info: "parking",
@@ -475,7 +509,7 @@ function doFlightboard(flightboard) {
     let sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
 
     const wind = airportData.getWindDirection()
-    console.log("Wind direction",wind)
+    console.log("Wind direction", wind)
     if (airport.hasOwnProperty("METAR")) {
         backoffice.announce("metar", airport.METAR.station_id[0], moment(airport.METAR.raw_timestamp[0]).toISOString(true), { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0], airport: airport.METAR.station_id[0] })
     }
@@ -488,7 +522,7 @@ function doFlightboard(flightboard) {
     // 1. Generate flights
     sfb.forEach(function(flight, idx) {
         var runway = airportData.randomRunway(wind)
-        console.log("using runway",runway)
+        console.log("using runway", runway)
         if (flight.move == "departure") {
             var arrvl = findArrivalForDeparture(sfb, flight)
             doDeparture(flight, runway, arrvl)
