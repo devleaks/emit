@@ -102,6 +102,7 @@ export const convert = function(csv) {
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
             var payload = records[0]
             ret = {
+                source: "GIPSIM",
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
@@ -136,6 +137,7 @@ export const convert = function(csv) {
             }
 
             ret = {
+                source: "GIPSIM",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -158,6 +160,7 @@ export const convert = function(csv) {
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
             var payload = records[0]
             ret = {
+                source: "GIPSIM",
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
@@ -190,6 +193,7 @@ export const convert = function(csv) {
             }
 
             ret = {
+                source: "GIPSIM",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -247,6 +251,7 @@ export const convert = function(csv) {
             }
 
             ret = {
+                source: "GIPSIM",
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
@@ -300,6 +305,7 @@ export const convert = function(csv) {
             }
 
             ret = {
+                source: "GIPSIM",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -325,6 +331,7 @@ export const convert = function(csv) {
                 payload.info == "scheduled" ? "info" : "accent"
 
             var ret1 = {
+                source: "GIPSIM",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -340,6 +347,7 @@ export const convert = function(csv) {
             }
             payload.timestamp = objcsv.timestamp
             var ret2 = {
+                source: "GIPSIM",
                 type: "flightboard",
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -368,6 +376,7 @@ export const convert = function(csv) {
                 payload.info == "scheduled" ? "info" : "accent"
 
             var ret1 = {
+                source: "GIPSIM",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -383,6 +392,7 @@ export const convert = function(csv) {
             }
             payload.timestamp = objcsv.timestamp
             var ret2 = {
+                source: "GIPSIM",
                 type: "transport",
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -403,6 +413,7 @@ export const convert = function(csv) {
             } */
             var payload = JSON.parse(objcsv.payload)
             ret1 = {
+                source: "GIPSIM",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -419,6 +430,7 @@ export const convert = function(csv) {
             }
 
             ret2 = {
+                source: "GIPSIM",
                 type: "parking",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -440,6 +452,7 @@ export const convert = function(csv) {
                   time: "date time of metar collection"
             } */
             ret = {
+                source: "GIPSIM",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -476,6 +489,7 @@ export const convert = function(csv) {
             }
 
             ret = {
+                source: "GIPSIM",
                 type: objcsv.name,
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -489,6 +503,7 @@ export const convert = function(csv) {
             var payload = records[0]
 
             ret = {
+                source: "GIPSIM",
                 type: "siminfo",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -506,7 +521,6 @@ export const convert = function(csv) {
             ;
             break
     } // end switch
-
 
     return ret
 };
