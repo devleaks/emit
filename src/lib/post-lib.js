@@ -17,11 +17,13 @@ function _post(senders, records, options) {
         if (obj) {
             if (Array.isArray(obj)) {
                 obj.forEach(function(msg) {
-                    debug.print(msg.type)
+                    //console.dir(msg)
+                    //debug.print(msg)
                     send(senders, JSON.stringify(msg))
                 })
             } else {
-                debug.print(obj.type)
+                //console.dir(obj)
+                //debug.print(JSON.stringify(obj, null, 2))
                 send(senders, JSON.stringify(obj))
             }
             // console.log(util.inspect(obj, false, null, true /* enable colors */))
