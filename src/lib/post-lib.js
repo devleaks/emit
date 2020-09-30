@@ -17,9 +17,11 @@ function _post(senders, records, options) {
         if (obj) {
             if (Array.isArray(obj)) {
                 obj.forEach(function(msg) {
+                    debug.print(msg.type)
                     send(senders, JSON.stringify(msg))
                 })
             } else {
+                debug.print(obj.type)
                 send(senders, JSON.stringify(obj))
             }
             // console.log(util.inspect(obj, false, null, true /* enable colors */))
@@ -35,7 +37,6 @@ function _post(senders, records, options) {
                     w = moment.duration(duration).asSeconds() / f
                 }
             }
-            debug.print(p[0], p[1])
             debug.print( /*p[0],p[1],*/ "waiting " + (Math.round(w * 100) / 100) + " secs...", records.length + " left")
             setTimeout(_post, w * 1000, senders, records, options)
         } else {
