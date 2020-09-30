@@ -1,31 +1,28 @@
-import fs from 'fs';
-import program from 'commander';
-import PathFinder from 'geojson-path-finder';
-import geojsonTool from 'geojson-tools';
-import * as geojson from './lib/geojson-util.js';
-import * as debug from './lib/debug.js';
-import * as simulator from './lib/transport-lib.js';
-import * as config from './data/sim-config-transport.js';
-import * as roadsData from './lib/roads.js';
-import * as trucksData from './lib/truck.js';
+import fs from "fs";
+import program from "commander";
+import * as geojson from "./lib/geojson-util.js";
+import * as debug from "./lib/debug.js";
+import * as simulator from "./lib/transport-lib.js";
+import * as config from "./data/sim-config-transport.js";
+import * as roadsData from "./lib/roads.js";
+import * as trucksData from "./lib/truck.js";
 
 var roads = roadsData.init(config)
-var trucks = trucksData.init(config)
 
 const isArriving = Math.random() > 0.5
-const truck_name = 'T' + Math.floor(Math.random() * 10000)
+const truck_name = "T" + Math.floor(Math.random() * 10000)
 const handler = roadsData.randomHandler()
 
 program
-    .version('1.0.0')
-    .description('generates GeoJSON features for one truck leaving or arriving at warehouse')
-    .option('-d, --debug', 'output extra debugging')
-    .option('-o, --output <file>', 'Save to file, default to out.json', "out.json")
-    .option('-m, --truck <model>', 'Truck model', trucksData.randomTruckModel())
-    .option('-w, --warehouse <warehouse>', 'name of handler warehouse', handler)
-    .option('-p, --parking <parking>', 'name of parking')
-    .option('-b, --destination <destination>', 'name of origin or destination', roadsData.randomHighway())
-    .option('-l, --arriving', 'Perform arriving rather than leaving', isArriving)
+    .version("1.0.0")
+    .description("generates GeoJSON features for one truck leaving or arriving at warehouse")
+    .option("-d, --debug", "output extra debugging")
+    .option("-o, --output <file>", "Save to file, default to out.json", "out.json")
+    .option("-m, --truck <model>", "Truck model", trucksData.randomTruckModel())
+    .option("-w, --warehouse <warehouse>", "name of handler warehouse", handler)
+    .option("-p, --parking <parking>", "name of parking")
+    .option("-b, --destination <destination>", "name of origin or destination", roadsData.randomHighway())
+    .option("-l, --arriving", "Perform arriving rather than leaving", isArriving)
     .parse(process.argv)
 
 debug.init(program.debug, ["", "leave"])
@@ -50,9 +47,9 @@ var truck = program.arriving ?
 
 if (truck) {
     fs.writeFileSync(program.output, JSON.stringify(geojson.FeatureCollection(truck.getFeatures(true))), { mode: 0o644 })
-    debug.print(program.output + ' written')
-    debug.print('Truck '+truck_name+(program.arriving ? ' arrives from ' : ' leaves for ')+program.destination+" for "+handler+" (parking "+parking+")")
+    debug.print(program.output + " written")
+    debug.print("Truck "+truck_name+(program.arriving ? " arrives from " : " leaves for ")+program.destination+" for "+handler+" (parking "+parking+")")
 } else {
     debug.print(program.opts())
-    debug.print('no file written')
+    debug.print("no file written")
 }

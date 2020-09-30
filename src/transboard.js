@@ -10,7 +10,6 @@ import * as roadsData from "./lib/roads.js";
 import * as trucksData from "./lib/truck.js";
 
 var roads = roadsData.init(config)
-var trucks = trucksData.init(config)
 
 import * as backoffice from "./lib/backoffice.js";
 import * as simulator from "./lib/transport-lib.js";
@@ -21,8 +20,6 @@ import * as tocsv from "./lib/tocsv-lib.js";
 
 debug.init(true, [""])
 
-const FILEPREFIX = "TRANSPORT-"
-
 var SERVICES = []
 
 program
@@ -32,7 +29,7 @@ program
     .option("-p, --payload", "Add payload column with all properties")
     .requiredOption("-f, --transport-board <file>", "CSV transport board")
     .option("-o, --output <file>", "Save to file, default to out.json", "out.json")
-    .option("-t, --file-prefix <path>", "Prefix (including directories) for file generation", FILEPREFIX)
+    .option("-t, --file-prefix <path>", "Prefix (including directories) for file generation", "TRANSPORT-")
     .parse(process.argv)
 
 debug.init(program.debug, ["doArrival", "doDeparture"])
@@ -310,7 +307,7 @@ function doServices() {
         if (trucks.hasOwnProperty(svc)) {
             trucks[svc].forEach(function(truck, idx) {
                 // get trip
-                const fn = FILEPREFIX + truck.getProp("service") + "-" + truck.getName()
+                const fn = program.filePrefix + truck.getProp("service") + "-" + truck.getName()
                 truck._features = truck.getFeatures()
                 // add remarkable point (for sync)
                 if (truck._points && truck._points.length > 0)
@@ -374,7 +371,7 @@ function doTransportboard(transportboard) {
     // now plan and generate services
     // doServices()
 
-    backoffice.save(FILEPREFIX + "transportboard.csv")
+    backoffice.save(program.filePrefix + "transportboard.csv")
 
 }
 
