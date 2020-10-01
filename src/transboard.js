@@ -23,7 +23,7 @@ debug.init(true, [""])
 var SERVICES = []
 
 program
-    .version("1.0.0")
+    .version("1.1.0")
     .description("generates transports from transport board (departure and arrival)")
     .option("-d, --debug", "output extra debugging")
     .option("-p, --payload", "Add payload column with all properties")

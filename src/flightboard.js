@@ -23,7 +23,7 @@ var aircraft = aircraftData.init(config.aircrafts)
 let FILEPREFIX = "FLIGHT-"
 
 program
-    .version("1.3.0")
+    .version("1.4.0")
     .description("generates flights from flight board (departure and arrival)")
     .option("-d, --debug", "output extra debugging")
     .option("-p, --payload", "Add payload column with all properties")
@@ -501,7 +501,7 @@ function doServices() {
  */
 function doFlightboard(flightboard) {
     // cleanup datetime
-    flightboard.forEach(function(flight, idx) {
+    flightboard.forEach(function(flight) {
         const day = flight.date == "" ? moment().format("YYYY-MM-DD") : flight.date
         flight.isodatetime = day + "T" + flight.time + ":00.000" + moment().format("Z") // flight time: 08:15, 22:55
         flight.zuludatetime = moment(flight.isodatetime, moment.ISO_8601).toISOString()
@@ -520,7 +520,7 @@ function doFlightboard(flightboard) {
     }
 
     // 1. Generate flights
-    sfb.forEach(function(flight, idx) {
+    sfb.forEach(function(flight) {
         var runway = airportData.randomRunway(wind)
         console.log("using runway", runway)
         if (flight.move == "departure") {

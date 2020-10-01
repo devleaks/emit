@@ -1,3 +1,9 @@
+/**
+ * Version history:
+ * 1.0.0: 01-APR-2020
+ * 1.1.0: 01-AUG-2020
+ * 1.2.0: 30-SEP-2020: named "sync" event.
+ */
 import * as geojson from "./geojson-util.js";
 import * as aircraftData from "./aircraft.js";
 import * as vehicle from "./device.js";
@@ -7,13 +13,16 @@ import * as config from "../data/sim-config.js";
 debug.init(true, ["", "takeoff"])
 
 // eslint-disable-next-line no-unused-vars
+const version = "1.2.0"
+
+// eslint-disable-next-line no-unused-vars
 var _aircrafts = aircraftData.init(config.aircrafts)
 
 /*
  * T A K E - O F F
  */
 export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name, flight_name, taxiholds) {
-    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
+    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
@@ -268,7 +277,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
  * L A N D I N G
  */
 export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name, flight_name, holdingpatterns) {
-    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model })
+    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0

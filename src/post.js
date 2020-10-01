@@ -12,7 +12,7 @@ import { send as kafkasender, init as kafkainit } from "./lib/kafka-post-lib.js"
 /* COMMAND LINE PARAMETERS
  */
 program
-    .version("2.1.0")
+    .version("2.2.0")
     .description("Pushes messages to transport")
     .option("-d, --debug", "output extra debugging")
     .option("-r, --rate <delay>", "Let that amount of time between events, 1 second, default", 1)

@@ -1,5 +1,5 @@
-import * as geojson from './geojson-util.js';
-import * as debug from './debug.js';
+import * as geojson from "./geojson-util.js";
+import * as debug from "./debug.js";
 
 const NAUTICAL_MILE = 1.852 // nautical mile in meters
 
@@ -96,9 +96,11 @@ export const Device = function(name, props) {
 
     this.getFeature = function(color = false) {
         const l_color = this.getProp("color")
+        const movement = this.getProp("movement")
         return this._track.length > 1 ? geojson.Feature(
             geojson.LineString(this._track), {
                 "device": this._name,
+                "movement": movement ? movement : "nomove",
                 "speedsAtVertices": this._speeds,
                 "pausesAtVertices": this._pauses,
                 "stroke": color ? color : (l_color ? l_color : "#444444"),

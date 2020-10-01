@@ -17,7 +17,7 @@ var trucks = trucksData.init(config)
  * TRUCK LEAVES LOGISTICS BAY TO BORDER
  */
 export const leave = function(roads, truck_name, truck_model, parking_name, to_border) {
-    var truck = new vehicle.Device(truck_name, { "model": truck_model })
+    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": to_border })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
@@ -116,7 +116,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
  * TRUCK ARRIVES AT LOGISTICS BAY
  */
 export const arrive = function(roads, truck_name, truck_model, parking_name, from_border) {
-    var truck = new vehicle.Device(truck_name, { "model": truck_model })
+    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": from_border })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
