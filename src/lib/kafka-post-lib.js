@@ -1,3 +1,4 @@
+import * as debug from "./debug.js";
 import config from "../data/kafka-config.js";
 /* Kafka config:
 
@@ -10,21 +11,22 @@ export default {
 import KafkaImport from "kafkajs";
 const { Kafka } = KafkaImport;
 
-let client
 let producer
 
 export const init = function() {
-    console.log(config)
-    client = new Kafka(config)
+    debug.print(config)
+    let client = new Kafka(config)
     producer = client.producer()
+//  await producer.connect()
 }
 
-export const send = async function(record) {
+export const send = async function(data) {
+    const dest = JSON.parse(data)
     await producer.connect()
     await producer.send({
-        topic: record.queue,
+        topic: dest.type,
         messages: [
-            record
+            data
         ],
     })
 }

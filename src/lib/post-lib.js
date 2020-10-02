@@ -4,6 +4,7 @@ import * as simview from "./simview.js";
 
 
 function send(senders, data) {
+    debug.print(data)
     senders.forEach(function each(sender) {
         sender(data)
     });
@@ -39,7 +40,7 @@ function _post(senders, records, options) {
                     w = moment.duration(duration).asSeconds() / f
                 }
             }
-            debug.print( /*p[0],p[1],*/ "waiting " + (Math.round(w * 100) / 100) + " secs...", records.length + " left")
+            debug.print("waiting " + (Math.round(w * 100) / 100) + " secs...", records.length + " left")
             setTimeout(_post, w * 1000, senders, records, options)
         } else {
             console.log("finished")
