@@ -4,7 +4,5 @@
     "nodemon": "nodemon --config nodemon.json wspost.js -- -f solari.csv -d"
   },
   "devDependencies": {},
-  "dependencies": {
-    "kafka-node": "^5.0.0"
-  }
+  "dependencies": {}
 }
