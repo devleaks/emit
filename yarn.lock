@@ -2389,10 +2389,10 @@ git-describe@^4.0.4:
   optionalDependencies:
     semver "^5.6.0"
 
-gitlog@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/gitlog/-/gitlog-4.0.0.tgz#c4f440c822cc3fe1b32366d0662918871d3c7249"
-  integrity sha512-N6ZcvvbHsqhmM09wtzbL8v3FPwBK3EQ1xnv/2nj9JGH/YsYVn+ZkmMCxzkEjHnSFcpUk2HN2LBp76PGj3TkPag==
+gitlog@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/gitlog/-/gitlog-4.0.2.tgz#473d49cd0016a09df469012226372985a8bf8cec"
+  integrity sha512-Pw2Otj1OT5rPlcCgPZyhUqp0EvuwkWvFqSYinGqX1ccUUWjyFykAsgQImMP6TBENBuggANNG9yf+Hz6ahz0Z3w==
   dependencies:
     debug "^4.1.1"
     tslib "^1.11.1"

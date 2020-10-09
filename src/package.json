@@ -4,5 +4,7 @@
     "nodemon": "nodemon --config nodemon.json wspost.js -- -f solari.csv -d"
   },
   "devDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "flat": "^5.0.2"
+  }
 }

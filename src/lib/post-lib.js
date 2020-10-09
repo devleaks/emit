@@ -1,10 +1,12 @@
 import moment from "moment";
 import * as debug from "./debug.js";
 import * as simview from "./simview.js";
+import flatten from "flat";
 
 
 function send(senders, data) {
-    debug.print(data)
+    const dest = JSON.parse(data)
+    if (dest.hasOwnProperty("type")) debug.print(dest.type)
     senders.forEach(function each(sender) {
         sender(data)
     });
@@ -20,11 +22,17 @@ function _post(senders, records, options) {
                 obj.forEach(function(msg) {
                     //console.dir(msg)
                     //debug.print(msg)
+                    if (options.plat) {
+                        msg = flatten(msg)
+                    }
                     send(senders, JSON.stringify(msg))
                 })
             } else {
                 //console.dir(obj)
                 //debug.print(JSON.stringify(obj, null, 2))
+                if (options.plat) {
+                    obj = flatten(obj)
+                }
                 send(senders, JSON.stringify(obj))
             }
             // console.log(util.inspect(obj, false, null, true /* enable colors */))

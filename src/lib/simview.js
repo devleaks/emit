@@ -1,5 +1,6 @@
 import parse from "csv-parse/lib/sync.js";
 import * as debug from "./debug.js";
+import { jitter } from "./emit-lib.js";
 
 /* Templates of what is expected by gip-mapjs
 {
@@ -7,7 +8,7 @@ import * as debug from "./debug.js";
     "properties": {
         "name": "SN123",
         "name": "Brussel-Madrid",
-        "type": "AIRCRAFT",
+        "typeId": "AIRCRAFT",
         "display_type": "Aircraft",
         "display_status": "GROUND",
         "heading": 138,
@@ -101,13 +102,26 @@ export const convert = function(csv) {
             var cols = "lat,lon,alt,speed,heading,payload"
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
             var payload = records[0]
+            let org = null
+            /*
+            if(payload.hasOwnProperty("payload")) {
+                try {
+                    let subpayload = JSON.parse(payload.payload)
+                    org = subpayload.hasOwnProperty("flight") ? subpayload["flight"].substr(0, 2) : "orgId"
+                } catch (e) {
+                    console.log("simview", e)
+                }
+            }
+            console.log(">>", org)
+            */
             ret = {
                 source: "GIPSIM",
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
-                    "type": "AIRCRAFT",
-                    "class": "aircrafts",
+                    "typeId": "AIRCRAFT",
+                    "classId": "aircrafts",
+                    "orgId": org ? org : "GIP", // org owner is flight operator
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "AIRCRAFTS",
@@ -131,7 +145,6 @@ export const convert = function(csv) {
                     ]
                 }
             }
-
             if (payload.hasOwnProperty("payload")) {
                 ret.properties.payload = payload.payload
             }
@@ -164,8 +177,9 @@ export const convert = function(csv) {
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
-                    "type": "TRUCK",
-                    "class": "trucks",
+                    "typeId": "TRUCK",
+                    "classId": "trucks",
+                    "orgId": "GIP",
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "TRUCKS",
@@ -255,8 +269,9 @@ export const convert = function(csv) {
                 "type": "Feature",
                 "properties": {
                     "name": objcsv.name,
-                    "type": "SERVICE", // sarr[0]
-                    "class": "gse",
+                    "typeId": "SERVICE", // sarr[0]
+                    "classId": "gse",
+                    "orgId": "org",
                     "heading": parseFloat(payload.heading),
                     "speed": parseFloat(payload.speed),
                     "group_name": "SERVICES",

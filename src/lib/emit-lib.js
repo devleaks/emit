@@ -11,7 +11,7 @@ function point_on_line(c, n, d) {
 /*  Add jitter around point, random direction, random distance between 0 and r (meters)
  *  @todo: Jitter 3D
  */
-function jitter(p, r = 0) {
+export function jitter(p, r = 0) {
     if (r == 0) return p
     const j = turf.destination(p, Math.random() * Math.abs(r) / 1000, Math.random() * 360)
     return j.geometry.coordinates
