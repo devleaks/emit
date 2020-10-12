@@ -362,7 +362,7 @@ export const convert = function(csv) {
             }
             payload.timestamp = objcsv.timestamp
             var ret2 = {
-                source: "GIPSIM",
+                source: "aodb",
                 type: "flightboard",
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -407,7 +407,7 @@ export const convert = function(csv) {
             }
             payload.timestamp = objcsv.timestamp
             var ret2 = {
-                source: "GIPSIM",
+                source: "wodb",
                 type: "transport",
                 timestamp: objcsv.timestamp,
                 payload: payload

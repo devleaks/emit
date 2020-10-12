@@ -58,6 +58,7 @@ fi
 
 if [ $CLEAN = "YES" ]
 then
-    rm -f ${temprefix}*.{csv,json} $tempfile
+    mv $tempfile ./out_.csv
+    rm -f ${temprefix}*.{csv,json}
     rmdir ${TEMPDIR}
 fi

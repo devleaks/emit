@@ -7,6 +7,7 @@ import flatten from "flat";
 function send(senders, data) {
     const dest = JSON.parse(data)
     if (dest.hasOwnProperty("type")) debug.print(dest.type)
+//    if (dest.hasOwnProperty("payload") && dest.payload.hasOwnProperty("type")) debug.print(dest.payload.type)
     senders.forEach(function each(sender) {
         sender(data)
     });
