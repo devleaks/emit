@@ -10,9 +10,11 @@ export default {
 import KafkaImport from "kafkajs";
 const { Kafka } = KafkaImport;
 
+const TOPIC_PREFIX = "gipsim_"
 
 // comment out to send message to GIP queues
-config.TEST_TOPIC = "test"
+// config.TEST_TOPIC = "test"
+// Local global :-D
 let producer
 
 export const init = function() {
@@ -27,8 +29,8 @@ export const init = function() {
 export const send = function(data) {
     const dest = JSON.parse(data) // dest.type is the topic
     producer.connect().then(() => {
-        debug.print("kpost::send: sending..")
-        const topic = config.TEST_TOPIC ? config.TEST_TOPIC : dest.type
+        const topic = TOPIC_PREFIX + (config.TEST_TOPIC ? config.TEST_TOPIC : dest.type)
+        debug.print("kpost::send: sending..",topic)
         producer.send({
             topic,
             messages: [{
