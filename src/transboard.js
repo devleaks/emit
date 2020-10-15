@@ -65,13 +65,14 @@ function doDeparture(transport) {
         info: "scheduled",
         move: "departure",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         date: moment(transport.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
         time: transport.time,
         parking: transport.parking
     })
 
-    transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
+    transport.geojson = simulator.leave(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination, transport.handler)
     if (program.debug) {
         fs.writeFileSync(transport.filename + "_.json", JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
     }
@@ -100,6 +101,7 @@ function doDeparture(transport) {
             info: "planned",
             move: "departure",
             name: transport.truck,
+            handler: transport.handler,
             destination: transport.destination,
             date: transport.actualdeptime.format("DD/MM"),
             time: transport.actualdeptime.format("HH:mm"),
@@ -125,6 +127,7 @@ function doDeparture(transport) {
         info: "planned",
         move: "departure",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         date: arrguess.format("DD/MM"),
         time: arrguess.format("HH:mm"),
@@ -135,6 +138,7 @@ function doDeparture(transport) {
         info: "actual",
         move: "departure",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         date: arrv.format("DD/MM"),
         time: arrv.format("HH:mm"),
@@ -145,6 +149,7 @@ function doDeparture(transport) {
         info: "parking",
         move: "available",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         parking: transport.parking
     })
@@ -163,13 +168,14 @@ function doArrival(transport) {
         info: "scheduled",
         move: "arrival",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         date: moment(transport.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
         time: transport.time,
         parking: transport.parking
     })
 
-    transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination)
+    transport.geojson = simulator.arrive(roads, transport.truck, trucksData.randomTruckModel(), transport.parking, transport.destination, transport.handler)
     if (program.debug) {
         fs.writeFileSync(transport.filename + "_.json", JSON.stringify(geojson.FeatureCollection(transport.geojson.getFeatures(true))), { mode: 0o644 })
     }
@@ -212,6 +218,7 @@ function doArrival(transport) {
             info: "planned",
             move: "arrival",
             name: transport.truck,
+            handler: transport.handler,
             destination: transport.destination,
             date: etareportvalue.format("DD/MM"),
             time: etareportvalue.format("HH:mm"),
@@ -238,6 +245,7 @@ function doArrival(transport) {
         info: "actual",
         move: "arrival",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         date: arrv.format("DD/MM"),
         time: arrv.format("HH:mm"),
@@ -249,6 +257,7 @@ function doArrival(transport) {
         info: "parking",
         move: "busy",
         name: transport.truck,
+        handler: transport.handler,
         destination: transport.destination,
         parking: transport.parking
     })
@@ -342,14 +351,14 @@ function doServices() {
  */
 function doTransportboard(transportboard) {
     // cleanup datetime
-    transportboard.forEach(function(transport, idx) {
+    transportboard.forEach(function(transport) {
         const day = transport.date == "" ? moment().format("YYYY-MM-DD") : transport.date
         transport.isodatetime = day + "T" + transport.time + ":00.000" + moment().format("Z")
         transport.zuludatetime = moment(transport.isodatetime, moment.ISO_8601).toISOString()
     })
     let sfb = transportboard.sort((a, b) => (a.isodatetime > b.isodatetime) ? 1 : -1)
     // 1. Generate transports
-    sfb.forEach(function(transport, idx) {
+    sfb.forEach(function(transport) {
         if (transport.move == "departure") {
             doDeparture(transport)
         } else { // arrival

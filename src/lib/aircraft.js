@@ -43,8 +43,8 @@ export const find = function(name) {
     return _aircrafts[name]
 };
 
-const NAMELEN = 3 // 2 or 3 letters
-const CODELEN = 4 // 3 or 4 numbers?
+export const NAMELEN = 3 // 2 or 3 letters
+export const CODELEN = 4 // 3 or 4 numbers?
 var _flightnum = Math.pow(10, CODELEN-1)
 
 export const randomAirline = function(type, departure = false) {

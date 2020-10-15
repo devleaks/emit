@@ -13,6 +13,8 @@ import * as backoffice from "./lib/backoffice.js";
 import * as airportData from "./lib/airport.js";
 import * as aircraftData from "./lib/aircraft.js";
 
+import { CODELEN } from "./lib/aircraft.js"
+
 debug.init(true, [""])
 
 import * as config from "./data/sim-config.js";
@@ -111,6 +113,7 @@ function doDeparture(flight, runway, arrival) {
         info: "scheduled",
         move: "departure",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: moment(flight.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
         time: flight.time,
@@ -121,6 +124,7 @@ function doDeparture(flight, runway, arrival) {
             info: "parking",
             move: "busy",
             flight: flight.flight,
+            operator: flight.flight.substr(0,CODELEN),
             airport: flight.airport,
             parking: flight.parking
         })
@@ -140,6 +144,11 @@ function doDeparture(flight, runway, arrival) {
         { hold_time: 150, takeoff_hold: 30 }
     */]
     flight.geojson = simulator.takeoff(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, sid, flight.flight, tohs)
+    if(! flight.geojson) {
+        console.log("doDeparture", flight, runway, arrival)
+        console.error("doDeparture", "could not generate takeoff")
+        return
+    }
     if (program.debug)
         fs.writeFileSync(flight.filename + "_.json", JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
@@ -164,6 +173,7 @@ function doDeparture(flight, runway, arrival) {
             info: "planned",
             move: "departure",
             flight: flight.flight,
+            operator: flight.flight.substr(0,CODELEN),
             airport: flight.airport,
             date: flight.actualdeptime.format("DD/MM"),
             time: flight.actualdeptime.format("HH:mm"),
@@ -204,6 +214,7 @@ function doDeparture(flight, runway, arrival) {
         info: "planned",
         move: "departure",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: deptguess.format("DD/MM"),
         time: deptguess.format("HH:mm"),
@@ -214,6 +225,7 @@ function doDeparture(flight, runway, arrival) {
         info: "actual",
         move: "departure",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: dept.format("DD/MM"),
         time: dept.format("HH:mm"),
@@ -224,6 +236,7 @@ function doDeparture(flight, runway, arrival) {
         info: "parking",
         move: "available",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         parking: flight.parking
     })
@@ -240,6 +253,7 @@ function doArrival(flight, runway) {
         info: "scheduled",
         move: "arrival",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: moment(flight.isodatetime, moment.ISO_8601).format("YYYY-MM-DD"), //may be the day after announce time...
         time: flight.time,
@@ -253,8 +267,13 @@ function doArrival(flight, runway) {
         { hold_time: 240 }
     */]
     flight.geojson = simulator.land(airport, flight.plane, aircraftData.randomAircraftModel(), flight.parking, runway, star, flight.flight, hps)
+
+    if(! flight.geojson) {
+        console.log("doArrival", flight, runway)
+        console.error("doArrival", "could not generate land")
+        return
+    }
     if (!flight.geojson)
-        debug.print("parking:" + flight.parking, flight.plane, runway, star)
     if (program.debug)
         fs.writeFileSync(flight.filename + "_.json", JSON.stringify(geojson.FeatureCollection(flight.geojson.getFeatures(true))), { mode: 0o644 })
 
@@ -298,6 +317,7 @@ function doArrival(flight, runway) {
         info: "planned",
         move: "arrival",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: arrguess.format("DD/MM"),
         time: arrguess.format("HH:mm"),
@@ -309,6 +329,7 @@ function doArrival(flight, runway) {
         info: "actual",
         move: "arrival",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         date: arrv.format("DD/MM"),
         time: arrv.format("HH:mm"),
@@ -321,6 +342,7 @@ function doArrival(flight, runway) {
         info: "parking",
         move: "busy",
         flight: flight.flight,
+        operator: flight.flight.substr(0,CODELEN),
         airport: flight.airport,
         parking: flight.parking
     })

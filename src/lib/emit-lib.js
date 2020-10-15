@@ -357,7 +357,7 @@ function time2vtx(options, p, idx, ls, sp, rate) {
 
 /* When on pause, forces speed to 0
  */
-function pauseAtVertex(options, timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds, name, move, ls) {
+function pauseAtVertex(options, timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds, name, move, handler, operator, ls) {
     debug.print("IN", pause, lsidx, timing)
     let counter = 0
     if (pause && pause > 0) {
@@ -376,7 +376,7 @@ function pauseAtVertex(options, timing, pause, rate, newls, pos, lsidx, lsmax, p
                     cmt: (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter,
                     idx: lsidx,
                     alt: false,
-                    props: { "device": name, "movement": move }
+                    props: { "device": name, "movement": move, "handler": handler, "operator": operator }
                 })
                 counter++
                 debug.print("pauseing 1 ...", pause)
@@ -401,7 +401,7 @@ function pauseAtVertex(options, timing, pause, rate, newls, pos, lsidx, lsmax, p
                 cmt: (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter,
                 idx: lsidx,
                 alt: false,
-                props: { "device": name, "movement": move }
+                props: { "device": name, "movement": move, "handler": handler, "operator": operator }
             })
             counter++
             debug.print("pauseing 2 ...", timing.left)
@@ -423,7 +423,7 @@ function pauseAtVertex(options, timing, pause, rate, newls, pos, lsidx, lsmax, p
                     cmt: (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter,
                     idx: lsidx,
                     alt: false,
-                    props: { "device": name, "movement": move }
+                    props: { "device": name, "movement": move, "handler": handler, "operator": operator }
                 })
                 counter++
                 debug.print("pauseing more ...", totpause)
@@ -474,7 +474,7 @@ export const emitGeoJSON = function(f, options) {
 export const emitCollection = function(fc, options) {
     let markers = []
     let syncers = []
-    fc.features.forEach(function(f, idx) {
+    fc.features.forEach(function(f) {
         if ((f.geometry && f.geometry.type == "Point") &&
             (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("marker") && f.properties.marker)) {
             if (f.properties.hasOwnProperty("nearestPointOnLine")) delete f.properties.nearestPointOnLine
@@ -500,8 +500,10 @@ export const emitCollection = function(fc, options) {
 };
 
 export const emitLineStringFeature = function(f, options) {
-    let deviceName = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("device")) ? f.properties.device : "noname"
-    let movement = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("movement")) ? f.properties.movement : "nomove"
+    let deviceName = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("device")) ? f.properties.device : "nodevice"
+    let movement = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("movement")) ? f.properties.movement : "nomovement"
+    let handler = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("handler")) ? f.properties.handler : "nohandler"
+    let operator = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("operator")) ? f.properties.operator : "nooperator"
     let speedsAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("speedsAtVertices")) ? f.properties.speedsAtVertices : null
     let pausesAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("pausesAtVertices")) ? f.properties.pausesAtVertices : null
     let altAtVertices = (f.hasOwnProperty("properties") && f.properties.hasOwnProperty("altAtVertices")) ? f.properties.altAtVertices : null
@@ -567,7 +569,7 @@ export const emitLineStringFeature = function(f, options) {
         cmt: "start",
         idx: lsidx,
         alt: false,
-        props: { "device": deviceName, "movement": movement }
+        props: { "device": deviceName, "movement": movement, "handler": handler, "operator": operator }
     })
     let timeleft2vtx = 0 // time to next point
     let to_next_emit = rate
@@ -593,7 +595,7 @@ export const emitLineStringFeature = function(f, options) {
                 cmt: "moving from vertex with time remaining",
                 idx: lsidx,
                 alt: false,
-                props: { "device": deviceName, "movement": movement }
+                props: { "device": deviceName, "movement": movement, "handler": handler, "operator": operator }
             })
             //let d0 = distance(currpos,p)
             //debug.print("..done moving from vertex with time remaining. Moved ", d0+" in "+to_next_emit+" secs.", rate + " sec left before next emit, NOT jumping to next vertex")
@@ -618,12 +620,12 @@ export const emitLineStringFeature = function(f, options) {
                 cmt: "moving on edge with time remaining to next vertex",
                 idx: lsidx,
                 alt: false,
-                props: { "device": deviceName, "movement": movement }
+                props: { "device": deviceName, "movement": movement, "handler": handler, "operator": operator }
             })
             currpos = nextvtx
             to_next_emit -= timeleft2vtx // time left before next emit
             // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds)
-            let timing = pauseAtVertex(options, { "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds, deviceName, movement, ls)
+            let timing = pauseAtVertex(options, { "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds, deviceName, movement, handler, operator, ls)
             time = timing.time
             to_next_emit = timing.left
             //debug.print("..done moving to next vertex with time left.", to_next_emit + " sec left before next emit, moving to next vertex")
@@ -644,7 +646,7 @@ export const emitLineStringFeature = function(f, options) {
                     cmt: "en route",
                     idx: lsidx,
                     alt: false,
-                    props: { "device": deviceName, "movement": movement }
+                    props: { "device": deviceName, "movement": movement, "handler": handler, "operator": operator }
                 })
                 //debug.print("in "+ rate + " sec moved",distance(currpos,p)+" km")
                 currpos = p
@@ -668,12 +670,12 @@ export const emitLineStringFeature = function(f, options) {
                     cmt: (lsidx == (ls.length - 2)) ? "at last vertex" : "at vertex",
                     idx: lsidx,
                     alt: false,
-                    props: { "device": deviceName, "movement": movement }
+                    props: { "device": deviceName, "movement": movement, "handler": handler, "operator": operator }
                 })
                 currpos = nextvtx
                 to_next_emit = rate - timeleft2vtx // time left before next emit
                 // pauseAtVertex(timing, pause, rate, newls, pos, lsidx, lsmax, points, speeds)
-                let timing = pauseAtVertex(options, { "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds, deviceName, movement, ls)
+                let timing = pauseAtVertex(options, { "time": time, "left": to_next_emit }, pauses[lsidx + 1] ? pauses[lsidx + 1] : null, rate, newls, nextvtx, lsidx + 1, ls.length, points, speeds, deviceName, movement, handler, operator, ls)
                 time = timing.time
                 to_next_emit = timing.left
                 //debug.print(".. done jumping to next vertex.", to_next_emit + " sec left before next emit")

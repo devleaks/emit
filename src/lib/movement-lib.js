@@ -10,6 +10,8 @@ import * as vehicle from "./device.js";
 import * as debug from "./debug.js";
 import * as config from "../data/sim-config.js";
 
+import { CODELEN } from "./aircraft.js"
+
 debug.init(true, ["", "takeoff"])
 
 // eslint-disable-next-line no-unused-vars
@@ -22,7 +24,7 @@ var _aircrafts = aircraftData.init(config.aircrafts)
  * T A K E - O F F
  */
 export const takeoff = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, sid_name, flight_name, taxiholds) {
-    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name })
+    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name, "operator": flight_name.substr(0, CODELEN-1) })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
@@ -277,7 +279,7 @@ export const takeoff = function(airport, aircraft_name, aircraft_model, parking_
  * L A N D I N G
  */
 export const land = function(airport, aircraft_name, aircraft_model, parking_name, runway_name, star_name, flight_name, holdingpatterns) {
-    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name })
+    var airplane = new vehicle.Device(aircraft_name, { "aircraft": aircraft_model, "movement": flight_name, "operator": flight_name.substr(0, CODELEN-1) })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0

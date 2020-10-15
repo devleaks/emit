@@ -1,8 +1,3 @@
-import fs from "fs";
-import turf from "@turf/turf";
-import PathFinder from "geojson-path-finder";
-import geojsonTool from "geojson-tools";
-
 import * as geojson from "./geojson-util.js";
 import * as vehicle from "./device.js";
 import * as debug from "./debug.js";
@@ -16,8 +11,8 @@ var trucks = trucksData.init(config)
 /*
  * TRUCK LEAVES LOGISTICS BAY TO BORDER
  */
-export const leave = function(roads, truck_name, truck_model, parking_name, to_border) {
-    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": to_border })
+export const leave = function(roads, truck_name, truck_model, parking_name, to_border, handler) {
+    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": to_border, "handler": handler })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
@@ -45,6 +40,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
         syncCount++,
         truck.getProp("color"), {
             "device": truck.name,
+            "handler": handler,
             "action": "leave",
             "posname": parking.properties.name
         })
@@ -78,6 +74,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
         syncCount++,
         truck.getProp("color"), {
             "device": truck.name,
+            "handler": handler,
             "action": "enter",
             "posname": highway_entry
         })
@@ -105,6 +102,7 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
         syncCount++,
         truck.getProp("color"), {
             "device": truck.name,
+            "handler": handler,
             "action": "borderout",
             "posname": to_border
         })
@@ -115,8 +113,8 @@ export const leave = function(roads, truck_name, truck_model, parking_name, to_b
 /*
  * TRUCK ARRIVES AT LOGISTICS BAY
  */
-export const arrive = function(roads, truck_name, truck_model, parking_name, from_border) {
-    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": from_border })
+export const arrive = function(roads, truck_name, truck_model, parking_name, from_border, handler) {
+    var truck = new vehicle.Device(truck_name, { "model": truck_model, "movement": from_border, "handler": handler })
     var p, p1, p2
     var p_name // point"s name
     var syncCount = 0
@@ -134,7 +132,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
     var first = true
     if (p) { // (note: First point of linestring should be close to parking, last point is at border)
         const rev = geojson.cleanCopy(p.geometry.coordinates).reverse()
-        rev.forEach(function(c, idx) {
+        rev.forEach(function(c) {
             if (first) {
                 first = false
                 truck.addPointToTrack(c, truck.speed, null)
@@ -146,6 +144,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
                     syncCount++,
                     truck.getProp("color"), {
                         "device": truck.name,
+                        "handler": handler,
                         "action": "borderin",
                         "posname": from_border
                     })
@@ -173,6 +172,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
             syncCount++,
             truck.getProp("color"), {
                 "device": truck.name,
+                "handler": handler,
                 "action": "exit",
                 "posname": highway_exit
             })
@@ -209,6 +209,7 @@ export const arrive = function(roads, truck_name, truck_model, parking_name, fro
         syncCount++,
         truck.getProp("color"), {
             "device": truck.name,
+            "handler": handler,
             "action": "park",
             "posname": parking.properties.name
         })

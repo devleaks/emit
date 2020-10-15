@@ -1,4 +1,3 @@
-import fs from "fs";
 import * as debug from "./debug.js";
 import * as geojson from "./geojson-util.js";
 
