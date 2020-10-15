@@ -106,7 +106,7 @@ emit({
     cmt: (lsidx == (lsmax - 1)) ? "at last vertex while pauseing " + counter : "at vertex while pauseing " + counter,
     idx: lsidx,
     alt: false,
-    props: {}
+    props: {device:, flight_name,operator:, movement:,handler: }
 })
 */
 function emit(args) { //s=(s)tart, (e)dge, (v)ertex, (f)inish

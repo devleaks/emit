@@ -1,5 +1,4 @@
 import fs from "fs";
-import turf from "@turf/turf";
 import program from "commander";
 import * as emit from "./lib/emit-lib.js";
 import * as debug from "./lib/debug.js";
