@@ -3,35 +3,11 @@
 # sim.sh rel. 1.0.0
 #
 
-COUNT=0
-CLEAN="NO"
-POSITIONAL=()
-
-while [[ $# -gt 0 ]]
-do
-    key="$1"
-    case $key in
-        -c|--count)
-        COUNT="$2"
-        shift # past argument
-        shift # past value
-        ;;
-        --clean)
-        CLEAN="YES"
-        shift # past argument
-        ;;
-        *)    # unknown option
-        POSITIONAL+=("$1") # save it in an array for later
-        shift # past argument
-        ;;
-    esac
-done
-
-set -- "${POSITIONAL[@]}" # restore positional parameters
-
+COUNT=320 ## with current parameters, it is about the number of rotations we can daily handle; that's 180k movement per year! 3/4 of Zaventem.
 OFILE=out2.csv
 PIDFILE=out.pid
 TEMPDIR=tmp
+
 if [ ! -d "${TEMPDIR}" ]; then
   mkdir ${TEMPDIR}
 fi
@@ -49,6 +25,7 @@ then
     rm -f ${temprefix}*.{csv,json} ${tempfile}
     rmdir ${TEMPDIR}
 fi
+
 ## merge today(out1.csv) and tomorrow (out2.csv)
 cat out1.csv out2.csv | grep -v -i metar | sort -t , -k 3 -o out.csv
 
