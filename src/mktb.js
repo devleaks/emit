@@ -23,6 +23,7 @@ program
     .requiredOption("-c, --count <count>", "count of transports (arrival then departure")
     .option("-w, --warehouse <warehouse>", "name of handler warehouse")
     .option("-s, --start-date <date>", "start date of event reporting, default to now", now5.toISOString())
+    .option("-0, --midnight", "Generates transports after midnight, next day")
     .parse(process.argv)
 
 debug.init(program.debug, [""])
@@ -44,7 +45,10 @@ function turnAround() {
 
 function randomTruckboard(options) {
     let txt = options.first ? config.CSV["TRUCK"] + "\n" : ""
-    let time = options.startdate ? moment(options.startdate) : moment()
+    let time = options.midnight ?
+        moment(moment().add(1, "days").format("YYYY-MM-DDT00:00:00.000"))
+        :
+        (options.startDate ? moment(options.startDate) : moment())
 
     for (let i = 0; i < options.count; i++) {
         const handler = program.warehouse ? program.warehouse : roadsData.randomHandler()

@@ -23,6 +23,7 @@ program
     .requiredOption("-c, --count <count>", "count of arrival/departure pairs")
     .option("-s, --start-date <date>", "start date of event reporting, default to now", now5.toISOString())
     .option("-t, --type <type>", "type of flights [PAX|CARGO]")
+    .option("-0, --midnight", "Generates flight after midnight, next day")
     .parse(process.argv)
 
 debug.init(program.debug, [""])
@@ -52,7 +53,10 @@ function turnAround(type = false) {
 
 function randomFlightboard(options) {
     let txt = options.first ? "move,flight,airport,date,time,plane,parking,comment\n" : ""
-    let time = options.startdate ? moment(options.startdate) : moment()
+    let time = options.midnight ?
+        moment(moment().add(1, "days").format("YYYY-MM-DDT00:00:00.000"))
+        :
+        (options.startDate ? moment(options.startDate) : moment())
 
     for (let i = 0; i < options.count; i++) {
         let ltype = options.type ? options.type : (Math.random() > config.simulation["paxratio"] ? "CARGO" : "PAX")

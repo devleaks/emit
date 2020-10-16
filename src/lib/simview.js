@@ -467,7 +467,8 @@ export const convert = function(csv) {
                 payload: {
                     name: payload.parking,
                     available: payload.move,
-                    flight: payload.flight
+                    flight: payload.flight ? payload.flight : payload.name  // ugly but OK: Parking for trucks have no .flight property but
+                                                                            // transport name is .name...
                 }
             }
 

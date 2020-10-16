@@ -17,7 +17,8 @@ program
     .option("-d, --debug", "output extra debugging")
     .option("-r, --rate <delay>", "Let that amount of time between events, 1 second, default", 1)
     .option("-s, --speed <factor>", "Increases time by that factor")
-    .option("-p, --plat", "Flatten JavaScript Object before sending")
+    .option("-p, --pid <file>", "save current process in supplied file")
+    .option("-a, --flat", "Flatten JavaScript Object before sending")
     .option("-w, --wait <time>", "Wait delay seconds before starting to emit", 5)
     .option("-n, --now <ISO8601-date-time>", "Start after supplied ISO8601 formatted date-time like '"+moment().toISOString(true)+"'. You can also use 'now' to set it to current date and time.")
     .option("-z, --forceSend", "Force emission of skipped message with no timing")
@@ -55,6 +56,10 @@ transports.forEach(t => {
 /* INPUT
  */
 if (senders.length > 0) {
+    if(program.pid) {
+        fs.writeFileSync(program.pid, process.pid.toString(), { mode: 0o644 })
+    }
+
     inits.forEach( (i) => i.call() )
 
     const file = fs.readFileSync(program.file, "utf8")

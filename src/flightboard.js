@@ -531,7 +531,7 @@ function doFlightboard(flightboard) {
     let sfb = flightboard.sort((a, b) => (moment(a.isodatetime, moment.ISO_8601).isAfter(moment(b.isodatetime, moment.ISO_8601))) ? 1 : -1)
 
     const wind = airportData.getWindDirection()
-    console.log("Wind direction", wind)
+    debug.print("Wind direction", wind)
     if (airport.hasOwnProperty("METAR")) {
         backoffice.announce("metar", airport.METAR.station_id[0], moment(airport.METAR.raw_timestamp[0]).toISOString(true), { metar: airport.METAR.raw_text[0], time: airport.METAR.observation_time[0], airport: airport.METAR.station_id[0] })
     }
@@ -544,7 +544,7 @@ function doFlightboard(flightboard) {
     // 1. Generate flights
     sfb.forEach(function(flight) {
         var runway = airportData.randomRunway(wind)
-        console.log("using runway", runway)
+        debug.print("using runway", runway)
         if (flight.move == "departure") {
             var arrvl = findArrivalForDeparture(sfb, flight)
             doDeparture(flight, runway, arrvl)

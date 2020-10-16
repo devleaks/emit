@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# sim.sh rel. 1.0.0
+#
+
+COUNT=0
+CLEAN="NO"
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+    case $key in
+        -c|--count)
+        COUNT="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --clean)
+        CLEAN="YES"
+        shift # past argument
+        ;;
+        *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+    esac
+done
+
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+OFILE=out2.csv
+PIDFILE=out.pid
+TEMPDIR=tmp
+if [ ! -d "${TEMPDIR}" ]; then
+  mkdir ${TEMPDIR}
+fi
+
+temprefix=${TEMPDIR}"/FLIGHT-"
+tempfile=${TEMPDIR}"/FLIGHTBOARD-"$$.csv
+
+## tomorrow generated into out2.csv
+if [ $COUNT -gt 0 ]
+then 
+    node metar -d
+    node mkfb.js -c $COUNT -1 -0 -o ${tempfile}
+    node flightboard.js -f $tempfile -p -d -t ${temprefix}
+    cat ${temprefix}*.csv | grep -v -i metar | sort -t , -k 3 -o $OFILE
+    rm -f ${temprefix}*.{csv,json} ${tempfile}
+    rmdir ${TEMPDIR}
+fi
+## merge today(out1.csv) and tomorrow (out2.csv)
+cat out1.csv out2.csv | grep -v -i metar | sort -t , -k 3 -o out.csv
+
+## tomorrow is the new today
+mv out2.csv out1.csv
+
+## restart post to read new out.csv file
+## should use nodemon...
+if [ -f $PIDFILE ]
+then
+    kill `cat $PIDFILE`
+fi
+echo node post -p $PIDFILE -t kafka -f out.csv -n now
