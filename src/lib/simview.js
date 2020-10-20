@@ -1,5 +1,4 @@
 import parse from "csv-parse/lib/sync.js";
-import * as debug from "./debug.js";
 import { jitter } from "./emit-lib.js";
 
 /* Templates of what is expected by gip-mapjs
@@ -158,6 +157,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
+                topic: "aircrafts",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -224,6 +224,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
+                topic: "trucks",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -337,6 +338,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
+                topic: "gse",
                 type: "map",
                 timestamp: objcsv.timestamp,
                 payload: ret
@@ -408,10 +410,11 @@ export const convert = function(csv) {
 
             var ret1 = {
                 source: "GIPSIM",
+                topic: "wms",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
-                    source: "aodb",
+                    source: "tms",
                     type: "flightboard",
                     subject: move + " " + payload.truck + (payload.move == "departure" ? " to " : " from ") + payload.destination,
                     body: msgtype + " " + payload.time,
@@ -423,7 +426,8 @@ export const convert = function(csv) {
             }
             payload.timestamp = objcsv.timestamp
             var ret2 = {
-                source: "wodb",
+                source: "tms",
+                topic: "tms",
                 type: "transport",
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -445,6 +449,7 @@ export const convert = function(csv) {
             var payload = JSON.parse(objcsv.payload)
             ret1 = {
                 source: "GIPSIM",
+                topic: "aodb", // can be wms/tms as well...
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -462,6 +467,7 @@ export const convert = function(csv) {
 
             ret2 = {
                 source: "GIPSIM",
+                topic: "aodb",
                 type: "parking",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -485,6 +491,7 @@ export const convert = function(csv) {
             } */
             ret = {
                 source: "GIPSIM",
+                topic: "aodb",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -522,6 +529,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
+                topic: "aodb",
                 type: objcsv.name,
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -536,6 +544,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
+                topic: "simulator",
                 type: "siminfo",
                 timestamp: objcsv.timestamp,
                 payload: {

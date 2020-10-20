@@ -4,7 +4,7 @@
 #
 
 COUNT=0
-CLEAN="NO"
+CLEAN="YES"
 POSITIONAL=()
 
 OFILE=out.csv
@@ -20,6 +20,10 @@ do
         ;;
         --clean)
         CLEAN="YES"
+        shift # past argument
+        ;;
+        --dirty)
+        CLEAN="NO"
         shift # past argument
         ;;
         *)    # unknown option

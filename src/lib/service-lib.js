@@ -1,11 +1,9 @@
-import fs from "fs";
 import turf from "@turf/turf";
-import * as parse from "csv-parse/lib/sync.js";
 import moment from "moment";
-import * as config from "../data/sim-config.js";
 import * as geojson from "./geojson-util.js";
 import * as vehicle from "./device.js";
 import * as debug from "./debug.js";
+import { jitter } from "./emit-lib.js";
 
 let _SERVICES = []
 
@@ -104,17 +102,20 @@ function serve(service, truck, airport) {
     let r = geojson.route(p, p1, airport.serviceroads)
     truck.addPathToTrack(r.coordinates, truck.getProp("speed"), null)
 
+    // we do not stop "exactly" at the parking's center but nearby
+    let aroundParkingCoordinates = jitter(parking.geometry.coordinates, 30) // 30 meters
+
     // get from service road to parking slowly and service plane
     // service
-    truck.addPointToTrack(parking, truck.getProp("slow"), truck.serviceTime(service.qty))
+    truck.addPointToTrack(aroundParkingCoordinates, truck.getProp("slow"), truck.serviceTime(service.qty))
 
     truck.setProp("load", truck.getProp("load") - service.qty)
-    truck.setProp("position", parking.geometry.coordinates)
+    truck.setProp("position", aroundParkingCoordinates)
 
     // ADD STOP TO EXPLAIN SERVICE OPERATION
     truck.addMarker(
         "serve",
-        parking,
+        aroundParkingCoordinates,
         0,
         truck.serviceTime(service.qty),
         truck.getProp("syncCount"),

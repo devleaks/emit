@@ -4,12 +4,12 @@ import * as simview from "./simview.js";
 import flatten from "flat";
 
 
-function send(senders, data) {
+function send(senders, data, options) {
     const dest = JSON.parse(data)
-    if (dest.hasOwnProperty("type")) debug.print(dest.type)
+    if (dest.hasOwnProperty(options.topic)) debug.print(dest[options.topic])
 //    if (dest.hasOwnProperty("payload") && dest.payload.hasOwnProperty("type")) debug.print(dest.payload.type)
     senders.forEach(function each(sender) {
-        sender(data)
+        sender(data, options)
     });
 }
 
@@ -26,7 +26,7 @@ function _post(senders, records, options) {
                     if (options.plat) {
                         msg = flatten(msg)
                     }
-                    send(senders, JSON.stringify(msg))
+                    send(senders, JSON.stringify(msg), options)
                 })
             } else {
                 //console.dir(obj)
@@ -34,7 +34,7 @@ function _post(senders, records, options) {
                 if (options.plat) {
                     obj = flatten(obj)
                 }
-                send(senders, JSON.stringify(obj))
+                send(senders, JSON.stringify(obj), options)
             }
             // console.log(util.inspect(obj, false, null, true /* enable colors */))
         }
@@ -53,6 +53,7 @@ function _post(senders, records, options) {
             setTimeout(_post, w * 1000, senders, records, options)
         } else {
             console.log("finished")
+            process.exit(0)
         }
     }
 }
@@ -94,10 +95,10 @@ export const post = function(senders, records, options) {
                     if (obj) {
                         if (Array.isArray(obj)) {
                             obj.forEach(function(msg) {
-                                send(senders, JSON.stringify(msg))
+                                send(senders, JSON.stringify(msg), options)
                             })
                         } else {
-                            send(senders, JSON.stringify(obj))
+                            send(senders, JSON.stringify(obj), options)
                         }
                         // console.log(util.inspect(obj, false, null, true /* enable colors */))
                     }

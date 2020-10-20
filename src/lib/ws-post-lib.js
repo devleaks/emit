@@ -40,7 +40,7 @@ const interval = setInterval(function ping() {
 */
 
 
-export const send = function(data) {
+export const send = function(data, options) {
     wss.clients.forEach(function each(client) {
         if (client.readyState === WebSocket.OPEN) {
             client.send(data);

@@ -10,7 +10,7 @@ export const init = function() {
 }
 
 
-export const send = function(data) {
+export const send = function(data, options) {
     const dest = JSON.parse(data)
-    client.publish(dest.type, data)
+    client.publish(dest[options.topic], data)
 }

@@ -26,10 +26,10 @@ export const init = function() {
     producer = kafka.producer()
 }
 
-export const send = function(data) {
+export const send = function(data, options) {
     const dest = JSON.parse(data) // dest.type is the topic
     producer.connect().then(() => {
-        const topic = TOPIC_PREFIX + (config.TEST_TOPIC ? config.TEST_TOPIC : dest.type)
+        const topic = TOPIC_PREFIX + (config.TEST_TOPIC ? config.TEST_TOPIC : dest[options.topic])
         debug.print("kpost::send: sending..",topic)
         producer.send({
             topic,

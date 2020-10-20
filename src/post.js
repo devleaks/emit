@@ -20,6 +20,7 @@ program
     .option("-p, --pid <file>", "save current process in supplied file")
     .option("-a, --flat", "Flatten JavaScript Object before sending")
     .option("-w, --wait <time>", "Wait delay seconds before starting to emit", 5)
+    .option("-o, --topic <topic>", "Name of property to use as topic to post", "type")
     .option("-n, --now <ISO8601-date-time>", "Start after supplied ISO8601 formatted date-time like '"+moment().toISOString(true)+"'. You can also use 'now' to set it to current date and time.")
     .option("-z, --forceSend", "Force emission of skipped message with no timing")
     .requiredOption("-t, --transport <transport-mode>", "Transport provider [ws|kafka|mqtt]")
