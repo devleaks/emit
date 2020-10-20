@@ -118,7 +118,6 @@ export const convert = function(csv) {
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
             var payload = records[0]
             var org = "GIP"
-            console.log(">>",payload)
 
             if (payload.hasOwnProperty("payload")) {
                 const pl = getPayload(payload)
@@ -126,17 +125,6 @@ export const convert = function(csv) {
                     org = pl.operator
                 }
             }
-            /*
-            if(payload.hasOwnProperty("payload")) {
-                try {
-                    let subpayload = JSON.parse(payload.payload)
-                    org = subpayload.hasOwnProperty("flight") ? subpayload["flight"].substr(0, 2) : "orgId"
-                } catch (e) {
-                    console.log("simview", e)
-                }
-            }
-            console.log(">>", org)
-            */
             ret = {
                 source: "GIPSIM",
                 "type": "Feature",
