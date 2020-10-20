@@ -1,24 +1,27 @@
 #!/bin/bash
 #
+# sim.sh rel. 1.0.0
+#
+
 COUNT=320 ## with current parameters, it is about the number of rotations we can daily handle; that's 180k movement per year! 3/4 of Zaventem.
-PIDFILE=out.pid
-WORKFILE=out.csv
+PIDFILE=outr.pid
+WORKFILE=outr.csv
 TEMPDIR=tmp
 
 TODAY=`date "+%j"`
 TOMORROW=$(( $TODAY + 1 ))
 YESTERDAY=$(( $TODAY - 1 ))
 
-OLDFILE=out${YESTERDAY}.csv
-TFILE=out${TODAY}.csv
-OFILE=out${TOMORROW}.csv
+OLDFILE=outr${YESTERDAY}.csv
+TFILE=outr${TODAY}.csv
+OFILE=outr${TOMORROW}.csv
 
 if [ ! -d "${TEMPDIR}" ]; then
   mkdir ${TEMPDIR}
 fi
 
-temprefix=${TEMPDIR}"/FLIGHT-"
-tempfile=${TEMPDIR}"/FLIGHTBOARD-"$$.csv
+temprefix=${TEMPDIR}"/TRANSPORT-"
+tempfile=${TEMPDIR}"/TRANSPORTBOARD-"$$.csv
 
 ## Erase yesterday
 rm -f $OLDFILE
@@ -26,10 +29,9 @@ rm -f $OLDFILE
 ## Generates tomorrow
 if [ $COUNT -gt 0 ]
 then 
-    node metar -d
-    node mkfb.js -c $COUNT -1 -0 -o ${tempfile}
-    node flightboard.js -f $tempfile -p -d -t ${temprefix}
-    cat ${temprefix}*.csv | grep -v -i metar | sort -t , -k 3 -o $OFILE
+    node mktb.js  -1 -w handler3 -c $COUNT -o $tempfile
+    node transboard.js -f $tempfile -p -t ${temprefix} -d
+    cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     rm -f ${temprefix}*.{csv,json} ${tempfile}
     rmdir ${TEMPDIR}
 fi
@@ -38,8 +40,6 @@ fi
 cat $TFILE $OFILE | grep -v -i metar | sort -t , -k 3 -o $WORKFILE
 
 ## restart post to read new out.csv file
-## should use nodemon... each time $WORKFILE is modified this gets restarted: "node post.js -- -p $PIDFILE -t kafka -f $WORKFILE -n now"
-## nodemon -w $WORKFILE post.js -- -p $PIDFILE -t kafka -f $WORKFILE -n now
 if [ -f $PIDFILE ]
 then
     kill `cat $PIDFILE`
