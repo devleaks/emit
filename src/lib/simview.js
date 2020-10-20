@@ -86,7 +86,7 @@ export const getDateTime = function(csv) {
 
 function getPayload(obj) {
     let p = null
-    if (obj.hasOwnProperty("payload")) {
+    if (obj.hasOwnProperty("payload") && obj.payload != "") {
         try {
             p = JSON.parse(obj.payload)
         } catch (e) {
@@ -118,6 +118,7 @@ export const convert = function(csv) {
             var records = parse(objcsv.payload, { columns: cols.split(","), quote: "'", escape: "'" })
             var payload = records[0]
             var org = "GIP"
+            console.log(">>",payload)
 
             if (payload.hasOwnProperty("payload")) {
                 const pl = getPayload(payload)
@@ -588,7 +589,7 @@ export const convert = function(csv) {
 
 
         default: // could be "wire"
-            ;
+            console.warn("simview cannot format",objcsv.queue);
             break
     } // end switch
 
