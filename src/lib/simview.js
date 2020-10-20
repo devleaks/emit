@@ -83,6 +83,22 @@ export const getDateTime = function(csv) {
     return ""
 };
 
+
+function getPayload(obj) {
+    let p = null
+    if (obj.hasOwnProperty("payload")) {
+        try {
+            p = JSON.parse(obj.payload)
+        } catch (e) {
+            p = null
+            console.log(e)
+        }
+    }
+    return p
+}
+
+
+
 export const convert = function(csv) {
     var ret = false
     var objcsv = preparsecsv(csv)
@@ -103,9 +119,9 @@ export const convert = function(csv) {
             var payload = records[0]
             var org = "GIP"
 
-            if(payload.hasOwnProperty("payload")) {
-                const pl = JSON.parse(payload.payload)
-                if(pl.hasOwnProperty("operator")) {
+            if (payload.hasOwnProperty("payload")) {
+                const pl = getPayload(payload)
+                if (pl && pl.hasOwnProperty("operator")) {
                     org = pl.operator
                 }
             }
@@ -181,9 +197,9 @@ export const convert = function(csv) {
             var payload = records[0]
             var org = "GIP"
 
-            if(payload.hasOwnProperty("payload")) {
-                const pl = JSON.parse(payload.payload)
-                if(pl.hasOwnProperty("handler")) {
+            if (payload.hasOwnProperty("payload")) {
+                const pl = getPayload(payload)
+                if (pl && pl.hasOwnProperty("handler")) {
                     org = pl.handler
                 }
             }
@@ -243,8 +259,8 @@ export const convert = function(csv) {
 
             var data = false
             if (payload.payload != "") {
-                var p = JSON.parse(payload.payload)
-                if (objcsv.name.substr(0, 4) == "fuel" && p.hasOwnProperty("capacity") && p.hasOwnProperty("load")) {
+                var p = getPayload(payload)
+                if (objcsv.name.substr(0, 4) == "fuel" && p && p.hasOwnProperty("capacity") && p.hasOwnProperty("load")) {
                     data = {
                         "type": "donut",
                         "values": [p.capacity - p.load, p.load],
@@ -357,14 +373,21 @@ export const convert = function(csv) {
                   time: dept.format("HH:mm"),
                   parking: flight.parking
             } */
-            var payload = JSON.parse(objcsv.payload)
-            var move = upperFirst(payload.move)
-            var msgtype = payload.info == "planned" ? "ETA" : upperFirst(payload.info)
-            var msgcolor = payload.info == "planned" ? "success" :
-                payload.info == "scheduled" ? "info" : "accent"
+            var payload = getPayload(objcsv)
+            if (payload) {
+                var move = upperFirst(payload.move)
+                var msgtype = payload.info == "planned" ? "ETA" : upperFirst(payload.info)
+                var msgcolor = payload.info == "planned" ? "success" :
+                    payload.info == "scheduled" ? "info" : "accent"
+            } else {
+                var move = ""
+                var msgtype = "error"
+                var msgcolor = "error"
+            }
 
             var ret1 = {
                 source: "GIPSIM",
+                topic: "wire",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -381,6 +404,7 @@ export const convert = function(csv) {
             payload.timestamp = objcsv.timestamp
             var ret2 = {
                 source: "aodb",
+                topic: "flightboard",
                 type: "flightboard",
                 timestamp: objcsv.timestamp,
                 payload: payload
@@ -401,12 +425,17 @@ export const convert = function(csv) {
                   time: dept.format("HH:mm"),
                   parking: transport.parking
             } */
-            var payload = JSON.parse(objcsv.payload)
-
-            var move = upperFirst(payload.move)
-            var msgtype = payload.info == "planned" ? "ETA" : upperFirst(payload.info)
-            var msgcolor = payload.info == "planned" ? "success" :
-                payload.info == "scheduled" ? "info" : "accent"
+            var payload = getPayload(objcsv)
+            if (payload) {
+                var move = upperFirst(payload.move)
+                var msgtype = payload.info == "planned" ? "ETA" : upperFirst(payload.info)
+                var msgcolor = payload.info == "planned" ? "success" :
+                    payload.info == "scheduled" ? "info" : "accent"
+            } else {
+                var move = ""
+                var msgtype = "error"
+                var msgcolor = "error"
+            }
 
             var ret1 = {
                 source: "GIPSIM",
@@ -446,10 +475,10 @@ export const convert = function(csv) {
                   airport: flight.airport,
                   parking: flight.parking
             } */
-            var payload = JSON.parse(objcsv.payload)
+            var payload = getPayload(objcsv)
             ret1 = {
                 source: "GIPSIM",
-                topic: "aodb", // can be wms/tms as well...
+                topic: "wire", // can be wms/tms as well...
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -473,8 +502,8 @@ export const convert = function(csv) {
                 payload: {
                     name: payload.parking,
                     available: payload.move,
-                    flight: payload.flight ? payload.flight : payload.name  // ugly but OK: Parking for trucks have no .flight property but
-                                                                            // transport name is .name...
+                    flight: payload.flight ? payload.flight : payload.name // ugly but OK: Parking for trucks have no .flight property but
+                    // transport name is .name...
                 }
             }
 
@@ -484,14 +513,14 @@ export const convert = function(csv) {
 
 
         case "metar":
-            var payload = JSON.parse(objcsv.payload)
+            var payload = getPayload(objcsv)
             /* {
                   metar: "raw metar",
                   time: "date time of metar collection"
             } */
             ret = {
                 source: "GIPSIM",
-                topic: "aodb",
+                topic: "wire",
                 type: "wire",
                 timestamp: objcsv.timestamp,
                 payload: {
@@ -519,7 +548,7 @@ export const convert = function(csv) {
             var payload
             if (typeof objcsv.payload == "string" || objcsv.payload instanceof String) {
                 try {
-                    payload = JSON.parse(objcsv.payload)
+                    payload = getPayload(objcsv)
                 } catch (e) { // not JSON
                     payload = objcsv.payload
                 }
@@ -544,7 +573,7 @@ export const convert = function(csv) {
 
             ret = {
                 source: "GIPSIM",
-                topic: "simulator",
+                topic: "siminfo",
                 type: "siminfo",
                 timestamp: objcsv.timestamp,
                 payload: {

@@ -4,7 +4,7 @@ import * as emit from "./lib/emit-lib.js";
 import * as debug from "./lib/debug.js";
 
 program
-    .version("2.2.0")
+    .version("2.3.0")
     .description("replaces all linestrings in geojson file with timed linestrings (best run one LS at a time)")
     .option("-d, --debug", "output extra debugging")
     .option("-o, --output <file>", "Save to file, default to out.json", "out.json")

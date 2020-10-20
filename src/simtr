@@ -4,7 +4,8 @@
 #
 
 COUNT=0
-CLEAN="NO"
+CLEAN="YES"
+SILENT="NO"
 POSITIONAL=()
 
 OFILE=out.csv
@@ -13,6 +14,11 @@ while [[ $# -gt 0 ]]
 do
     key="$1"
     case $key in
+        -o|--output)
+        OFILE="$2"
+        shift # past argument
+        shift # past value
+        ;;
         -c|--count)
         COUNT="$2"
         shift # past argument
@@ -20,6 +26,14 @@ do
         ;;
         --clean)
         CLEAN="YES"
+        shift # past argument
+        ;;
+        --dirty)
+        CLEAN="NO"
+        shift # past argument
+        ;;
+        --silent)
+        SILENT="YES"
         shift # past argument
         ;;
         *)    # unknown option
@@ -45,11 +59,14 @@ then
     node transboard.js -f $tempfile -p -t ${temprefix} -d
     cat ${temprefix}*.csv | sort -t , -k 3 -o $OFILE
     ls -l $OFILE
-    wc -l $OFILE
-    cat $tempfile
-    head -1 $OFILE
-    tail -1 $OFILE
-    awk -F , '{print $2}' $OFILE |grep cargo |sort -u
+    if [ $SILENT = "NO" ]
+    then
+        wc -l $OFILE
+        cat $tempfile
+        head -1 $OFILE
+        tail -1 $OFILE
+        awk -F , '{print $2}' $OFILE |grep cargo |sort -u
+    fi
 fi
 
 if [ $CLEAN = "YES" ]
